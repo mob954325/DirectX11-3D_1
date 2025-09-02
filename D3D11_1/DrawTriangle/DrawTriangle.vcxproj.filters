@@ -21,7 +21,7 @@
     <ClCompile Include="WinMain.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="TutorialApp.cpp">
+    <ClCompile Include="DrawTriangleApp.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

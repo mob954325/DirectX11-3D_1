@@ -59,7 +59,7 @@ void TutorialApp::Render()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, color);
 
 	// Draw 계열 함수를 호출 하기 전에 렌더링 파이프라인에 필수 스테이지 설정을 해야한다.
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	// 정점을 이어서 그릴 방식 설정
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	// 정점을 이어서 그릴 방식 설정 -> TriangleList
 	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertexBufferStride, &m_VertexBufferOffset);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout);
 	m_pDeviceContext->VSSetShader(m_pVertexShader, nullptr, 0);
