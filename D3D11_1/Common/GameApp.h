@@ -1,8 +1,5 @@
 ﻿#pragma once
 #include <windows.h>
-#include "TimeSystem.h"
-#include "InputSystem.h"
-#include "Camera.h"
 
 #define MAX_LOADSTRING 100
 
@@ -26,16 +23,6 @@ public:
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
 
-	// TimeSystem
-	// float m_previousTime;
-	// float m_currentTime;
-	// GameTimer m_Timer;
-	 
-	// InputSystem
-	// InputSystem m_Input;
-	
-	// Camera
-	// Camera m_Camera;
 public:
 
 	// 윈도우 정보 등록,생성,보이기 한다.
@@ -45,8 +32,4 @@ public:
 	virtual void Render() = 0; // 상속 받은 클래스에서 구현
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-	// InputProcess
-	// virtual void OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker,
-	// 	const Mouse::State& MouseState, const Mouse::ButtonStateTracker& MouseTracker);
 };

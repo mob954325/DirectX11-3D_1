@@ -24,13 +24,7 @@
     <ClInclude Include="GameApp.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="InputSystem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="TimeSystem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
+    <ClInclude Include="Helper.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -44,13 +38,7 @@
     <ClCompile Include="GameApp.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="InputSystem.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="TimeSystem.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Camera.cpp">
+    <ClCompile Include="Helper.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

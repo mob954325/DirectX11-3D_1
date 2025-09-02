@@ -41,13 +41,6 @@ void CreateDump(EXCEPTION_POINTERS* pExceptionPointers)
 	HANDLE hFile = CreateFile(fileName.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) return;
 
-	// MINIDUMP_EXCEPTION_INFORMATION dumpInfo;
-	// dumpInfo.ThreadId = GetCurrentThreadId();
-	// dumpInfo.ExceptionPointers = pExceptionPointers;
-	// dumpInfo.ClientPointers = TRUE;
-	
-	// MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &dumpInfo, NULL, NULL);
-
 	CloseHandle(hFile);
 }
 
@@ -165,8 +158,6 @@ LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 		PostQuitMessage(0);
 		break;
 	case WM_ACTIVATEAPP:
-		DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
-		DirectX::Mouse::ProcessMessage(message, wParam, lParam);
 		break;
 	case WM_INPUT:
 	case WM_MOUSEMOVE:
@@ -180,12 +171,10 @@ LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 	case WM_XBUTTONDOWN:
 	case WM_XBUTTONUP:
 	case WM_MOUSEHOVER:
-		Mouse::ProcessMessage(message, wParam, lParam);
 		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYUP:
-		Keyboard::ProcessMessage(message, wParam, lParam);
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
