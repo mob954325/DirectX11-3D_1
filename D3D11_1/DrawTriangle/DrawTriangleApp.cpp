@@ -1,4 +1,4 @@
-#include "TutorialApp.h"
+#include "DrawTriangleApp.h"
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
@@ -129,6 +129,10 @@ void TutorialApp::UninitD3D()
 	SAFE_RELEASE(m_pDeviceContext);
 	SAFE_RELEASE(m_pSwapChain);
 	SAFE_RELEASE(m_pDevice);
+}
+
+TutorialApp::TutorialApp()
+{
 }
 
 bool TutorialApp::InitScene()
