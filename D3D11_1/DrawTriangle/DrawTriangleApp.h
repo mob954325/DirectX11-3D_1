@@ -4,11 +4,11 @@
 
 #include "../Common/GameApp.h"
 
-class TutorialApp : public GameApp
+class DrawTriangleApp : public GameApp
 {
 public:
-	TutorialApp(HINSTANCE hInstance);
-	~TutorialApp();
+	DrawTriangleApp(HINSTANCE hInstance);
+	~DrawTriangleApp();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스 ( 뎁스 스텐실 뷰는 사용 안함 )
 	ID3D11Device* m_pDevice = nullptr;						// 디바이스

@@ -22,19 +22,19 @@ struct Vertex
 	Vector3 position;
 };
 
-TutorialApp::TutorialApp(HINSTANCE hInstance)
+DrawTriangleApp::DrawTriangleApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
 
 }
 
-TutorialApp::~TutorialApp()
+DrawTriangleApp::~DrawTriangleApp()
 {
 	UninitScene();
 	UninitD3D();
 }
 
-bool TutorialApp::Initialize(UINT Width, UINT Height)
+bool DrawTriangleApp::Initialize(UINT Width, UINT Height)
 {
 	__super::Initialize(Width, Height);
 
@@ -47,11 +47,11 @@ bool TutorialApp::Initialize(UINT Width, UINT Height)
 	return true;
 }
 
-void TutorialApp::Update()
+void DrawTriangleApp::Update()
 {
 }
 
-void TutorialApp::Render()
+void DrawTriangleApp::Render()
 {
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
 
@@ -72,7 +72,7 @@ void TutorialApp::Render()
 	m_pSwapChain->Present(0, 0);
 }
 
-bool TutorialApp::InitD3D()
+bool DrawTriangleApp::InitD3D()
 {
 	// 결과값.
 	HRESULT hr = 0;
@@ -123,7 +123,7 @@ bool TutorialApp::InitD3D()
 	return true;
 }
 
-void TutorialApp::UninitD3D()
+void DrawTriangleApp::UninitD3D()
 {
 	SAFE_RELEASE(m_pRenderTargetView);
 	SAFE_RELEASE(m_pDeviceContext);
@@ -131,7 +131,7 @@ void TutorialApp::UninitD3D()
 	SAFE_RELEASE(m_pDevice);
 }
 
-bool TutorialApp::InitScene()
+bool DrawTriangleApp::InitScene()
 {
 	HRESULT hr = S_OK;
 	ID3D10Blob* errorMessage = nullptr;	// 컴파일 에러 메세지가 저장될 버퍼.
@@ -154,7 +154,7 @@ bool TutorialApp::InitScene()
 		Vector3(0,0.5,0.5),		// v1    
 		Vector3(0.5,-0.5,0.5),	// v2		
 	};
-	
+
 	D3D11_BUFFER_DESC vbDesc = {};
 	m_VertexCount = ARRAYSIZE(vertices);				// 정점 개수
 	vbDesc.ByteWidth = sizeof(Vertex) * m_VertexCount;	// 버텍스 버퍼의 크기 (Byte).
@@ -167,7 +167,7 @@ bool TutorialApp::InitScene()
 	D3D11_SUBRESOURCE_DATA vbData = {};
 	vbData.pSysMem = vertices; // 버퍼를 생성할 때 복사할 데이터의 주소 설정
 	HR_T(hr = m_pDevice->CreateBuffer(&vbDesc, &vbData, &m_pVertexBuffer));
-	
+
 	// 버텍스 버퍼 정보
 	m_VertexBufferStride = sizeof(Vertex);	// 버텍스 하나의 크기 설정
 	m_VertexBufferOffset = 0;				// 버텍스 시작 주소에서 더 할 오프셋 주소 
@@ -176,8 +176,8 @@ bool TutorialApp::InitScene()
 	ID3DBlob* vertexShaderBuffer = nullptr;	// 버텍스 셰이더 HLSL의 컴파일된 결과(바이트 코드)를 담을 수 있는 버퍼 객체
 	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), // 필요한 데이터 복사하며 객체 생성
-									   vertexShaderBuffer->GetBufferSize(), 
-									   NULL, &m_pVertexShader));
+		vertexShaderBuffer->GetBufferSize(),
+		NULL, &m_pVertexShader));
 
 	// 3. Render()에서 파이프라인에 바인딩할 InputLayout 생성
 	// 
@@ -188,27 +188,27 @@ bool TutorialApp::InitScene()
 	};
 
 	// 버텍스 셰이더의 Input에 지정된 내용과 같은지 검증하면서 InputLayout 생성
-	HR_T(hr = m_pDevice->CreateInputLayout(layout, 
-										   ARRAYSIZE(layout),
-										   vertexShaderBuffer->GetBufferPointer(), 
-										   vertexShaderBuffer->GetBufferSize(), 
-										   &m_pInputLayout));
+	HR_T(hr = m_pDevice->CreateInputLayout(layout,
+		ARRAYSIZE(layout),
+		vertexShaderBuffer->GetBufferPointer(),
+		vertexShaderBuffer->GetBufferSize(),
+		&m_pInputLayout));
 
 	SAFE_RELEASE(vertexShaderBuffer); // 복사했으니 버퍼는 해제 가능
 
 	// 4. Render에서 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ID3DBlob* pixelShaderBuffer = nullptr;	// 픽셀 셰이더 HLSL의 컴파일된 결과(바이트 코드)를 담을 수 있는 객체
 	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), 
-									  pixelShaderBuffer->GetBufferSize(), 
-									  NULL, &m_pPixelShader));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(),
+		pixelShaderBuffer->GetBufferSize(),
+		NULL, &m_pPixelShader));
 
 	SAFE_RELEASE(pixelShaderBuffer); // 복사했으니 버퍼는 해제 가능
 
 	return true;
 }
 
-void TutorialApp::UninitScene()
+void DrawTriangleApp::UninitScene()
 {
 	SAFE_RELEASE(m_pVertexBuffer);
 	SAFE_RELEASE(m_pInputLayout);
