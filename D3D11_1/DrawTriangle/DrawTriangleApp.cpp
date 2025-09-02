@@ -131,10 +131,6 @@ void TutorialApp::UninitD3D()
 	SAFE_RELEASE(m_pDevice);
 }
 
-TutorialApp::TutorialApp()
-{
-}
-
 bool TutorialApp::InitScene()
 {
 	HRESULT hr = S_OK;
