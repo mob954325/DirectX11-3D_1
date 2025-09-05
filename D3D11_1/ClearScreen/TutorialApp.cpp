@@ -22,7 +22,7 @@ TutorialApp::TutorialApp(HINSTANCE hInstance)
 
 TutorialApp::~TutorialApp()
 {
-	UninitD3D();
+
 }
 
 bool TutorialApp::Initialize(UINT Width, UINT Height)
@@ -43,13 +43,13 @@ void TutorialApp::Render()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
-	m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL);
 #endif	
 
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
 
 	// 화면 칠하기.
-	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, color);
+	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 
 	// 스왑체인 교체
 	m_pSwapChain->Present(0, 0);
@@ -129,7 +129,7 @@ bool TutorialApp::InitD3D()
 
 	HR_T(pFactory->CreateSwapChainForHwnd
 	(
-		m_pDevice,
+		m_pDevice.Get(),
 		m_hWnd,
 		&swapChainDesc,
 		nullptr,
@@ -141,19 +141,11 @@ bool TutorialApp::InitD3D()
 	// 텍스쳐와 영구적으로 연결되는 객체
 	ComPtr<ID3D11Texture2D> pBackBufferTexture;
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
-	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, &m_pRenderTargetView));
+	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
 
 #if !USE_FLIPMODE
-	m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, nullptr); // ?
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr); // ?
 #endif
 
 	return true;
-}
-
-void TutorialApp::UninitD3D()
-{
-	SAFE_RELEASE(m_pRenderTargetView);
-	SAFE_RELEASE(m_pDeviceContext);
-	SAFE_RELEASE(m_pSwapChain);
-	SAFE_RELEASE(m_pDevice);
 }
