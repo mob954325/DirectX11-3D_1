@@ -1,4 +1,4 @@
-#include "DrawRectangleApp.h"
+﻿#include "DrawRectangleApp.h"
 #include "../Common/Helper.h"
 
 #include "directxtk/SimpleMath.h"
@@ -40,11 +40,11 @@ bool DrawRectangleApp::Initialize(UINT Width, UINT Height)
 	return true;
 }
 
-void DrawRectangleApp::Update()
+void DrawRectangleApp::OnUpdate()
 {
 }
 
-void DrawRectangleApp::Render()
+void DrawRectangleApp::OnRender()
 {
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
 

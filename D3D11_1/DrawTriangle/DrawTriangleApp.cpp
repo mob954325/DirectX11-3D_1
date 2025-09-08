@@ -1,4 +1,4 @@
-#include "DrawTriangleApp.h"
+﻿#include "DrawTriangleApp.h"
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
@@ -47,11 +47,11 @@ bool DrawTriangleApp::Initialize(UINT Width, UINT Height)
 	return true;
 }
 
-void DrawTriangleApp::Update()
+void DrawTriangleApp::OnUpdate()
 {
 }
 
-void DrawTriangleApp::Render()
+void DrawTriangleApp::OnRender()
 {
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
 

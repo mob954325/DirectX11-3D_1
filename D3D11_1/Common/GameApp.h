@@ -28,8 +28,11 @@ public:
 	// 윈도우 정보 등록,생성,보이기 한다.
 	virtual bool Initialize(UINT Width, UINT Height);
 	virtual bool Run();
-	virtual void Update(); // 상속 받은 클래스에서 구현
-	virtual void Render() = 0; // 상속 받은 클래스에서 구현
+
+	void Update();
+	void Render();
+	virtual void OnUpdate();		// Update할 내용 정의
+	virtual void OnRender() = 0;	// Render할 내용 정의
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };

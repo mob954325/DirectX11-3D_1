@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <d3d11.h>
 
 #include "../Common/GameApp.h"
@@ -27,8 +27,8 @@ public:
 	UINT m_IndexCount = 0;								// 인덱스 개수
 
 	virtual bool Initialize(UINT Width, UINT Height);	// 윈도우 정보는 게임 마다 다를수 있으므로 등록,생성,보이기만 한다.
-	virtual void Update();
-	virtual void Render();
+	virtual void OnUpdate();
+	virtual void OnRender();
 
 	bool InitD3D();
 	void UninitD3D();

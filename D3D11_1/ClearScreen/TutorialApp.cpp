@@ -35,11 +35,11 @@ bool TutorialApp::Initialize(UINT Width, UINT Height)
 	return true;
 }
 
-void TutorialApp::Update()
+void TutorialApp::OnUpdate()
 {
 }
 
-void TutorialApp::Render()
+void TutorialApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
