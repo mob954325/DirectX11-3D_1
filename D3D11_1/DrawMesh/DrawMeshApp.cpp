@@ -22,24 +22,25 @@ DrawMeshApp::DrawMeshApp(HINSTANCE hInstance)
 
 DrawMeshApp::~DrawMeshApp()
 {
-
+	UninitImGUI();
 }
 
-bool DrawMeshApp::Initialize(UINT Width, UINT Height)
+bool DrawMeshApp::OnInitialize()
 {
-	__super::Initialize(Width, Height);
-
 	if (!InitD3D())
+		return false;
+
+	if (!InitImGUI())
 		return false;
 
 	return true;
 }
 
-void DrawMeshApp::Update()
+void DrawMeshApp::OnUpdate()
 {
 }
 
-void DrawMeshApp::Render()
+void DrawMeshApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
@@ -51,8 +52,61 @@ void DrawMeshApp::Render()
 	// 화면 칠하기.
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 
+	// Render ImGui
+	RenderImGUI();
+
 	// 스왑체인 교체
 	m_pSwapChain->Present(0, 0);
+}
+
+bool DrawMeshApp::InitImGUI()
+{
+	bool isSetupSuccess = false;
+
+	// Setup Dear ImGui context 
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+
+	// Setup Platform/Renderer backends
+	isSetupSuccess = ImGui_ImplWin32_Init(m_hWnd);
+	if (!isSetupSuccess) return false;
+
+	isSetupSuccess = ImGui_ImplDX11_Init(m_pDevice.Get(), m_pDeviceContext.Get());
+	if (!isSetupSuccess) return false;
+
+	return true;
+}
+
+void DrawMeshApp::RenderImGUI()
+{
+	// Start the Dear ImGui frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	// show demo window
+	bool show_demo_window = true;
+	ImGui::Begin("Hello, ImGUI!");
+	ImGui::ShowDemoWindow(&show_demo_window);
+	ImGui::End();
+
+	// rendering
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+void DrawMeshApp::UninitImGUI()
+{
+	// Cleanup
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 bool DrawMeshApp::InitD3D()
@@ -148,4 +202,15 @@ bool DrawMeshApp::InitD3D()
 #endif
 
 	return true;
+}
+
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+LRESULT DrawMeshApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+		return true;
+
+	return __super::WndProc(hWnd, message, wParam, lParam);
 }

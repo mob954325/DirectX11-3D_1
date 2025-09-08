@@ -109,6 +109,13 @@ bool GameApp::Initialize(UINT Width, UINT Height)
 	ShowWindow(m_hWnd, SW_SHOW);
 	UpdateWindow(m_hWnd);
 
+	if (!OnInitialize()) return false;
+
+	return true;
+}
+
+bool GameApp::OnInitialize()
+{
 	return true;
 }
 
