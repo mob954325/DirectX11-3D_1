@@ -1,4 +1,4 @@
-﻿#include "DrawMeshApp.h"
+#include "DrawMeshApp.h"
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
@@ -8,11 +8,45 @@
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dxguid.lib")  // 꼭 필요!
+#pragma comment(lib, "d3dcompiler.lib")
 
 using namespace DirectX::SimpleMath;
+using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 #define USE_FLIPMODE 1 // 경고 메세지를 없애려면 Flip 모드를 사용한다.
+
+// TODO 
+// 1. 정육면체 랜더링하기 []
+// 2. 정육면체 회전하기 []
+// 3. 두 개의 서로 다른 정육면체가 계층 구조를 가지고 랜더링 []
+// 4. 카메라 적용시키기 []
+// 5. ImGUI를 아래와 같이 연결하기 [] 
+// 	a. 최상위 mesh의 월드 위치 변경 x,y,z
+//  b.두번째 mesh 의 상대 위치 변경 x, y, z
+//  c.세번째 mesh 의 상대 위치 변경 x, y, z
+//  d.카메라의 월드 위치 변경 x, y, z
+//  e.카메라의 FOV  각도(degree) 변경
+//  f.카메라의 Near, Far 변경
+
+// 정점 
+struct Vertex
+{
+	Vertex* parent = nullptr;
+	Vector3 localPosition;
+	Vector4 color;
+
+	Vertex(Vector3 pos = Vector3::Zero, Vector4 color = Vector4::Zero) : localPosition(pos), color(color) {}
+};
+
+// 상수 버퍼
+struct ConstantBuffer
+{
+	Matrix mWorld;
+	Matrix mView;
+	Matrix mProjection;
+};
 
 DrawMeshApp::DrawMeshApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
@@ -30,6 +64,9 @@ bool DrawMeshApp::OnInitialize()
 	if (!InitD3D())
 		return false;
 
+	if (!InitScene())
+		return false;
+
 	if (!InitImGUI())
 		return false;
 
@@ -38,6 +75,19 @@ bool DrawMeshApp::OnInitialize()
 
 void DrawMeshApp::OnUpdate()
 {
+	// float t = GameTimer::m_Instance->TotalTime();
+	float t = 0.014f; // 임시
+
+	// 1st Cube: Rotate around the origin
+	m_World1 = XMMatrixRotationY(t);
+
+	// 2nd Cube:  Rotate around origin
+	XMMATRIX mSpin = XMMatrixRotationZ(-t);
+	XMMATRIX mOrbit = XMMatrixRotationY(-t * 2.0f);
+	XMMATRIX mTranslate = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);
+	XMMATRIX mScale = XMMatrixScaling(0.3f, 0.3f, 0.3f);
+
+	// m_World2 = mScale * mSpin * mTranslate * mOrbit; // 스케일적용 -> R(제자리Y회전) -> 왼쪽으로 이동 ->  궤도회전
 }
 
 void DrawMeshApp::OnRender()
@@ -51,6 +101,34 @@ void DrawMeshApp::OnRender()
 
 	// 화면 칠하기.
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
+	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
+
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertexBufferStride, &m_VertexBufferOffset);
+	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+	// Update variables for the first cube
+	ConstantBuffer cb1;
+	cb1.mWorld = XMMatrixTranspose(m_World1);
+	cb1.mView = XMMatrixTranspose(m_View);
+	cb1.mProjection = XMMatrixTranspose(m_Projection);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
+
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+
+
+	// Update variables for the second cube	
+	// ConstantBuffer cb2;
+	// cb2.mWorld = XMMatrixTranspose(m_World2);
+	// cb2.mView = XMMatrixTranspose(m_View);
+	// cb2.mProjection = XMMatrixTranspose(m_Projection);
+	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb2, 0, 0);
+
+	// m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Render ImGui
 	RenderImGUI();
@@ -114,16 +192,9 @@ bool DrawMeshApp::InitD3D()
 	HRESULT hr = S_OK;
 
 	// 1. D3D11 Device, DeviceContext 생성
-
-	// https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ne-d3d11-d3d11_create_device_flag
 	UINT creationFlag = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #ifdef _DEBUG
-	/// https://learn.microsoft.com/ko-kr/windows/win32/direct3d11/overviews-direct3d-11-devices-layers
-	/// 디버그 계층을 지원하는 디바이스를 만들도록 플래그 추가
-	/// 
-	/// 디버그 계층은 광범위한 추가 매개 변수 및 일관성 유효성 검사(예: 셰이더 링크 및 리소스 바인딩 유효성 검사, 매개 변수 일관성 유효성 검사 및 오류 설명 보고)를 제공합니다.
-	/// 해당 설정을 사용할 경우 애플리케이션이 상당히 느려진다.
 	creationFlag |= D3D11_CREATE_DEVICE_DEBUG;
 #endif //  _DEBUG
 
@@ -198,8 +269,132 @@ bool DrawMeshApp::InitD3D()
 	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
 
 #if !USE_FLIPMODE
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr); // ?
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr); 
 #endif
+
+	// 4. viewport 설정
+	D3D11_VIEWPORT viewport = {};
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = (float)m_ClientWidth;
+	viewport.Height = (float)m_ClientHeight;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	m_pDeviceContext->RSSetViewports(1, &viewport);
+
+	// 5. 뎊스 스텐실 뷰 설정
+	D3D11_TEXTURE2D_DESC descDepth = {};
+	descDepth.Width = m_ClientWidth;
+	descDepth.Height = m_ClientHeight;
+	descDepth.MipLevels = 1;
+	descDepth.ArraySize = 1;
+	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // https://learn.microsoft.com/ko-kr/windows/win32/api/dxgiformat/ne-dxgiformat-dxgi_format
+	descDepth.SampleDesc.Count = 1;
+	descDepth.SampleDesc.Quality = 0;
+	descDepth.Usage = D3D11_USAGE_DEFAULT;
+	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	descDepth.CPUAccessFlags = 0;
+	descDepth.MiscFlags = 0;
+
+	// create depthStencil texture
+	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
+	HR_T(m_pDevice->CreateTexture2D(&descDepth, nullptr, pTextureDepthStencil.GetAddressOf()));
+
+	// create the depth stencil view
+	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+	descDSV.Format = descDepth.Format;
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D; // 사용되는 리소스 엑세스 방식 설정 : https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ne-d3d11-d3d11_dsv_dimension 
+	descDSV.Texture2D.MipSlice = 0;
+	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
+
+	return true;
+}
+
+bool DrawMeshApp::InitScene()
+{
+	HRESULT hr = S_OK;
+
+	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
+	Vertex vertices[] = // Local space, color
+	{
+		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f),	Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),	Vector4(1.0f, 1.0f, 1.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector4(0.0f, 0.0f, 0.0f, 1.0f) },
+	};
+
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.CPUAccessFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA vbData = {};
+	vbData.pSysMem = vertices;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &vbData, &m_pVertexBuffer));
+
+	// 2. 파이프라인에 바인딩할 InputLayout 생성
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
+	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
+	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
+
+	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_pVertexShader));
+
+	// 4. 파이프라인에 바인딩할 인덱스 버퍼
+	WORD indices[] = // 사각형 두 개?
+	{
+		3,1,0,  2,1,3,
+		0,5,4,  1,5,0,
+		3,4,7,  0,4,3,
+		1,6,5,  2,6,1,
+		2,7,6,  3,7,2,
+		6,4,5,  7,4,6,
+	};
+
+	m_nIndices = ARRAYSIZE(indices); // 인덱스 개수 저장
+
+	bufferDesc = {};
+	bufferDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
+	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.CPUAccessFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA ibData = {};
+	ibData.pSysMem = indices;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &ibData, &m_pIndexBuffer));
+
+	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
+	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
+	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShader));
+
+	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(ConstantBuffer);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, &m_pConstantBuffer));
+
+	// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
+	m_World1 = XMMatrixIdentity();
+
+	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
+	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	m_View = XMMatrixLookAtLH(Eye, At, Up);
+	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
 
 	return true;
 }
