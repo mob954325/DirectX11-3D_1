@@ -33,7 +33,6 @@ using Microsoft::WRL::ComPtr;
 // 정점 
 struct Vertex
 {
-	Vertex* parent = nullptr;
 	Vector3 localPosition;
 	Vector4 color;
 
@@ -73,10 +72,11 @@ bool DrawMeshApp::OnInitialize()
 	return true;
 }
 
+static float t = 0;
 void DrawMeshApp::OnUpdate()
 {
 	// float t = GameTimer::m_Instance->TotalTime();
-	float t = 0.014f; // 임시
+	t += 0.014f; // 임시
 
 	// 1st Cube: Rotate around the origin
 	m_World1 = XMMatrixRotationY(t);
@@ -87,14 +87,14 @@ void DrawMeshApp::OnUpdate()
 	XMMATRIX mTranslate = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);
 	XMMATRIX mScale = XMMatrixScaling(0.3f, 0.3f, 0.3f);
 
-	// m_World2 = mScale * mSpin * mTranslate * mOrbit; // 스케일적용 -> R(제자리Y회전) -> 왼쪽으로 이동 ->  궤도회전
+	m_World2 = mScale * mSpin * mTranslate * mOrbit; // 스케일적용 -> R(제자리Y회전) -> 왼쪽으로 이동 ->  궤도회전
 }
 
 void DrawMeshApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL);
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
 #endif	
 
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
@@ -104,11 +104,11 @@ void DrawMeshApp::OnRender()
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertexBufferStride, &m_VertexBufferOffset);
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertexBufferStride, &m_VertexBufferOffset);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 
 	// Update variables for the first cube
@@ -116,22 +116,22 @@ void DrawMeshApp::OnRender()
 	cb1.mWorld = XMMatrixTranspose(m_World1);
 	cb1.mView = XMMatrixTranspose(m_View);
 	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0); // 이거로 값을 넘겨줘서 움직이는 듯
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 
 	// Update variables for the second cube	
-	// ConstantBuffer cb2;
-	// cb2.mWorld = XMMatrixTranspose(m_World2);
-	// cb2.mView = XMMatrixTranspose(m_View);
-	// cb2.mProjection = XMMatrixTranspose(m_Projection);
-	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb2, 0, 0);
+	ConstantBuffer cb2;
+	cb2.mWorld = XMMatrixTranspose(m_World2);
+	cb2.mView = XMMatrixTranspose(m_View);
+	cb2.mProjection = XMMatrixTranspose(m_Projection);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb2, 0, 0);
 
-	// m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Render ImGui
-	RenderImGUI();
+	// RenderImGUI();
 
 	// 스왑체인 교체
 	m_pSwapChain->Present(0, 0);
@@ -335,7 +335,10 @@ bool DrawMeshApp::InitScene()
 
 	D3D11_SUBRESOURCE_DATA vbData = {};
 	vbData.pSysMem = vertices;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &vbData, &m_pVertexBuffer));
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &vbData, m_pVertexBuffer.GetAddressOf()));
+
+	m_VertexBufferStride = sizeof(Vertex); 	// 버텍스 버퍼의 정보
+	m_VertexBufferOffset = 0;
 
 	// 2. 파이프라인에 바인딩할 InputLayout 생성
 	D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -346,10 +349,10 @@ bool DrawMeshApp::InitScene()
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_pInputLayout));
+	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
 	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_pVertexShader));
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 	// 4. 파이프라인에 바인딩할 인덱스 버퍼
 	WORD indices[] = // 사각형 두 개?
@@ -372,12 +375,12 @@ bool DrawMeshApp::InitScene()
 
 	D3D11_SUBRESOURCE_DATA ibData = {};
 	ibData.pSysMem = indices;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &ibData, &m_pIndexBuffer));
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &ibData, m_pIndexBuffer.GetAddressOf()));
 
 	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_pPixelShader));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
 	bufferDesc = {};
@@ -385,10 +388,11 @@ bool DrawMeshApp::InitScene()
 	bufferDesc.ByteWidth = sizeof(ConstantBuffer);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, &m_pConstantBuffer));
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pConstantBuffer.GetAddressOf()));
 
 	// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
 	m_World1 = XMMatrixIdentity();
+	m_World2 = XMMatrixIdentity();
 
 	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
