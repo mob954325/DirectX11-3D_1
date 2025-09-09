@@ -2,14 +2,16 @@
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
-#include <dxgidebug.h> // ?
+#include <dxgidebug.h>  // ?
 #include <dxgi1_3.h>
 #include <wrl/client.h>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dxguid.lib")  // 꼭 필요!
+#pragma comment(lib, "dxguid.lib") // ?
 #pragma comment(lib, "d3dcompiler.lib")
+
+#include <string>
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -18,17 +20,18 @@ using Microsoft::WRL::ComPtr;
 #define USE_FLIPMODE 1 // 경고 메세지를 없애려면 Flip 모드를 사용한다.
 
 // TODO 
-// 1. 정육면체 랜더링하기 []
-// 2. 정육면체 회전하기 []
-// 3. 두 개의 서로 다른 정육면체가 계층 구조를 가지고 랜더링 []
-// 4. 카메라 적용시키기 []
-// 5. ImGUI를 아래와 같이 연결하기 [] 
+// 1. 정육면체 랜더링하기 [v]
+// 2. 정육면체 회전하기 [v]
+// 3. 두 개의 서로 다른 정육면체가 계층 구조를 가지고 랜더링 [v]
+// 4. 카메라 적용시키기 [v]
+// 5. ImGUI를 아래와 같이 연결하기 [v] 
 // 	a. 최상위 mesh의 월드 위치 변경 x,y,z
 //  b.두번째 mesh 의 상대 위치 변경 x, y, z
 //  c.세번째 mesh 의 상대 위치 변경 x, y, z
 //  d.카메라의 월드 위치 변경 x, y, z
 //  e.카메라의 FOV  각도(degree) 변경
 //  f.카메라의 Near, Far 변경
+// 6. depthStencil 사용해서 큐브가 뒤에 가리는지 확인하기 [v]
 
 // 정점 
 struct Vertex
@@ -69,32 +72,136 @@ bool DrawMeshApp::OnInitialize()
 	if (!InitImGUI())
 		return false;
 
+	ResetValues();
+
 	return true;
 }
 
-static float t = 0;
 void DrawMeshApp::OnUpdate()
 {
-	// float t = GameTimer::m_Instance->TotalTime();
-	t += 0.014f; // 임시
+	float t = GameTimer::m_Instance->TotalTime();
 
+	bool useSimpleFunc = true;
+	if (!useSimpleFunc)
+	{
+#pragma region Calc Matrix
 	// 1st Cube: Rotate around the origin
-	m_World1 = XMMatrixRotationY(t);
+	float fSinAngle1 = sin(t);
+	float fCosAngle1 = cos(t);
 
-	// 2nd Cube:  Rotate around origin
-	XMMATRIX mSpin = XMMatrixRotationZ(-t);
-	XMMATRIX mOrbit = XMMatrixRotationY(-t * 2.0f);
-	XMMATRIX mTranslate = XMMatrixTranslation(-4.0f, 0.0f, 0.0f);
-	XMMATRIX mScale = XMMatrixScaling(0.3f, 0.3f, 0.3f);
+	Matrix m_World1Transform =
+	{
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
 
-	m_World2 = mScale * mSpin * mTranslate * mOrbit; // 스케일적용 -> R(제자리Y회전) -> 왼쪽으로 이동 ->  궤도회전
+	Matrix m_World1Rotation =
+	{
+		1.0f * fCosAngle1, 0.0f, -fSinAngle1      , 0.0f,
+		0.0f             , 1.0f, 0.0f             , 0.0f,
+		fSinAngle1       , 0.0f, 1.0f * fCosAngle1, 0.0f,
+		0.0f            , 0.0f, 0.0f              , 1.0f
+	};
+
+	Vector3 scale1 = { 1.0f,1.0f,1.0f };
+	Matrix m_World1Scale =
+	{
+		scale1.x, 0.0f    , 0.0f    , 0.0f,
+		0.0f    , scale1.y, 0.0f    , 0.0f,
+		0.0f    , 0.0f    , scale1.z, 0.0f,
+		0.0f    , 0.0f    , 0.0f    , 1.0f
+	};
+
+	//s->r->t
+	Matrix m_World1FinalMatrix = m_World1Scale * m_World1Rotation * m_World1Transform;
+	m_World1 = m_World1FinalMatrix;
+
+	// 2nd Cube: Rotate around 1st cube and rotate self
+	float speedScale = -5.0f;
+	float fCosAngle2 = cos(t * speedScale);
+	float fSinAngle2 = sin(t * speedScale);
+
+	Matrix m_World2Transform =
+	{
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+	   -4.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	Matrix m_World2Rotation =
+	{
+		1.0f * fCosAngle2, 0.0f, -fSinAngle2      , 0.0f,
+		0.0f             , 1.0f, 0.0f             , 0.0f,
+		fSinAngle2       , 0.0f, 1.0f * fCosAngle2, 0.0f,
+		0.0f            , 0.0f, 0.0f              , 1.0f
+	};
+
+	Vector3 scale2 = { 0.9f,0.9f,0.9f };
+	Matrix m_World2Scale =
+	{
+		scale2.x, 0.0f    , 0.0f    , 0.0f,
+		0.0f    , scale2.y, 0.0f    , 0.0f,
+		0.0f    , 0.0f    , scale2.z, 0.0f,
+		0.0f    , 0.0f    , 0.0f    , 1.0f
+	};
+
+	Matrix m_World2FinalMatrix = m_World2Scale * m_World2Rotation * m_World2Transform;
+	m_World2 = m_World2FinalMatrix * m_World1;
+
+	// 3nd Cube: Rotate around 2nd cube
+	float fCosAngle3 = cos(t);
+	float fSinAngle3 = sin(t);
+
+	Matrix m_World3Transform =
+	{
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		-10.0f, 2.0f, 0.0f, 1.0f
+	};
+
+	Matrix m_World3Rotation =
+	{
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	Vector3 scale3 = { 0.7f,0.7f,0.7f };
+	Matrix m_World3Scale =
+	{
+		scale3.x, 0.0f    , 0.0f    , 0.0f,
+		0.0f    , scale3.y, 0.0f    , 0.0f,
+		0.0f    , 0.0f    , scale3.z, 0.0f,
+		0.0f    , 0.0f    , 0.0f    , 1.0f
+	};
+
+	Matrix m_World3FinalMatrix = m_World3Scale * m_World3Rotation * m_World3Transform;
+	m_World3 = m_World3FinalMatrix * m_World2;
+#pragma endregion
+	}
+	else
+	{
+		m_World1 = m_World1.CreateRotationY(t) * m_World1.CreateTranslation(m_World1Position);
+		m_World2 = m_World2.CreateScale(0.8f) * m_World2.CreateRotationY(t * 2.4f) * m_World2.CreateTranslation(m_World2Position) * m_World1;
+		m_World3 = m_World3.CreateScale(1.2f) * m_World3.CreateTranslation(m_World3Position) * m_World2;
+	}
+
+	// Camera
+	m_Camera.GetCameraViewMatrix(m_View);
 }
 
 void DrawMeshApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
+
+	// m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL); // depthStencilView X
 #endif	
 
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
@@ -116,10 +223,9 @@ void DrawMeshApp::OnRender()
 	cb1.mWorld = XMMatrixTranspose(m_World1);
 	cb1.mView = XMMatrixTranspose(m_View);
 	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0); // 이거로 값을 넘겨줘서 움직이는 듯
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-
 
 	// Update variables for the second cube	
 	ConstantBuffer cb2;
@@ -130,8 +236,17 @@ void DrawMeshApp::OnRender()
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
+	// Update variables for the third cube	
+	ConstantBuffer cb3;
+	cb3.mWorld = XMMatrixTranspose(m_World3);
+	cb3.mView = XMMatrixTranspose(m_View);
+	cb3.mProjection = XMMatrixTranspose(m_Projection);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb3, 0, 0);
+
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+
 	// Render ImGui
-	// RenderImGUI();
+	RenderImGUI();
 
 	// 스왑체인 교체
 	m_pSwapChain->Present(0, 0);
@@ -168,10 +283,81 @@ void DrawMeshApp::RenderImGUI()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	// show demo window
-	bool show_demo_window = true;
-	ImGui::Begin("Hello, ImGUI!");
-	ImGui::ShowDemoWindow(&show_demo_window);
+	// 월드 오브젝트 조종 창 만들기
+	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
+	ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
+	ImGui::Begin("World Object Controller");
+
+	// 큐브 위치 조절 
+	ImGui::DragFloat3("Cube1 Position", &m_World1Position.x);
+	ImGui::DragFloat3("Cube2 Position", &m_World2Position.x);
+	ImGui::DragFloat3("Cube3 Position", &m_World3Position.x);
+	ImGui::NewLine();
+
+	// 카메라 위치 및 회전 설정
+	ImGui::DragFloat3("Camera Position", &m_Camera.m_Position.x);
+	ImGui::DragFloat3("Camera Rotation", &m_CameraRotation.x);
+
+	if (ImGui::Button("Set Rotation"))
+	{
+		m_Camera.m_Rotation.x = XMConvertToRadians(m_CameraRotation.x);
+		m_Camera.m_Rotation.y = XMConvertToRadians(m_CameraRotation.y);
+		m_Camera.m_Rotation.z = XMConvertToRadians(m_CameraRotation.z);
+	}
+
+	// Near 값 설정
+	ImGui::DragFloat("Near", &m_Near);
+	if (ImGui::Button("Set Near"))
+	{
+		m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
+	}
+
+	// Far 값 설정
+	ImGui::DragFloat("Far", &m_Far);
+	if (ImGui::Button("Set Far"))
+	{
+		m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
+	}
+
+	// 리셋 버튼
+	if (ImGui::Button("Reset", { 50, 20 }))
+	{
+		ResetValues();
+	}
+	ImGui::End();
+
+	// 각 큐브 매트릭스 정보 창 만들기
+	ImGui::SetNextWindowPos(ImVec2(m_ClientWidth - 300, 0.0f), ImGuiCond_Once);	// 처음 실행될 때 위치 초기화
+	ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
+	ImGui::Begin("Info");
+	ImGui::Text("Matrix1");
+
+	std::string mat = std::to_string(m_World1._11) + " " + std::to_string(m_World1._12) + " " + std::to_string(m_World1._13) + " " + std::to_string(m_World1._14) + "\n" +
+		std::to_string(m_World1._21) + " " + std::to_string(m_World1._22) + " " + std::to_string(m_World1._23) + " " + std::to_string(m_World1._24) + "\n" +
+		std::to_string(m_World1._31) + " " + std::to_string(m_World1._32) + " " + std::to_string(m_World1._33) + " " + std::to_string(m_World1._34) + "\n" +
+		std::to_string(m_World1._41) + " " + std::to_string(m_World1._42) + " " + std::to_string(m_World1._43) + " " + std::to_string(m_World1._44);
+
+	ImGui::Text(mat.c_str());
+	ImGui::NewLine();
+
+	ImGui::Text("Matrix2");
+	mat = std::to_string(m_World2._11) + " " + std::to_string(m_World2._12) + " " + std::to_string(m_World2._13) + " " + std::to_string(m_World2._14) + "\n" +
+		std::to_string(m_World2._21) + " " + std::to_string(m_World2._22) + " " + std::to_string(m_World2._23) + " " + std::to_string(m_World2._24) + "\n" +
+		std::to_string(m_World2._31) + " " + std::to_string(m_World2._32) + " " + std::to_string(m_World2._33) + " " + std::to_string(m_World2._34) + "\n" +
+		std::to_string(m_World2._41) + " " + std::to_string(m_World2._42) + " " + std::to_string(m_World2._43) + " " + std::to_string(m_World2._44);
+
+	ImGui::Text(mat.c_str());
+	ImGui::NewLine();
+
+	ImGui::Text("Matrix3");
+	mat = std::to_string(m_World3._11) + " " + std::to_string(m_World3._12) + " " + std::to_string(m_World3._13) + " " + std::to_string(m_World3._14) + "\n" +
+		std::to_string(m_World3._21) + " " + std::to_string(m_World3._22) + " " + std::to_string(m_World3._23) + " " + std::to_string(m_World3._24) + "\n" +
+		std::to_string(m_World3._31) + " " + std::to_string(m_World3._32) + " " + std::to_string(m_World3._33) + " " + std::to_string(m_World3._34) + "\n" +
+		std::to_string(m_World3._41) + " " + std::to_string(m_World3._42) + " " + std::to_string(m_World3._43) + " " + std::to_string(m_World3._44);
+
+	ImGui::Text(mat.c_str());
+	ImGui::NewLine();
+
 	ImGui::End();
 
 	// rendering
@@ -314,6 +500,16 @@ bool DrawMeshApp::InitScene()
 {
 	HRESULT hr = S_OK;
 
+	///   0--------------1
+	///  / |           / |
+	/// /  |          /  |
+	/// 3--+---------2   |
+	/// |  |4--------|---/ 5
+	/// | /          |  /
+	/// |/           | /
+	/// 7-------------+ 6
+
+
 	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
 	Vertex vertices[] = // Local space, color
 	{
@@ -357,12 +553,12 @@ bool DrawMeshApp::InitScene()
 	// 4. 파이프라인에 바인딩할 인덱스 버퍼
 	WORD indices[] = // 사각형 두 개?
 	{
-		3,1,0,  2,1,3,
-		0,5,4,  1,5,0,
-		3,4,7,  0,4,3,
-		1,6,5,  2,6,1,
-		2,7,6,  3,7,2,
-		6,4,5,  7,4,6,
+		0,3,2, 2,1,0,
+		4,5,7, 5,6,7,
+		0,4,7, 7,3,0,
+		6,5,1, 1,2,6,
+		7,6,2, 2,3,7,
+		5,4,0, 0,1,5
 	};
 
 	m_nIndices = ARRAYSIZE(indices); // 인덱스 개수 저장
@@ -394,13 +590,25 @@ bool DrawMeshApp::InitScene()
 	m_World1 = XMMatrixIdentity();
 	m_World2 = XMMatrixIdentity();
 
-	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
-	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMVECTOR Eye = XMVectorSet(0.0f, 10.0f, -8.0f, 0.0f);
+	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	m_View = XMMatrixLookAtLH(Eye, At, Up);
-	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, 0.01f, 100.0f);
+	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	return true;
+}
+
+void DrawMeshApp::ResetValues()
+{
+	m_World1Position = m_World1PositionInitial;
+	m_World2Position = m_World2PositionInitial;
+	m_World3Position = m_World3PositionInitial;
+
+	m_Near = 0.01f;
+	m_Far = 100.0f;
+
+	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp

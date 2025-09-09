@@ -42,10 +42,26 @@ public:
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 
 	// 좌표계 변환을 위한 행렬 모음
-	Matrix m_World1;			// 월드 좌표계 공간으로 변환을 위한 행렬.
-	Matrix m_World2;			// 월드 좌표계 공간으로 변환을 위한 행렬.
+	Matrix m_World1;			// 월드 좌표계 공간으로 변환을 위한 행렬, origin 위치에 있는 큐브 행렬
+	Matrix m_World2;			// m_World1를 부모로하는 큐브 행렬
+	Matrix m_World3;			// m_World2를 부모로하는 큐브 행렬
 	Matrix m_View;				// 뷰 좌표계 공간으로 변환을 위한 행렬.
 	Matrix m_Projection;		// 단위 장치 좌표계 ( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
+
+	// imgui 컨트롤 변수
+	Vector3 m_World1Position{};
+	Vector3 m_World1PositionInitial{ 0.0f, 0.0f, 0.0f };
+
+	Vector3 m_World2Position{};
+	Vector3 m_World2PositionInitial{ -5.0f, 0.0f, 0.0f };
+
+	Vector3 m_World3Position{};
+	Vector3 m_World3PositionInitial{ -10.0f, 0.0f, 0.0f };
+
+	Vector3 m_CameraRotation{};
+
+	float m_Near = 0.01f;
+	float m_Far = 100.0f;
 
 	virtual bool OnInitialize();
 	virtual void OnUpdate();
@@ -57,6 +73,8 @@ public:
 
 	bool InitD3D();
 	bool InitScene();
+
+	void ResetValues();
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
