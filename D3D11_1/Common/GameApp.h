@@ -1,10 +1,12 @@
 #pragma once
 #include <windows.h>
 #include "TimeSystem.h"
+#include "InputSystem.h"
+#include "Camera.h"
 
 #define MAX_LOADSTRING 100
 
-class GameApp
+class GameApp : public InputProcesser
 {
 public:
 	GameApp(HINSTANCE hInstance);
@@ -25,6 +27,8 @@ public:
 	UINT m_ClientHeight;
 
 	GameTimer m_GameTimer;
+	InputSystem m_InputSystem;
+	FreeCamera m_Camera;
 
 public:
 
@@ -40,4 +44,6 @@ public:
 	virtual void OnRender() = 0;	// Render할 내용 정의
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	virtual void OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker,
+		const Mouse::State& MouseState, const Mouse::ButtonStateTracker& MouseTracker);
 };

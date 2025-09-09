@@ -109,13 +109,15 @@ bool GameApp::Initialize(UINT Width, UINT Height)
 	ShowWindow(m_hWnd, SW_SHOW);
 	UpdateWindow(m_hWnd);
 
+	m_InputSystem.Initialize(m_hWnd, this);
+
 	if (!OnInitialize()) return false;
 
 	return true;
 }
 
 bool GameApp::OnInitialize()
-{
+{	
 	return true;
 }
 
@@ -147,6 +149,8 @@ bool GameApp::Run()
 void GameApp::Update()
 {
 	m_GameTimer.Tick();
+	m_InputSystem.Update(m_GameTimer.DeltaTime());
+	m_Camera.Update(m_GameTimer.DeltaTime());
 	OnUpdate();
 }
 
@@ -176,6 +180,8 @@ LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 		PostQuitMessage(0);
 		break;
 	case WM_ACTIVATEAPP:
+		DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
+		DirectX::Mouse::ProcessMessage(message, wParam, lParam);
 		break;
 	case WM_INPUT:
 	case WM_MOUSEMOVE:
@@ -189,13 +195,20 @@ LRESULT CALLBACK GameApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
 	case WM_XBUTTONDOWN:
 	case WM_XBUTTONUP:
 	case WM_MOUSEHOVER:
+		DirectX::Mouse::ProcessMessage(message, wParam, lParam);
 		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYUP:
+		DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
+}
+
+void GameApp::OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker, const Mouse::State& MouseState, const Mouse::ButtonStateTracker& MouseTracker)
+{
+	m_Camera.OnInputProcess(KeyState, KeyTracker, MouseState, MouseTracker);
 }
