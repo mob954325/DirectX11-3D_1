@@ -58,6 +58,7 @@ public:
 	Vector3 m_World3Position{};
 	Vector3 m_World3PositionInitial{ -10.0f, 0.0f, 0.0f };
 
+	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -30.0f };
 	Vector3 m_CameraRotation{};
 
 	float m_Near = 0.01f;

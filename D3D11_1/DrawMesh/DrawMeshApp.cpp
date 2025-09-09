@@ -85,103 +85,103 @@ void DrawMeshApp::OnUpdate()
 	if (!useSimpleFunc)
 	{
 #pragma region Calc Matrix
-	// 1st Cube: Rotate around the origin
-	float fSinAngle1 = sin(t);
-	float fCosAngle1 = cos(t);
+		// 1st Cube: Rotate around the origin
+		float fSinAngle1 = sin(t);
+		float fCosAngle1 = cos(t);
 
-	Matrix m_World1Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
+		Matrix m_World1Transform =
+		{
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		};
 
-	Matrix m_World1Rotation =
-	{
-		1.0f * fCosAngle1, 0.0f, -fSinAngle1      , 0.0f,
-		0.0f             , 1.0f, 0.0f             , 0.0f,
-		fSinAngle1       , 0.0f, 1.0f * fCosAngle1, 0.0f,
-		0.0f            , 0.0f, 0.0f              , 1.0f
-	};
+		Matrix m_World1Rotation =
+		{
+			1.0f * fCosAngle1, 0.0f, -fSinAngle1      , 0.0f,
+			0.0f             , 1.0f, 0.0f             , 0.0f,
+			fSinAngle1       , 0.0f, 1.0f * fCosAngle1, 0.0f,
+			0.0f            , 0.0f, 0.0f              , 1.0f
+		};
 
-	Vector3 scale1 = { 1.0f,1.0f,1.0f };
-	Matrix m_World1Scale =
-	{
-		scale1.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale1.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale1.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
+		Vector3 scale1 = { 1.0f,1.0f,1.0f };
+		Matrix m_World1Scale =
+		{
+			scale1.x, 0.0f    , 0.0f    , 0.0f,
+			0.0f    , scale1.y, 0.0f    , 0.0f,
+			0.0f    , 0.0f    , scale1.z, 0.0f,
+			0.0f    , 0.0f    , 0.0f    , 1.0f
+		};
 
-	//s->r->t
-	Matrix m_World1FinalMatrix = m_World1Scale * m_World1Rotation * m_World1Transform;
-	m_World1 = m_World1FinalMatrix;
+		//s->r->t
+		Matrix m_World1FinalMatrix = m_World1Scale * m_World1Rotation * m_World1Transform;
+		m_World1 = m_World1FinalMatrix;
 
-	// 2nd Cube: Rotate around 1st cube and rotate self
-	float speedScale = -5.0f;
-	float fCosAngle2 = cos(t * speedScale);
-	float fSinAngle2 = sin(t * speedScale);
+		// 2nd Cube: Rotate around 1st cube and rotate self
+		float speedScale = -5.0f;
+		float fCosAngle2 = cos(t * speedScale);
+		float fSinAngle2 = sin(t * speedScale);
 
-	Matrix m_World2Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-	   -4.0f, 0.0f, 0.0f, 1.0f
-	};
+		Matrix m_World2Transform =
+		{
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+		   -4.0f, 0.0f, 0.0f, 1.0f
+		};
 
-	Matrix m_World2Rotation =
-	{
-		1.0f * fCosAngle2, 0.0f, -fSinAngle2      , 0.0f,
-		0.0f             , 1.0f, 0.0f             , 0.0f,
-		fSinAngle2       , 0.0f, 1.0f * fCosAngle2, 0.0f,
-		0.0f            , 0.0f, 0.0f              , 1.0f
-	};
+		Matrix m_World2Rotation =
+		{
+			1.0f * fCosAngle2, 0.0f, -fSinAngle2      , 0.0f,
+			0.0f             , 1.0f, 0.0f             , 0.0f,
+			fSinAngle2       , 0.0f, 1.0f * fCosAngle2, 0.0f,
+			0.0f            , 0.0f, 0.0f              , 1.0f
+		};
 
-	Vector3 scale2 = { 0.9f,0.9f,0.9f };
-	Matrix m_World2Scale =
-	{
-		scale2.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale2.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale2.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
+		Vector3 scale2 = { 0.9f,0.9f,0.9f };
+		Matrix m_World2Scale =
+		{
+			scale2.x, 0.0f    , 0.0f    , 0.0f,
+			0.0f    , scale2.y, 0.0f    , 0.0f,
+			0.0f    , 0.0f    , scale2.z, 0.0f,
+			0.0f    , 0.0f    , 0.0f    , 1.0f
+		};
 
-	Matrix m_World2FinalMatrix = m_World2Scale * m_World2Rotation * m_World2Transform;
-	m_World2 = m_World2FinalMatrix * m_World1;
+		Matrix m_World2FinalMatrix = m_World2Scale * m_World2Rotation * m_World2Transform;
+		m_World2 = m_World2FinalMatrix * m_World1;
 
-	// 3nd Cube: Rotate around 2nd cube
-	float fCosAngle3 = cos(t);
-	float fSinAngle3 = sin(t);
+		// 3nd Cube: Rotate around 2nd cube
+		float fCosAngle3 = cos(t);
+		float fSinAngle3 = sin(t);
 
-	Matrix m_World3Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		-10.0f, 2.0f, 0.0f, 1.0f
-	};
+		Matrix m_World3Transform =
+		{
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			-10.0f, 2.0f, 0.0f, 1.0f
+		};
 
-	Matrix m_World3Rotation =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
+		Matrix m_World3Rotation =
+		{
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		};
 
-	Vector3 scale3 = { 0.7f,0.7f,0.7f };
-	Matrix m_World3Scale =
-	{
-		scale3.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale3.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale3.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
+		Vector3 scale3 = { 0.7f,0.7f,0.7f };
+		Matrix m_World3Scale =
+		{
+			scale3.x, 0.0f    , 0.0f    , 0.0f,
+			0.0f    , scale3.y, 0.0f    , 0.0f,
+			0.0f    , 0.0f    , scale3.z, 0.0f,
+			0.0f    , 0.0f    , 0.0f    , 1.0f
+		};
 
-	Matrix m_World3FinalMatrix = m_World3Scale * m_World3Rotation * m_World3Transform;
-	m_World3 = m_World3FinalMatrix * m_World2;
+		Matrix m_World3FinalMatrix = m_World3Scale * m_World3Rotation * m_World3Transform;
+		m_World3 = m_World3FinalMatrix * m_World2;
 #pragma endregion
 	}
 	else
@@ -285,7 +285,7 @@ void DrawMeshApp::RenderImGUI()
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
-	ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
+	ImGui::SetNextWindowSize(ImVec2(350, 300), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
 	ImGui::Begin("World Object Controller");
 
 	// 큐브 위치 조절 
@@ -324,40 +324,6 @@ void DrawMeshApp::RenderImGUI()
 	{
 		ResetValues();
 	}
-	ImGui::End();
-
-	// 각 큐브 매트릭스 정보 창 만들기
-	ImGui::SetNextWindowPos(ImVec2(m_ClientWidth - 300, 0.0f), ImGuiCond_Once);	// 처음 실행될 때 위치 초기화
-	ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
-	ImGui::Begin("Info");
-	ImGui::Text("Matrix1");
-
-	std::string mat = std::to_string(m_World1._11) + " " + std::to_string(m_World1._12) + " " + std::to_string(m_World1._13) + " " + std::to_string(m_World1._14) + "\n" +
-		std::to_string(m_World1._21) + " " + std::to_string(m_World1._22) + " " + std::to_string(m_World1._23) + " " + std::to_string(m_World1._24) + "\n" +
-		std::to_string(m_World1._31) + " " + std::to_string(m_World1._32) + " " + std::to_string(m_World1._33) + " " + std::to_string(m_World1._34) + "\n" +
-		std::to_string(m_World1._41) + " " + std::to_string(m_World1._42) + " " + std::to_string(m_World1._43) + " " + std::to_string(m_World1._44);
-
-	ImGui::Text(mat.c_str());
-	ImGui::NewLine();
-
-	ImGui::Text("Matrix2");
-	mat = std::to_string(m_World2._11) + " " + std::to_string(m_World2._12) + " " + std::to_string(m_World2._13) + " " + std::to_string(m_World2._14) + "\n" +
-		std::to_string(m_World2._21) + " " + std::to_string(m_World2._22) + " " + std::to_string(m_World2._23) + " " + std::to_string(m_World2._24) + "\n" +
-		std::to_string(m_World2._31) + " " + std::to_string(m_World2._32) + " " + std::to_string(m_World2._33) + " " + std::to_string(m_World2._34) + "\n" +
-		std::to_string(m_World2._41) + " " + std::to_string(m_World2._42) + " " + std::to_string(m_World2._43) + " " + std::to_string(m_World2._44);
-
-	ImGui::Text(mat.c_str());
-	ImGui::NewLine();
-
-	ImGui::Text("Matrix3");
-	mat = std::to_string(m_World3._11) + " " + std::to_string(m_World3._12) + " " + std::to_string(m_World3._13) + " " + std::to_string(m_World3._14) + "\n" +
-		std::to_string(m_World3._21) + " " + std::to_string(m_World3._22) + " " + std::to_string(m_World3._23) + " " + std::to_string(m_World3._24) + "\n" +
-		std::to_string(m_World3._31) + " " + std::to_string(m_World3._32) + " " + std::to_string(m_World3._33) + " " + std::to_string(m_World3._34) + "\n" +
-		std::to_string(m_World3._41) + " " + std::to_string(m_World3._42) + " " + std::to_string(m_World3._43) + " " + std::to_string(m_World3._44);
-
-	ImGui::Text(mat.c_str());
-	ImGui::NewLine();
-
 	ImGui::End();
 
 	// rendering
@@ -455,7 +421,7 @@ bool DrawMeshApp::InitD3D()
 	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
 
 #if !USE_FLIPMODE
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr); 
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr);
 #endif
 
 	// 4. viewport 설정
@@ -608,6 +574,10 @@ void DrawMeshApp::ResetValues()
 	m_Near = 0.01f;
 	m_Far = 100.0f;
 	m_PovAngle = XM_PIDIV2;
+
+	m_CameraRotation = Vector3::Zero;
+	m_Camera.SetRotation(m_CameraRotation);
+	m_Camera.SetPosition(m_CameraPositionInitial);
 
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 }
