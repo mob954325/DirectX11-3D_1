@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "GameApp.h"
 
 // Debug 모듈관련 헤더 파일 및 라이브러리
@@ -146,6 +146,7 @@ bool GameApp::Run()
 
 void GameApp::Update()
 {
+	m_GameTimer.Tick();
 	OnUpdate();
 }
 

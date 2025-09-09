@@ -1,5 +1,6 @@
-﻿#pragma once
+#pragma once
 #include <windows.h>
+#include "TimeSystem.h"
 
 #define MAX_LOADSTRING 100
 
@@ -22,6 +23,8 @@ public:
 	int  m_nCmdShow;
 	UINT m_ClientWidth;
 	UINT m_ClientHeight;
+
+	GameTimer m_GameTimer;
 
 public:
 
