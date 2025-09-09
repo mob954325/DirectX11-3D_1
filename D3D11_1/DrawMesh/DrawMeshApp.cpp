@@ -285,7 +285,7 @@ void DrawMeshApp::RenderImGUI()
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
-	ImGui::SetNextWindowSize(ImVec2(300, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
+	ImGui::SetNextWindowSize(ImVec2(500, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
 	ImGui::Begin("World Object Controller");
 
 	// 큐브 위치 조절 
@@ -306,18 +306,18 @@ void DrawMeshApp::RenderImGUI()
 	}
 
 	// Near 값 설정
-	ImGui::DragFloat("Near", &m_Near);
-	if (ImGui::Button("Set Near"))
-	{
-		m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
-	}
+	ImGui::DragFloat("Near", &m_Near, 0.5f);
 
 	// Far 값 설정
-	ImGui::DragFloat("Far", &m_Far);
-	if (ImGui::Button("Set Far"))
-	{
-		m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
-	}
+	ImGui::DragFloat("Far", &m_Far, 0.5f);
+
+	// Fov 값 설정
+	ImGui::DragFloat("Fov Angle", &m_PovAngle, 0.02f);
+
+	if (m_Near <= 0.0f) m_Near = 0.01f;
+	if (m_Far <= 0.0f) m_Far = 0.2f;
+
+	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	// 리셋 버튼
 	if (ImGui::Button("Reset", { 50, 20 }))
@@ -594,7 +594,7 @@ bool DrawMeshApp::InitScene()
 	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	m_View = XMMatrixLookAtLH(Eye, At, Up);
-	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
+	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	return true;
 }
@@ -607,8 +607,9 @@ void DrawMeshApp::ResetValues()
 
 	m_Near = 0.01f;
 	m_Far = 100.0f;
+	m_PovAngle = XM_PIDIV2;
 
-	m_Projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
+	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp

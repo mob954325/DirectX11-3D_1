@@ -62,6 +62,7 @@ public:
 
 	float m_Near = 0.01f;
 	float m_Far = 100.0f;
+	float m_PovAngle = XM_PIDIV2;
 
 	virtual bool OnInitialize();
 	virtual void OnUpdate();
