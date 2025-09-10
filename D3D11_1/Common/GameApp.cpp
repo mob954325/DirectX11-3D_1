@@ -113,6 +113,8 @@ bool GameApp::Initialize(UINT Width, UINT Height)
 
 	if (!OnInitialize()) return false;
 
+	m_GameTimer.Reset();
+
 	return true;
 }
 
