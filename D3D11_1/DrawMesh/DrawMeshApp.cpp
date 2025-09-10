@@ -448,6 +448,16 @@ bool DrawMeshApp::InitD3D()
 	descDepth.CPUAccessFlags = 0;
 	descDepth.MiscFlags = 0;
 
+	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
+	depthStencilDesc.DepthEnable = TRUE;                // 깊이 테스트 활성화
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; // 깊이 버퍼 업데이트 허용
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
+	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
+
+	ID3D11DepthStencilState* depthStencilState = nullptr;
+	m_pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilState);
+	m_pDeviceContext->OMSetDepthStencilState(depthStencilState, 1);
+
 	// create depthStencil texture
 	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
 	HR_T(m_pDevice->CreateTexture2D(&descDepth, nullptr, pTextureDepthStencil.GetAddressOf()));
