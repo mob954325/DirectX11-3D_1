@@ -82,6 +82,7 @@ Input Assembler는 초기화 하는 몇 가지 단계라 존재합니다. 해당
     
     // 버퍼 내용 설정하기
     D3D11_BUFFER_DESC vbDesc = {};
+    ZeroMemory(&bufferDesc, sizeof(bufferDesc));	// 버퍼 초기화	
     m_VertexCount = ARRAYSIZE(vertices);
     vbDesc.ByteWidth = sizeof(Vertex) * m_VertexCount;	// 버텍스 버퍼의 크기 (Byte).
     vbDesc.CPUAccessFlags = 0;					// 0 == CPU 엑세스 필요하지 않음
@@ -109,6 +110,7 @@ Input Assembler는 초기화 하는 몇 가지 단계라 존재합니다. 해당
     
     // 버퍼 내용 설정하기
     D3D11_BUFFER_DESC psDesc = {};
+    ZeroMemory(&bufferDesc, sizeof(bufferDesc));	// 버퍼 초기화
     m_IndexCount = ARRAYSIZE(indices);
     psDesc.ByteWidth = sizeof(unsigned int) * m_IndexCount;
     psDesc.CPUAccessFlags = 0;
