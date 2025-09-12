@@ -19,20 +19,6 @@ using Microsoft::WRL::ComPtr;
 
 #define USE_FLIPMODE 1 // 경고 메세지를 없애려면 Flip 모드를 사용한다.
 
-// TODO 
-// 1. 정육면체 랜더링하기 [v]
-// 2. 정육면체 회전하기 [v]
-// 3. 두 개의 서로 다른 정육면체가 계층 구조를 가지고 랜더링 [v]
-// 4. 카메라 적용시키기 [v]
-// 5. ImGUI를 아래와 같이 연결하기 [v] 
-// 	a. 최상위 mesh의 월드 위치 변경 x,y,z
-//  b.두번째 mesh 의 상대 위치 변경 x, y, z
-//  c.세번째 mesh 의 상대 위치 변경 x, y, z
-//  d.카메라의 월드 위치 변경 x, y, z
-//  e.카메라의 FOV  각도(degree) 변경
-//  f.카메라의 Near, Far 변경
-// 6. depthStencil 사용해서 큐브가 뒤에 가리는지 확인하기 [v]
-
 // 정점 
 struct Vertex
 {
@@ -79,116 +65,42 @@ bool DrawMeshApp::OnInitialize()
 
 void DrawMeshApp::OnUpdate()
 {
-	float t = GameTimer::m_Instance->TotalTime();
+	float delta = GameTimer::m_Instance->DeltaTime();
 
 	bool useSimpleFunc = true;
 	if (!useSimpleFunc)
 	{
-#pragma region Calc Matrix
-		// 1st Cube: Rotate around the origin
-		float fSinAngle1 = sin(t);
-		float fCosAngle1 = cos(t);
-
-		Matrix m_World1Transform =
-		{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		};
-
-		Matrix m_World1Rotation =
-		{
-			1.0f * fCosAngle1, 0.0f, -fSinAngle1      , 0.0f,
-			0.0f             , 1.0f, 0.0f             , 0.0f,
-			fSinAngle1       , 0.0f, 1.0f * fCosAngle1, 0.0f,
-			0.0f            , 0.0f, 0.0f              , 1.0f
-		};
-
-		Vector3 scale1 = { 1.0f,1.0f,1.0f };
-		Matrix m_World1Scale =
-		{
-			scale1.x, 0.0f    , 0.0f    , 0.0f,
-			0.0f    , scale1.y, 0.0f    , 0.0f,
-			0.0f    , 0.0f    , scale1.z, 0.0f,
-			0.0f    , 0.0f    , 0.0f    , 1.0f
-		};
-
-		//s->r->t
-		Matrix m_World1FinalMatrix = m_World1Scale * m_World1Rotation * m_World1Transform;
-		m_World1 = m_World1FinalMatrix;
-
-		// 2nd Cube: Rotate around 1st cube and rotate self
-		float speedScale = -5.0f;
-		float fCosAngle2 = cos(t * speedScale);
-		float fSinAngle2 = sin(t * speedScale);
-
-		Matrix m_World2Transform =
-		{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-		   -4.0f, 0.0f, 0.0f, 1.0f
-		};
-
-		Matrix m_World2Rotation =
-		{
-			1.0f * fCosAngle2, 0.0f, -fSinAngle2      , 0.0f,
-			0.0f             , 1.0f, 0.0f             , 0.0f,
-			fSinAngle2       , 0.0f, 1.0f * fCosAngle2, 0.0f,
-			0.0f            , 0.0f, 0.0f              , 1.0f
-		};
-
-		Vector3 scale2 = { 0.9f,0.9f,0.9f };
-		Matrix m_World2Scale =
-		{
-			scale2.x, 0.0f    , 0.0f    , 0.0f,
-			0.0f    , scale2.y, 0.0f    , 0.0f,
-			0.0f    , 0.0f    , scale2.z, 0.0f,
-			0.0f    , 0.0f    , 0.0f    , 1.0f
-		};
-
-		Matrix m_World2FinalMatrix = m_World2Scale * m_World2Rotation * m_World2Transform;
-		m_World2 = m_World2FinalMatrix * m_World1;
-
-		// 3nd Cube: Rotate around 2nd cube
-		float fCosAngle3 = cos(t);
-		float fSinAngle3 = sin(t);
-
-		Matrix m_World3Transform =
-		{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			-10.0f, 2.0f, 0.0f, 1.0f
-		};
-
-		Matrix m_World3Rotation =
-		{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		};
-
-		Vector3 scale3 = { 0.7f,0.7f,0.7f };
-		Matrix m_World3Scale =
-		{
-			scale3.x, 0.0f    , 0.0f    , 0.0f,
-			0.0f    , scale3.y, 0.0f    , 0.0f,
-			0.0f    , 0.0f    , scale3.z, 0.0f,
-			0.0f    , 0.0f    , 0.0f    , 1.0f
-		};
-
-		Matrix m_World3FinalMatrix = m_World3Scale * m_World3Rotation * m_World3Transform;
-		m_World3 = m_World3FinalMatrix * m_World2;
-#pragma endregion
+		CalcMatrix();
 	}
 	else
 	{
-		m_World1 = m_World1.CreateRotationY(t) * m_World1.CreateTranslation(m_World1Position);
-		m_World2 = m_World2.CreateScale(0.8f) * m_World2.CreateRotationY(t * 2.4f) * m_World2.CreateTranslation(m_World2Position) * m_World1;
-		m_World3 = m_World3.CreateScale(1.2f) * m_World3.CreateTranslation(m_World3Position) * m_World2;
+		Matrix scale = Matrix::Identity;
+		Matrix rotate = Matrix::Identity;
+		Matrix position = Matrix::Identity;
+
+		// m_world1
+		m_World1Rotation.y += delta;
+
+		position = m_World1.CreateTranslation(m_World1Position);
+		rotate = m_World1.CreateFromYawPitchRoll(m_World1Rotation);
+		scale = m_World1.CreateScale(m_World1Scale);
+
+		m_World1 = scale * rotate * position;
+
+		// m_world2
+		float rotSpeedScale = 1.5f;
+		m_World2Rotation.y += delta * rotSpeedScale;
+
+		position = m_World2.CreateTranslation(m_World2Position);
+		rotate = m_World2.CreateFromYawPitchRoll(m_World2Rotation);
+		scale = m_World2.CreateScale(m_World2Scale);
+		m_World2 = scale * rotate * position * m_World1;
+
+		// m_world3	
+		position = m_World3.CreateTranslation(m_World3Position);
+		rotate = m_World3.CreateFromYawPitchRoll(m_World3Rotation);
+		scale = m_World3.CreateScale(m_World3Scale);
+		m_World3 = scale * rotate * position * m_World2;
 	}
 
 	// Camera
@@ -599,4 +511,106 @@ LRESULT DrawMeshApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 		return true;
 
 	return __super::WndProc(hWnd, message, wParam, lParam);
+}
+
+void DrawMeshApp::CalcMatrix()
+{
+	float t = GameTimer::m_Instance->TotalTime();
+	// 1st Cube: Rotate around the origin
+	float fSinAngle1 = sin(t);
+	float fCosAngle1 = cos(t);
+
+	Matrix m_World1Transform =
+	{
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	Matrix m_World1Rotation =
+	{
+		1.0f * fCosAngle1, 0.0f, -fSinAngle1      , 0.0f,
+		0.0f             , 1.0f, 0.0f             , 0.0f,
+		fSinAngle1       , 0.0f, 1.0f * fCosAngle1, 0.0f,
+		0.0f            , 0.0f, 0.0f              , 1.0f
+	};
+
+	Vector3 scale1 = { 1.0f,1.0f,1.0f };
+	Matrix m_World1Scale =
+	{
+		scale1.x, 0.0f    , 0.0f    , 0.0f,
+		0.0f    , scale1.y, 0.0f    , 0.0f,
+		0.0f    , 0.0f    , scale1.z, 0.0f,
+		0.0f    , 0.0f    , 0.0f    , 1.0f
+	};
+
+	//s->r->t
+	Matrix m_World1FinalMatrix = m_World1Scale * m_World1Rotation * m_World1Transform;
+	m_World1 = m_World1FinalMatrix;
+
+	// 2nd Cube: Rotate around 1st cube and rotate self
+	float speedScale = -5.0f;
+	float fCosAngle2 = cos(t * speedScale);
+	float fSinAngle2 = sin(t * speedScale);
+
+	Matrix m_World2Transform =
+	{
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+	   -4.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	Matrix m_World2Rotation =
+	{
+		1.0f * fCosAngle2, 0.0f, -fSinAngle2      , 0.0f,
+		0.0f             , 1.0f, 0.0f             , 0.0f,
+		fSinAngle2       , 0.0f, 1.0f * fCosAngle2, 0.0f,
+		0.0f            , 0.0f, 0.0f              , 1.0f
+	};
+
+	Vector3 scale2 = { 0.9f,0.9f,0.9f };
+	Matrix m_World2Scale =
+	{
+		scale2.x, 0.0f    , 0.0f    , 0.0f,
+		0.0f    , scale2.y, 0.0f    , 0.0f,
+		0.0f    , 0.0f    , scale2.z, 0.0f,
+		0.0f    , 0.0f    , 0.0f    , 1.0f
+	};
+
+	Matrix m_World2FinalMatrix = m_World2Scale * m_World2Rotation * m_World2Transform;
+	m_World2 = m_World2FinalMatrix * m_World1;
+
+	// 3nd Cube: Rotate around 2nd cube
+	float fCosAngle3 = cos(t);
+	float fSinAngle3 = sin(t);
+
+	Matrix m_World3Transform =
+	{
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		-10.0f, 2.0f, 0.0f, 1.0f
+	};
+
+	Matrix m_World3Rotation =
+	{
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	Vector3 scale3 = { 0.7f,0.7f,0.7f };
+	Matrix m_World3Scale =
+	{
+		scale3.x, 0.0f    , 0.0f    , 0.0f,
+		0.0f    , scale3.y, 0.0f    , 0.0f,
+		0.0f    , 0.0f    , scale3.z, 0.0f,
+		0.0f    , 0.0f    , 0.0f    , 1.0f
+	};
+
+	Matrix m_World3FinalMatrix = m_World3Scale * m_World3Rotation * m_World3Transform;
+	m_World3 = m_World3FinalMatrix * m_World2;
 }

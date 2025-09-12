@@ -48,14 +48,20 @@ public:
 	Matrix m_View;				// 뷰 좌표계 공간으로 변환을 위한 행렬.
 	Matrix m_Projection;		// 단위 장치 좌표계 ( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
-	// imgui 컨트롤 변수
+	// imgui 컨트롤 변수 -> position만 다룸
 	Vector3 m_World1Position{};
+	Vector3 m_World1Rotation{};
+	Vector3 m_World1Scale{ 1.0f,1.0f,1.0f };
 	Vector3 m_World1PositionInitial{ 0.0f, 0.0f, 0.0f };
 
 	Vector3 m_World2Position{};
+	Vector3 m_World2Rotation{};
+	Vector3 m_World2Scale{ 0.8f,0.8f,0.8f };
 	Vector3 m_World2PositionInitial{ -5.0f, 0.0f, 0.0f };
 
 	Vector3 m_World3Position{};
+	Vector3 m_World3Rotation{};
+	Vector3 m_World3Scale{ 0.5f,0.5f,0.5f };
 	Vector3 m_World3PositionInitial{ -10.0f, 0.0f, 0.0f };
 
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -30.0f };
@@ -79,4 +85,6 @@ public:
 	void ResetValues();
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+	void CalcMatrix();
 };
