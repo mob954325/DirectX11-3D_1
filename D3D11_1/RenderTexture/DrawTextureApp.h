@@ -48,6 +48,11 @@ public:
 	Matrix m_View;				// 뷰 좌표계 공간으로 변환을 위한 행렬.
 	Matrix m_Projection;		// 단위 장치 좌표계 ( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
+	// 텍스쳐 관련 내용
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV;	// 적용할 그림
+	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플 상태 ?
+
+#pragma region Transforms
 	// imgui 컨트롤 변수 -> position만 다룸
 	Vector3 m_World1Position{};
 	Vector3 m_World1Rotation{};
@@ -66,6 +71,7 @@ public:
 
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -30.0f };
 	Vector3 m_CameraRotation{};
+#pragma endregion
 
 	float m_Near = 0.01f;
 	float m_Far = 100.0f;
@@ -85,6 +91,9 @@ public:
 	void ResetValues();
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-	void CalcMatrix();
 };
+
+// ID3D11ShaderResourceView
+// ID3D11SamplerState
+// ps.hlsl -> txDiffuse ?? 
+// .fxh -> SamplerState ??

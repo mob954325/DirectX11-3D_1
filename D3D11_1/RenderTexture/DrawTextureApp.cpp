@@ -5,6 +5,7 @@
 #include <dxgidebug.h>  // ?
 #include <dxgi1_3.h>
 #include <wrl/client.h>
+#include <directxtk/DDSTextureLoader.h> // dds파일 텍스쳐 불러오기 관련 헤더
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -23,9 +24,7 @@ using Microsoft::WRL::ComPtr;
 struct Vertex
 {
 	Vector3 localPosition;
-	Vector4 color;
-
-	Vertex(Vector3 pos = Vector3::Zero, Vector4 color = Vector4::Zero) : localPosition(pos), color(color) {}
+	Vector2 texture;
 };
 
 // 상수 버퍼
@@ -67,12 +66,6 @@ void DrawTextureApp::OnUpdate()
 {
 	float delta = GameTimer::m_Instance->DeltaTime();
 
-	bool useSimpleFunc = true;
-	if (!useSimpleFunc)
-	{
-		CalcMatrix();
-	}
-	else
 	{
 		Matrix scale = Matrix::Identity;
 		Matrix rotate = Matrix::Identity;
@@ -129,6 +122,10 @@ void DrawTextureApp::OnRender()
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+	// 0912 - 추가됨
+	m_pDeviceContext->PSSetShaderResources(0, 1, &m_pTextureRV);
+	m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
 
 	// Update variables for the first cube
 	ConstantBuffer cb1;
@@ -399,17 +396,18 @@ bool DrawTextureApp::InitScene()
 	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
 	Vertex vertices[] = // Local space, color
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector4(0.0f, 0.0f, 0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f)	},
+		{ Vector3(1.0f, 1.0f, -1.0f)	},
+		{ Vector3(1.0f, 1.0f, 1.0f)		},
+		{ Vector3(-1.0f, 1.0f, 1.0f)	},
+		{ Vector3(-1.0f, -1.0f, -1.0f)	},
+		{ Vector3(1.0f, -1.0f, -1.0f)	},
+		{ Vector3(1.0f, -1.0f, 1.0f)	},
+		{ Vector3(-1.0f, -1.0f, 1.0f)	},
 	};
 
 	D3D11_BUFFER_DESC bufferDesc = {};
+	ZeroMemory(&bufferDesc, sizeof(bufferDesc));
 	bufferDesc.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -426,11 +424,11 @@ bool DrawTextureApp::InitScene()
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
+	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer)); // TODO 오류 해결
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
 	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
@@ -482,6 +480,20 @@ bool DrawTextureApp::InitScene()
 	m_View = XMMatrixLookAtLH(Eye, At, Up);
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
+	// 텍스쳐 불러오기
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\seafloor.dds", nullptr, m_pTextureRV.GetAddressOf()));
+
+	// sample 상태 설정
+	D3D11_SAMPLER_DESC sampDesc = {};
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	HR_T(m_pDevice->CreateSamplerState(&sampDesc, &m_pSamplerLinear));
+
 	return true;
 }
 
@@ -511,106 +523,4 @@ LRESULT DrawTextureApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		return true;
 
 	return __super::WndProc(hWnd, message, wParam, lParam);
-}
-
-void DrawTextureApp::CalcMatrix()
-{
-	float t = GameTimer::m_Instance->TotalTime();
-	// 1st Cube: Rotate around the origin
-	float fSinAngle1 = sin(t);
-	float fCosAngle1 = cos(t);
-
-	Matrix m_World1Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World1Rotation =
-	{
-		1.0f * fCosAngle1, 0.0f, -fSinAngle1      , 0.0f,
-		0.0f             , 1.0f, 0.0f             , 0.0f,
-		fSinAngle1       , 0.0f, 1.0f * fCosAngle1, 0.0f,
-		0.0f            , 0.0f, 0.0f              , 1.0f
-	};
-
-	Vector3 scale1 = { 1.0f,1.0f,1.0f };
-	Matrix m_World1Scale =
-	{
-		scale1.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale1.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale1.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	//s->r->t
-	Matrix m_World1FinalMatrix = m_World1Scale * m_World1Rotation * m_World1Transform;
-	m_World1 = m_World1FinalMatrix;
-
-	// 2nd Cube: Rotate around 1st cube and rotate self
-	float speedScale = -5.0f;
-	float fCosAngle2 = cos(t * speedScale);
-	float fSinAngle2 = sin(t * speedScale);
-
-	Matrix m_World2Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-	   -4.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World2Rotation =
-	{
-		1.0f * fCosAngle2, 0.0f, -fSinAngle2      , 0.0f,
-		0.0f             , 1.0f, 0.0f             , 0.0f,
-		fSinAngle2       , 0.0f, 1.0f * fCosAngle2, 0.0f,
-		0.0f            , 0.0f, 0.0f              , 1.0f
-	};
-
-	Vector3 scale2 = { 0.9f,0.9f,0.9f };
-	Matrix m_World2Scale =
-	{
-		scale2.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale2.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale2.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	Matrix m_World2FinalMatrix = m_World2Scale * m_World2Rotation * m_World2Transform;
-	m_World2 = m_World2FinalMatrix * m_World1;
-
-	// 3nd Cube: Rotate around 2nd cube
-	float fCosAngle3 = cos(t);
-	float fSinAngle3 = sin(t);
-
-	Matrix m_World3Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		-10.0f, 2.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World3Rotation =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Vector3 scale3 = { 0.7f,0.7f,0.7f };
-	Matrix m_World3Scale =
-	{
-		scale3.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale3.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale3.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	Matrix m_World3FinalMatrix = m_World3Scale * m_World3Rotation * m_World3Transform;
-	m_World3 = m_World3FinalMatrix * m_World2;
 }

@@ -1,12 +1,12 @@
 #include <Shared.fxh>
 
-PS_INPUT main(float4 Pos : POSITION, float4 Color : COLOR)
+PS_INPUT main(VS_INPUT input)
 {
     PS_INPUT output = (PS_INPUT) 0;
-    output.Pos = mul(Pos, World);
+    output.Pos = mul(input.Pos, World);
     output.Pos = mul(output.Pos, View);
     output.Pos = mul(output.Pos, Projection);
-    output.Color = Color;
+    output.Tex = input.Tex;
     return output;
 }
  
