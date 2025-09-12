@@ -228,20 +228,18 @@ void DrawMeshApp::OnRender()
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Update variables for the second cube	
-	ConstantBuffer cb2;
-	cb2.mWorld = XMMatrixTranspose(m_World2);
-	cb2.mView = XMMatrixTranspose(m_View);
-	cb2.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb2, 0, 0);
+	cb1.mWorld = XMMatrixTranspose(m_World2);
+	cb1.mView = XMMatrixTranspose(m_View);
+	cb1.mProjection = XMMatrixTranspose(m_Projection);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Update variables for the third cube	
-	ConstantBuffer cb3;
-	cb3.mWorld = XMMatrixTranspose(m_World3);
-	cb3.mView = XMMatrixTranspose(m_View);
-	cb3.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb3, 0, 0);
+	cb1.mWorld = XMMatrixTranspose(m_World3);
+	cb1.mView = XMMatrixTranspose(m_View);
+	cb1.mProjection = XMMatrixTranspose(m_Projection);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
