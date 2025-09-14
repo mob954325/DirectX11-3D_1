@@ -24,7 +24,7 @@ using Microsoft::WRL::ComPtr;
 struct Vertex
 {
 	Vector3 localPosition;
-	Vector2 texture;
+	Vector2 texture; // UV 좌표
 };
 
 // 상수 버퍼
@@ -105,15 +105,13 @@ void DrawTextureApp::OnRender()
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
-
-	// m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL); // depthStencilView X
 #endif	
 
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
 
 	// 화면 칠하기.
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
-	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
+	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertexBufferStride, &m_VertexBufferOffset);
@@ -124,8 +122,8 @@ void DrawTextureApp::OnRender()
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
 
 	// 0912 - 추가됨
-	m_pDeviceContext->PSSetShaderResources(0, 1, &m_pTextureRV);
-	m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV.GetAddressOf());
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Update variables for the first cube
 	ConstantBuffer cb1;
@@ -301,15 +299,18 @@ bool DrawTextureApp::InitD3D()
 	swapChainDesc.Width = m_ClientWidth;
 	swapChainDesc.Height = m_ClientHeight;
 
-	// 하나의 픽셀이 채널 RGBA 각 8비트 형식으로 표현
-	// Unsigned Normalized Integer 8비트 정수(0~255)단계를 부동소수점으로 정규화한 0.0~1.0으로 매핑하여 표현한다.
 	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 스왑 체인의 백 버퍼가 렌더링 파이프라인의 최종 출력 대상으로 사용
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.SampleDesc.Count = 1;	// 멀티 샘플링 사용 안함
 	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // 투명도 조작 무시 | recommand for flip mode ?
 	swapChainDesc.Stereo = FALSE;
 	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // 전체 화면 전환을 허용
-	swapChainDesc.Scaling = DXGI_SCALING_NONE; // 창의 크기와 백 버퍼의 크기가 다를 때. 백버퍼 크기에 맞게 스케일링 하지 않는다.
+	swapChainDesc.Scaling = DXGI_SCALING_NONE;
+
+	// 샘플링 설정
+	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.SampleDesc.Quality = 0;
+
 
 	HR_T(pFactory->CreateSwapChainForHwnd
 	(
@@ -394,16 +395,37 @@ bool DrawTextureApp::InitScene()
 
 
 	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
-	Vertex vertices[] = // Local space, color
+	Vertex vertices[] =
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f)	},
-		{ Vector3(1.0f, 1.0f, -1.0f)	},
-		{ Vector3(1.0f, 1.0f, 1.0f)		},
-		{ Vector3(-1.0f, 1.0f, 1.0f)	},
-		{ Vector3(-1.0f, -1.0f, -1.0f)	},
-		{ Vector3(1.0f, -1.0f, -1.0f)	},
-		{ Vector3(1.0f, -1.0f, 1.0f)	},
-		{ Vector3(-1.0f, -1.0f, 1.0f)	},
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f), Vector2(1.0f, 1.0f) },
+
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f), Vector2(0.0f, 1.0f) },
+
+		{ Vector3(-1.0f, -1.0f, 1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f), Vector2(0.0f, 0.0f) },
+
+		{ Vector3(1.0f, -1.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f), Vector2(1.0f, 0.0f) },
+
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, -1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f), Vector2(0.0f, 0.0f) },
+
+		{ Vector3(-1.0f, -1.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f), Vector2(0.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f), Vector2(0.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f), Vector2(1.0f, 0.0f) },
 	};
 
 	D3D11_BUFFER_DESC bufferDesc = {};
@@ -435,14 +457,14 @@ bool DrawTextureApp::InitScene()
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 	// 4. 파이프라인에 바인딩할 인덱스 버퍼
-	WORD indices[] = // 사각형 두 개?
+	WORD indices[] = 
 	{
-		0,3,2, 2,1,0,
-		4,5,7, 5,6,7,
-		0,4,7, 7,3,0,
-		6,5,1, 1,2,6,
-		7,6,2, 2,3,7,
-		5,4,0, 0,1,5
+		3,1,0, 2,1,3,
+		6,4,5, 7,4,6,
+		11,9,8, 10,9,11,
+		14,12,13, 15,12,14,
+		19,17,16, 18,17,19,
+		22,20,21, 23,20,22
 	};
 
 	m_nIndices = ARRAYSIZE(indices); // 인덱스 개수 저장
@@ -492,7 +514,7 @@ bool DrawTextureApp::InitScene()
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	HR_T(m_pDevice->CreateSamplerState(&sampDesc, &m_pSamplerLinear));
+	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
 
 	return true;
 }
