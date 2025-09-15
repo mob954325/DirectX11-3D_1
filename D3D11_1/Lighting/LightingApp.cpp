@@ -1,14 +1,13 @@
-#include "DrawMeshApp.h"
+#include "LightingApp.h"
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
-#include <dxgidebug.h>  // ?
+#include <dxgidebug.h>
 #include <dxgi1_3.h>
-#include <wrl/client.h>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dxguid.lib") // ?
+#pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 
 #include <string>
@@ -23,9 +22,9 @@ using Microsoft::WRL::ComPtr;
 struct Vertex
 {
 	Vector3 position;
-	Vector4 color;
+	Vector3 normal;	// 정점에 대한 수직 벡터
 
-	Vertex(Vector3 pos = Vector3::Zero, Vector4 color = Vector4::Zero) : position(pos), color(color) {}
+	Vertex(Vector3 pos = Vector3::Zero, Vector3 normal = Vector3::Zero) : position(pos), normal(normal) {}
 };
 
 // 상수 버퍼
@@ -34,20 +33,25 @@ struct ConstantBuffer
 	Matrix mWorld;
 	Matrix mView;
 	Matrix mProjection;
+
+	Vector4 mLightDirection;
+	Color mLightColor;
+
+	Color mOutputColor;
 };
 
-DrawMeshApp::DrawMeshApp(HINSTANCE hInstance)
+LightingApp::LightingApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
 
 }
 
-DrawMeshApp::~DrawMeshApp()
+LightingApp::~LightingApp()
 {
 	UninitImGUI();
 }
 
-bool DrawMeshApp::OnInitialize()
+bool LightingApp::OnInitialize()
 {
 	if (!InitD3D())
 		return false;
@@ -63,51 +67,28 @@ bool DrawMeshApp::OnInitialize()
 	return true;
 }
 
-void DrawMeshApp::OnUpdate()
+void LightingApp::OnUpdate()
 {
 	float delta = GameTimer::m_Instance->DeltaTime();
 
-	bool useSimpleFunc = true;
-	if (!useSimpleFunc)
-	{
-		CalcMatrix();
-	}
-	else
-	{
-		Matrix scale = Matrix::Identity;
-		Matrix rotate = Matrix::Identity;
-		Matrix position = Matrix::Identity;
+	Matrix scale = Matrix::Identity;
+	Matrix rotate = Matrix::Identity;
+	Matrix position = Matrix::Identity;
 
-		// m_world1
-		m_World1Rotation.y += delta;
+	// Cube Position
+	position = m_Cube.CreateTranslation(m_CubePosition);
+	rotate = m_Cube.CreateFromYawPitchRoll(m_CubeRotation);
+	scale = m_Cube.CreateScale(m_CubeScale);
 
-		position = m_World1.CreateTranslation(m_World1Position);
-		rotate = m_World1.CreateFromYawPitchRoll(m_World1Rotation);
-		scale = m_World1.CreateScale(m_World1Scale);
+	m_Cube = scale * rotate * position;
 
-		m_World1 = scale * rotate * position;
-
-		// m_world2
-		float rotSpeedScale = 1.5f;
-		m_World2Rotation.y += delta * rotSpeedScale;
-
-		position = m_World2.CreateTranslation(m_World2Position);
-		rotate = m_World2.CreateFromYawPitchRoll(m_World2Rotation);
-		scale = m_World2.CreateScale(m_World2Scale);
-		m_World2 = scale * rotate * position * m_World1;
-
-		// m_world3	
-		position = m_World3.CreateTranslation(m_World3Position);
-		rotate = m_World3.CreateFromYawPitchRoll(m_World3Rotation);
-		scale = m_World3.CreateScale(m_World3Scale);
-		m_World3 = scale * rotate * position * m_World2;
-	}
+	// Directional Light Position
 
 	// Camera
 	m_Camera.GetCameraViewMatrix(m_View);
 }
 
-void DrawMeshApp::OnRender()
+void LightingApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
@@ -122,6 +103,17 @@ void DrawMeshApp::OnRender()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
+	// Update Constant Values
+	ConstantBuffer cb;
+	cb.mWorld = XMMatrixTranspose(m_Cube);
+	cb.mView = XMMatrixTranspose(m_View);
+	cb.mProjection = XMMatrixTranspose(m_Projection);
+	cb.mLightDirection = m_LightDirection;
+	cb.mLightColor = m_LightColor;
+	cb.mOutputColor = Vector4::Zero;
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	// Render cube
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertexBufferStride, &m_VertexBufferOffset);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
@@ -129,29 +121,17 @@ void DrawMeshApp::OnRender()
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
-
-	// Update variables for the first cube
-	ConstantBuffer cb1;
-	cb1.mWorld = XMMatrixTranspose(m_World1);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
+	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
-	// Update variables for the second cube	
-	cb1.mWorld = XMMatrixTranspose(m_World2);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
-
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
-
-	// Update variables for the third cube	
-	cb1.mWorld = XMMatrixTranspose(m_World3);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
+	// Render Light
+	Matrix mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirection));
+	Matrix mScale = Matrix::CreateScale(0.4f);
+	cb.mWorld = XMMatrixTranspose(mLight);
+	cb.mOutputColor = m_LightColor;
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
@@ -162,7 +142,7 @@ void DrawMeshApp::OnRender()
 	m_pSwapChain->Present(0, 0);
 }
 
-bool DrawMeshApp::InitImGUI()
+bool LightingApp::InitImGUI()
 {
 	bool isSetupSuccess = false;
 
@@ -186,7 +166,7 @@ bool DrawMeshApp::InitImGUI()
 	return true;
 }
 
-void DrawMeshApp::RenderImGUI()
+void LightingApp::RenderImGUI()
 {
 	// Start the Dear ImGui frame
 	ImGui_ImplDX11_NewFrame();
@@ -199,9 +179,18 @@ void DrawMeshApp::RenderImGUI()
 	ImGui::Begin("World Object Controller");
 
 	// 큐브 위치 조절 
-	ImGui::DragFloat3("Cube1 Position", &m_World1Position.x);
-	ImGui::DragFloat3("Cube2 Position", &m_World2Position.x);
-	ImGui::DragFloat3("Cube3 Position", &m_World3Position.x);
+	ImGui::DragFloat3("Cube Position", &m_CubePosition.x);
+
+	// 큐브 회전
+	Vector3 cubeRotation;
+	cubeRotation.x = XMConvertToDegrees(m_CubeRotation.x);
+	cubeRotation.y = XMConvertToDegrees(m_CubeRotation.y);
+	cubeRotation.z = XMConvertToDegrees(m_CubeRotation.z);
+	ImGui::DragFloat3("Cube Rotation", &cubeRotation.x);
+	m_CubeRotation.x = XMConvertToRadians(cubeRotation.x);
+	m_CubeRotation.y = XMConvertToRadians(cubeRotation.y);
+	m_CubeRotation.z = XMConvertToRadians(cubeRotation.z);
+
 	ImGui::NewLine();
 
 	// 카메라 위치 및 회전 설정
@@ -229,6 +218,10 @@ void DrawMeshApp::RenderImGUI()
 
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
+	ImGui::ColorEdit4("Light Color", &m_LightColor.x);	
+	ImGui::DragFloat4("Light Direction", &m_LightDirection.x, 0.1f);
+
+
 	// 리셋 버튼
 	if (ImGui::Button("Reset", { 50, 20 }))
 	{
@@ -241,7 +234,7 @@ void DrawMeshApp::RenderImGUI()
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-void DrawMeshApp::UninitImGUI()
+void LightingApp::UninitImGUI()
 {
 	// Cleanup
 	ImGui_ImplDX11_Shutdown();
@@ -249,7 +242,7 @@ void DrawMeshApp::UninitImGUI()
 	ImGui::DestroyContext();
 }
 
-bool DrawMeshApp::InitD3D()
+bool LightingApp::InitD3D()
 {
 	HRESULT hr = S_OK;
 
@@ -382,31 +375,52 @@ bool DrawMeshApp::InitD3D()
 	return true;
 }
 
-bool DrawMeshApp::InitScene()
+bool LightingApp::InitScene()
 {
 	HRESULT hr = S_OK;
 
-	///   0--------------1
+	///   ---------------
 	///  / |           / |
 	/// /  |          /  |
-	/// 3--+---------2   |
-	/// |  |4--------|---/ 5
+	/// |--+----------   |		
+	/// |  |---------|---/
 	/// | /          |  /
 	/// |/           | /
-	/// 7-------------+ 6
+	/// +-------------+
 
 
 	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
 	Vertex vertices[] = // Local space, color
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector4(0.0f, 0.0f, 0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f) },// Normal Y +	 
+		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f) },
+
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f) },// Normal Y -		
+		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f) },
+
+		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },//	Normal X -
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f) },
+
+		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f) },// Normal X +
+		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f) },
+
+		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f) }, // Normal Z -
+		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f) },
+
+		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },// Normal Z +
+		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f) },
 	};
 
 	D3D11_BUFFER_DESC bufferDesc = {};
@@ -426,7 +440,7 @@ bool DrawMeshApp::InitScene()
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
@@ -437,14 +451,14 @@ bool DrawMeshApp::InitScene()
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
 
 	// 4. 파이프라인에 바인딩할 인덱스 버퍼
-	WORD indices[] = // 사각형 두 개?
+	WORD indices[] =
 	{
-		0,3,2, 2,1,0,
-		4,5,7, 5,6,7,
-		0,4,7, 7,3,0,
-		6,5,1, 1,2,6,
-		7,6,2, 2,3,7,
-		5,4,0, 0,1,5
+		3,1,0, 2,1,3,
+		6,4,5, 7,4,6,
+		11,9,8, 10,9,11,
+		14,12,13, 15,12,14,
+		19,17,16, 18,17,19,
+		22,20,21, 23,20,22
 	};
 
 	m_nIndices = ARRAYSIZE(indices); // 인덱스 개수 저장
@@ -464,6 +478,10 @@ bool DrawMeshApp::InitScene()
 	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
+	ComPtr<ID3DBlob> solidPixelShaderBuffer = nullptr;	
+	HR_T(CompileShaderFromFile(L"SolidPixelShader.hlsl", "main", "ps_4_0", &solidPixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(solidPixelShaderBuffer->GetBufferPointer(), solidPixelShaderBuffer->GetBufferSize(), NULL, m_pSolidPixelShader.GetAddressOf()));
+
 	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
 	bufferDesc = {};
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -473,8 +491,7 @@ bool DrawMeshApp::InitScene()
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pConstantBuffer.GetAddressOf()));
 
 	// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
-	m_World1 = XMMatrixIdentity();
-	m_World2 = XMMatrixIdentity();
+	m_Cube = XMMatrixIdentity();
 
 	XMVECTOR Eye = XMVectorSet(0.0f, 10.0f, -8.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
@@ -485,11 +502,9 @@ bool DrawMeshApp::InitScene()
 	return true;
 }
 
-void DrawMeshApp::ResetValues()
+void LightingApp::ResetValues()
 {
-	m_World1Position = m_World1PositionInitial;
-	m_World2Position = m_World2PositionInitial;
-	m_World3Position = m_World3PositionInitial;
+	m_CubePosition = m_CubePositionInitial;
 
 	m_Near = 0.01f;
 	m_Far = 100.0f;
@@ -500,117 +515,17 @@ void DrawMeshApp::ResetValues()
 	m_Camera.SetPosition(m_CameraPositionInitial);
 
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
+
+	m_LightDirection = {-0.577f, 0.577f, -0.577f, 1.0f};
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-LRESULT DrawMeshApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT LightingApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
 
 	return __super::WndProc(hWnd, message, wParam, lParam);
-}
-
-void DrawMeshApp::CalcMatrix()
-{
-	float t = GameTimer::m_Instance->TotalTime();
-	// 1st Cube: Rotate around the origin
-	float fSinAngle1 = sin(t);
-	float fCosAngle1 = cos(t);
-
-	Matrix m_World1Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World1Rotation =
-	{
-		1.0f * fCosAngle1, 0.0f, -fSinAngle1      , 0.0f,
-		0.0f             , 1.0f, 0.0f             , 0.0f,
-		fSinAngle1       , 0.0f, 1.0f * fCosAngle1, 0.0f,
-		0.0f            , 0.0f, 0.0f              , 1.0f
-	};
-
-	Vector3 scale1 = { 1.0f,1.0f,1.0f };
-	Matrix m_World1Scale =
-	{
-		scale1.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale1.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale1.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	//s->r->t
-	Matrix m_World1FinalMatrix = m_World1Scale * m_World1Rotation * m_World1Transform;
-	m_World1 = m_World1FinalMatrix;
-
-	// 2nd Cube: Rotate around 1st cube and rotate self
-	float speedScale = -5.0f;
-	float fCosAngle2 = cos(t * speedScale);
-	float fSinAngle2 = sin(t * speedScale);
-
-	Matrix m_World2Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-	   -4.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World2Rotation =
-	{
-		1.0f * fCosAngle2, 0.0f, -fSinAngle2      , 0.0f,
-		0.0f             , 1.0f, 0.0f             , 0.0f,
-		fSinAngle2       , 0.0f, 1.0f * fCosAngle2, 0.0f,
-		0.0f            , 0.0f, 0.0f              , 1.0f
-	};
-
-	Vector3 scale2 = { 0.9f,0.9f,0.9f };
-	Matrix m_World2Scale =
-	{
-		scale2.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale2.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale2.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	Matrix m_World2FinalMatrix = m_World2Scale * m_World2Rotation * m_World2Transform;
-	m_World2 = m_World2FinalMatrix * m_World1;
-
-	// 3nd Cube: Rotate around 2nd cube
-	float fCosAngle3 = cos(t);
-	float fSinAngle3 = sin(t);
-
-	Matrix m_World3Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		-10.0f, 2.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World3Rotation =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Vector3 scale3 = { 0.7f,0.7f,0.7f };
-	Matrix m_World3Scale =
-	{
-		scale3.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale3.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale3.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	Matrix m_World3FinalMatrix = m_World3Scale * m_World3Rotation * m_World3Transform;
-	m_World3 = m_World3FinalMatrix * m_World2;
 }
