@@ -41,12 +41,17 @@ public:
 	int m_nIndices = 0;											// 인덱스 버퍼 개수
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 
+	ComPtr<ID3D11PixelShader> m_pSolidPixelShader = nullptr;			// 
+
+
 	// 좌표계 변환을 위한 행렬 모음
-	Matrix m_World1;			// 월드 좌표계 공간으로 변환을 위한 행렬, origin 위치에 있는 큐브 행렬
-	Matrix m_World2;			// m_World1를 부모로하는 큐브 행렬
-	Matrix m_World3;			// m_World2를 부모로하는 큐브 행렬
+	Matrix m_Cube;			// 월드 좌표계 공간으로 변환을 위한 행렬, origin 위치에 있는 큐브 행렬
 	Matrix m_View;				// 뷰 좌표계 공간으로 변환을 위한 행렬.
 	Matrix m_Projection;		// 단위 장치 좌표계 ( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
+
+	Vector4 m_LightDirection;				// Directional Light의 방향?
+	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
+
 
 	// imgui 컨트롤 변수 -> position만 다룸
 	Vector3 m_CubePosition{};

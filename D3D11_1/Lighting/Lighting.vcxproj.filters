@@ -21,6 +21,9 @@
     <FxCompile Include="BasicVertexShader.hlsl">
       <Filter>리소스 파일</Filter>
     </FxCompile>
+    <FxCompile Include="SolidPixelShader.hlsl">
+      <Filter>리소스 파일</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LightingApp.h">

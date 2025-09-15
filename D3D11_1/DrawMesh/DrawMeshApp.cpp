@@ -22,10 +22,10 @@ using Microsoft::WRL::ComPtr;
 // 정점 
 struct Vertex
 {
-	Vector3 localPosition;
+	Vector3 position;
 	Vector4 color;
 
-	Vertex(Vector3 pos = Vector3::Zero, Vector4 color = Vector4::Zero) : localPosition(pos), color(color) {}
+	Vertex(Vector3 pos = Vector3::Zero, Vector4 color = Vector4::Zero) : position(pos), color(color) {}
 };
 
 // 상수 버퍼
