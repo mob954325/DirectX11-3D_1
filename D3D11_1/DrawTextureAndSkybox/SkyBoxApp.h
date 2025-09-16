@@ -40,8 +40,14 @@ public:
 	ComPtr<ID3D11Buffer> m_pIndexBuffer = nullptr;				// 인덱스 버퍼
 	int m_nIndices = 0;											// 인덱스 버퍼 개수
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
+	
+	ComPtr<ID3D11PixelShader> m_pSolidPixelShader = nullptr;	// 단색 출력용 픽셀 셰이더
+	ComPtr<ID3D11VertexShader> m_pSkyboxVertexShader = nullptr; // 스카이 박스용 정점 셰이더
+	ComPtr<ID3D11PixelShader> m_pSkyboxPixelShader = nullptr;	// 스카이 박스용 픽셀 셰이더
 
-	ComPtr<ID3D11PixelShader> m_pSolidPixelShader = nullptr;			// 
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV1;	// 매핑할 텍스처 객체 -> seafloor.dds
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV2;	// 매핑할 텍스처 객체 -> WoodCrate.dds
+	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
 
 
 	// 좌표계 변환을 위한 행렬 모음
@@ -53,12 +59,14 @@ public:
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
 
 
-	// imgui 컨트롤 변수 -> position만 다룸
+	// imgui 컨트롤 변수
+	// 큐브
 	Vector3 m_CubePosition{};
 	Vector3 m_CubeRotation{};
 	Vector3 m_CubeScale{ 1.0f,1.0f,1.0f };
 	Vector3 m_CubePositionInitial{ 0.0f, 0.0f, 0.0f };
 
+	// 카메라
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -30.0f };
 	Vector3 m_CameraRotation{};
 
@@ -66,6 +74,7 @@ public:
 	float m_Far = 100.0f;
 	float m_PovAngle = XM_PIDIV2;
 
+	// =============================================================
 	virtual bool OnInitialize();
 	virtual void OnUpdate();
 	virtual void OnRender();
@@ -80,6 +89,4 @@ public:
 	void ResetValues();
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-	void CalcMatrix();
 };
