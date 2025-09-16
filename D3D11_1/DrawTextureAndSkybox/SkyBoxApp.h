@@ -42,12 +42,27 @@ public:
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 	
 	ComPtr<ID3D11PixelShader> m_pSolidPixelShader = nullptr;	// 단색 출력용 픽셀 셰이더
-	ComPtr<ID3D11VertexShader> m_pSkyboxVertexShader = nullptr; // 스카이 박스용 정점 셰이더
-	ComPtr<ID3D11PixelShader> m_pSkyboxPixelShader = nullptr;	// 스카이 박스용 픽셀 셰이더
 
 	ComPtr<ID3D11ShaderResourceView> m_pTextureRV1;	// 매핑할 텍스처 객체 -> seafloor.dds
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV2;	// 매핑할 텍스처 객체 -> WoodCrate.dds
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV2;	// WoodCrate.dds
+	ComPtr<ID3D11ShaderResourceView> m_pTextureRV3;	// cubemap.dds
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
+
+	// 스카이 박스
+	ComPtr<ID3D11VertexShader> m_pSkyboxVertexShader = nullptr;		// 스카이 박스용 정점 셰이더
+	ComPtr<ID3D11PixelShader> m_pSkyboxPixelShader = nullptr;		// 스카이 박스용 픽셀 셰이더
+	ComPtr<ID3D11InputLayout> m_pSkyboxInputLayout = nullptr;		// 입력 레이아웃
+	ComPtr<ID3D11Buffer> m_pSkyboxVertexBuffer = nullptr;			// 스카이 박스 정점 버퍼
+	UINT m_SkyboxVertexBufferStride = 0;							// 스카이 박스 정점 하나의 버퍼 크기
+	UINT m_SkyboxVertexBufferOffset = 0;							// 스카이 박스 정점 버퍼의 오프셋
+	ComPtr<ID3D11Buffer> m_pSkyboxIndexBuffer;						// 스카이 박스가 사용할 인덱스 버퍼
+	int m_nSkyboxIndices = 0;										// 스카이박스 인덱스 버퍼 개수
+
+	ComPtr<ID3D11RasterizerState> m_pSkyRasterizerState = nullptr;	// 스카이박스 래스터라이저 상태
+	ComPtr<ID3D11RasterizerState> m_pRasterizerState = nullptr;	// 오브젝트 래스터라이저 상태
+
+	ComPtr<ID3D11DepthStencilState> m_pSkyDepthStencilState = nullptr;	// 스카이 박스를 위한 뎊스스텐실 상태 개체
+	ComPtr<ID3D11DepthStencilState> m_pDepthStencilState = nullptr;	// 오브젝트를 위한 뎊스스텐실 상태 개체
 
 
 	// 좌표계 변환을 위한 행렬 모음
@@ -85,6 +100,7 @@ public:
 
 	bool InitD3D();
 	bool InitScene();
+	bool InitSkyBox();
 
 	void ResetValues();
 
