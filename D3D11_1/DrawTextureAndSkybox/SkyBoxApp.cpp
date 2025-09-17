@@ -115,6 +115,7 @@ void SkyBoxApp::OnRender()
 	Matrix m_skyboxProjection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, 0.1, m_Far);
 
 	ConstantBuffer cb;
+
 	cb.mView = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
 	cb.mProjection = XMMatrixTranspose(m_skyboxProjection);
 	
@@ -408,15 +409,6 @@ bool SkyBoxApp::InitD3D()
 	descDSV.Texture2D.MipSlice = 0;
 	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
 
-	// 스카이 박스 뎊스 스텐실 상태 개체 추가
-	D3D11_DEPTH_STENCIL_DESC skyboxDsDesc;
-	ZeroMemory(&skyboxDsDesc, sizeof(skyboxDsDesc));
-	skyboxDsDesc.DepthEnable = false;
-	skyboxDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	skyboxDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-	skyboxDsDesc.StencilEnable = false;
-	HR_T(m_pDevice->CreateDepthStencilState(&skyboxDsDesc, m_pSkyDepthStencilState.GetAddressOf()));
-
 	return true;
 }
 
@@ -660,16 +652,16 @@ bool SkyBoxApp::InitSkyBox()
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.CPUAccessFlags = 0;
 
-	m_VertexBufferStride = sizeof(Vertex); 	// 버텍스 버퍼의 정보
-	m_VertexBufferOffset = 0;
+	m_SkyboxVertexBufferStride = sizeof(CubeVertex); 	// 버텍스 버퍼의 정보
+	m_SkyboxVertexBufferOffset = 0;
 
 	m_nSkyboxIndices = ARRAYSIZE(skyboxIndices); // 인덱스 개수 저장
 
-	// 픽셀 셰이더
 	D3D11_SUBRESOURCE_DATA ibData = {};
 	ibData.pSysMem = skyboxIndices;
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &ibData, m_pSkyboxIndexBuffer.GetAddressOf()));
 
+	// 픽셀 셰이더
 	ComPtr<ID3DBlob> sbPixelShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"SkyboxPixelShader.hlsl", "main", "ps_4_0", &sbPixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(sbPixelShaderBuffer->GetBufferPointer(), sbPixelShaderBuffer->GetBufferSize(), NULL, m_pSkyboxPixelShader.GetAddressOf()));
@@ -682,6 +674,15 @@ bool SkyBoxApp::InitSkyBox()
 	rasterizerState.FrontCounterClockwise = true;
 
 	HR_T(m_pDevice->CreateRasterizerState(&rasterizerState, m_pSkyRasterizerState.ReleaseAndGetAddressOf()));
+
+	// 스카이 박스 뎊스 스텐실 상태 개체 추가
+	D3D11_DEPTH_STENCIL_DESC skyboxDsDesc;
+	ZeroMemory(&skyboxDsDesc, sizeof(skyboxDsDesc));
+	skyboxDsDesc.DepthEnable = false;
+	skyboxDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;	// 깊이 버퍼 사용 X
+	// skyboxDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;		
+	skyboxDsDesc.StencilEnable = false;
+	HR_T(m_pDevice->CreateDepthStencilState(&skyboxDsDesc, m_pSkyDepthStencilState.GetAddressOf()));
 
 	return true;
 }
