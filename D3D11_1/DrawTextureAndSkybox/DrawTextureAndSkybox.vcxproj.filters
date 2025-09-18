@@ -15,23 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="BasicPixelShader.hlsl">
-      <Filter>리소스 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="BasicVertexShader.hlsl">
-      <Filter>리소스 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="SolidPixelShader.hlsl">
-      <Filter>리소스 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="SkyboxVertexShader.hlsl">
-      <Filter>리소스 파일</Filter>
-    </FxCompile>
-    <FxCompile Include="SkyboxPixelShader.hlsl">
-      <Filter>리소스 파일</Filter>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="SkyBoxApp.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -45,8 +28,23 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shared.fxh">
+    <CopyFileToFolders Include="BasicPixelShader.hlsl">
       <Filter>리소스 파일</Filter>
-    </None>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="BasicVertexShader.hlsl">
+      <Filter>리소스 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="Shared.fxh">
+      <Filter>리소스 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="SkyboxPixelShader.hlsl">
+      <Filter>리소스 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="SkyboxVertexShader.hlsl">
+      <Filter>리소스 파일</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="SolidPixelShader.hlsl">
+      <Filter>리소스 파일</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

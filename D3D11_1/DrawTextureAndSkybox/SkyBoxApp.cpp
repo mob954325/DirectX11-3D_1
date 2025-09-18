@@ -144,6 +144,7 @@ void SkyBoxApp::OnRender()
 	cb.mView = XMMatrixTranspose(m_View);
 	cb.mProjection = XMMatrixTranspose(m_Projection);
 	cb.mLightDirection = m_LightDirection;
+	cb.mLightDirection.Normalize();
 	cb.mLightColor = m_LightColor;
 	cb.mOutputColor = Vector4::Zero;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
@@ -165,9 +166,9 @@ void SkyBoxApp::OnRender()
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Render Light
-	Matrix mLight = XMMatrixTranslationFromVector(5.0f * XMLoadFloat4(&m_LightDirection));
+	Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
 	Matrix mScale = Matrix::CreateScale(0.4f);
-	cb.mWorld = XMMatrixTranspose(mLight);
+	cb.mWorld = XMMatrixTranspose(mScale * mLight);
 	cb.mOutputColor = m_LightColor;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
@@ -257,7 +258,7 @@ void SkyBoxApp::RenderImGUI()
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	ImGui::ColorEdit4("Light Color", &m_LightColor.x);
-	ImGui::DragFloat4("Light Direction", &m_LightDirection.x, 0.1f);
+	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
 
 
 	// 리셋 버튼
