@@ -3,8 +3,7 @@
   <PropertyGroup>
     <!-- vcpkg 루트 경로: 필요시 본인 경로로 수정 -->
     <VcpkgRoot>D:\vcpkg</VcpkgRoot>
-    
-    <TripletStatic>x64-windows-static-md</TripletStatic>
+	  <TripletStatic>x64-windows-static-md</TripletStatic>
     <TripletDynamic>x64-windows</TripletDynamic>
   </PropertyGroup>
 
