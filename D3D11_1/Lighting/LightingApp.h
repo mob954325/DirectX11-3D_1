@@ -81,5 +81,7 @@ public:
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-	void CalcMatrix();
+	// 기타 
+	ComPtr<ID3D11RasterizerState> m_pRSWireframe;
+	bool isWireframeEnable = false;
 };

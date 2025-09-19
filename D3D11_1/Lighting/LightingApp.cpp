@@ -228,6 +228,13 @@ void LightingApp::RenderImGUI()
 	{
 		ResetValues();
 	}
+
+
+	if (ImGui::Checkbox("Wireframe", &isWireframeEnable))
+	{
+		m_pDeviceContext->RSSetState(isWireframeEnable ? m_pRSWireframe.Get() : nullptr);
+	}
+
 	ImGui::End();
 
 	// rendering
@@ -372,6 +379,14 @@ bool LightingApp::InitD3D()
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D; // 사용되는 리소스 엑세스 방식 설정 : https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ne-d3d11-d3d11_dsv_dimension 
 	descDSV.Texture2D.MipSlice = 0;
 	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
+
+	D3D11_RASTERIZER_DESC rasterizerDesc;
+	ZeroMemory(&rasterizerDesc, sizeof(rasterizerDesc));
+	rasterizerDesc.CullMode = D3D11_CULL_NONE;
+	rasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
+	rasterizerDesc.FrontCounterClockwise = false;
+	rasterizerDesc.DepthClipEnable = true;
+	HR_T(m_pDevice->CreateRasterizerState(&rasterizerDesc, m_pRSWireframe.GetAddressOf()));
 
 	return true;
 }
