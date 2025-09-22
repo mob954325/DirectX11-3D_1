@@ -91,6 +91,9 @@ public:
 	void ResetValues();
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+	// 기타
+	bool isStop = false;
 };
 
 // ID3D11ShaderResourceView

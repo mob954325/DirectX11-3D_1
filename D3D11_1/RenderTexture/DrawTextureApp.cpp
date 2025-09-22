@@ -66,6 +66,7 @@ void DrawTextureApp::OnUpdate()
 {
 	float delta = GameTimer::m_Instance->DeltaTime();
 
+	if(!isStop)
 	{
 		Matrix scale = Matrix::Identity;
 		Matrix rotate = Matrix::Identity;
@@ -229,6 +230,9 @@ void DrawTextureApp::RenderImGUI()
 	{
 		ResetValues();
 	}
+
+	ImGui::Checkbox("StopUpdate", &isStop);
+
 	ImGui::End();
 
 	// rendering
@@ -503,7 +507,7 @@ bool DrawTextureApp::InitScene()
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	// 텍스쳐 불러오기
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\seafloor.dds", nullptr, m_pTextureRV.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\WoodCrate.dds", nullptr, m_pTextureRV.GetAddressOf()));
 
 	// sample 상태 설정
 	D3D11_SAMPLER_DESC sampDesc = {};

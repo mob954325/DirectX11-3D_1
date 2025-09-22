@@ -10,7 +10,7 @@ PS_INPUT_Sky main(VS_INPUT_sky input)
     ViewWithoutTranlation._41 = 0;
     ViewWithoutTranlation._42 = 0;
     ViewWithoutTranlation._43 = 0;
-
+    
     pos = mul(pos, ViewWithoutTranlation);
     pos = mul(pos, Projection);    
     
