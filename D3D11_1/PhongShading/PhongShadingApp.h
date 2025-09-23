@@ -40,37 +40,18 @@ public:
 	ComPtr<ID3D11Buffer> m_pIndexBuffer = nullptr;				// 인덱스 버퍼
 	int m_nIndices = 0;											// 인덱스 버퍼 개수
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
-	
-	ComPtr<ID3D11PixelShader> m_pSolidPixelShader = nullptr;	// 단색 출력용 픽셀 셰이더
 
 	ComPtr<ID3D11ShaderResourceView> m_pTextureRV1;	// 매핑할 텍스처 객체 -> seafloor.dds
 	ComPtr<ID3D11ShaderResourceView> m_pTextureRV2;	// WoodCrate.dds
 	ComPtr<ID3D11ShaderResourceView> m_pTextureRV3;	// cubemap.dds
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
 
-	// 스카이 박스
-	ComPtr<ID3D11VertexShader> m_pSkyboxVertexShader = nullptr;		// 스카이 박스용 정점 셰이더
-	ComPtr<ID3D11PixelShader> m_pSkyboxPixelShader = nullptr;		// 스카이 박스용 픽셀 셰이더
-	ComPtr<ID3D11InputLayout> m_pSkyboxInputLayout = nullptr;		// 입력 레이아웃
-	ComPtr<ID3D11Buffer> m_pSkyboxVertexBuffer = nullptr;			// 스카이 박스 정점 버퍼
-	UINT m_SkyboxVertexBufferStride = 0;							// 스카이 박스 정점 하나의 버퍼 크기
-	UINT m_SkyboxVertexBufferOffset = 0;							// 스카이 박스 정점 버퍼의 오프셋
-	ComPtr<ID3D11Buffer> m_pSkyboxIndexBuffer;						// 스카이 박스가 사용할 인덱스 버퍼
-	int m_nSkyboxIndices = 0;										// 스카이박스 인덱스 버퍼 개수
-
-	ComPtr<ID3D11RasterizerState> m_pSkyRasterizerState = nullptr;	// 스카이박스 래스터라이저 상태
-	ComPtr<ID3D11RasterizerState> m_pRasterizerState = nullptr;	// 오브젝트 래스터라이저 상태
-
-	ComPtr<ID3D11DepthStencilState> m_pSkyDepthStencilState = nullptr;	// 스카이 박스를 위한 뎊스스텐실 상태 개체
-	ComPtr<ID3D11DepthStencilState> m_pDepthStencilState = nullptr;	// 오브젝트를 위한 뎊스스텐실 상태 개체
-
-
 	// 좌표계 변환을 위한 행렬 모음
-	Matrix m_Cube;			// 월드 좌표계 공간으로 변환을 위한 행렬, origin 위치에 있는 큐브 행렬
+	Matrix m_Cube;				// 월드 좌표계 공간으로 변환을 위한 행렬, origin 위치에 있는 큐브 행렬
 	Matrix m_View;				// 뷰 좌표계 공간으로 변환을 위한 행렬.
 	Matrix m_Projection;		// 단위 장치 좌표계 ( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
-	Vector4 m_LightDirection;				// Directional Light의 방향?
+	Vector4 m_LightDirection;				// Directional Light의 방향
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
 
 
@@ -84,6 +65,9 @@ public:
 	// 카메라
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -30.0f };
 	Vector3 m_CameraRotation{};
+
+	// 빛
+	Vector4 m_LightDirectionInitial{ 0.577f, 0.577f, -0.577f, 1.0f };
 
 	float m_Near = 0.01f;
 	float m_Far = 100.0f;

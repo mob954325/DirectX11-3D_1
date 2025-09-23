@@ -19,6 +19,8 @@ cbuffer ConstantBuffer : register(b0)
     float4 outputColor;    
 }
 
+// Basic Shader Struct =============================================================
+
 struct VS_INPUT
 {
     float4 Pos : POSITION;
@@ -33,13 +35,14 @@ struct PS_INPUT
     float2 Tex : TEXCOORD;
 }; 
 
-struct VS_INPUT_sky
-{
-    float3 Pos : POSITION;
-};
+// Functions =============================================================
 
-struct PS_INPUT_Sky
-{
-    float4 positionClipSpace : SV_POSITION;
-    float3 position : POSITION;
-};
+void ComputeDirectionalLight(float3 lightDirection, float3 normal, // float3 eye,
+    out float3 outReflectionVec
+)   
+{   // 반사 벡터 = -빛 방향 + 2(-빛 방향 dot 노멀)노멀
+    // R = -I + 2(-I . N)N;
+    
+    float3 result = -lightDirection + (2 * (dot(-lightDirection, normal)) * normal);
+    outReflectionVec = result;
+}

@@ -19,11 +19,8 @@
     <Filter Include="Shader\Basic">
       <UniqueIdentifier>{578cdf6f-77ef-4a56-9c89-93944d0f1f91}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader\SkyBox">
-      <UniqueIdentifier>{3ee7cdd9-e6e1-4679-ad7c-87be9502cc73}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shader\Solid">
-      <UniqueIdentifier>{03ce44dc-d5f8-4c08-afcd-1aecd740da33}</UniqueIdentifier>
+    <Filter Include="Shader\LightingModel">
+      <UniqueIdentifier>{73b93122-a795-4e6e-b582-3198d675c376}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -33,14 +30,8 @@
     <FxCompile Include="BasicVertexShader.hlsl">
       <Filter>Shader\Basic</Filter>
     </FxCompile>
-    <FxCompile Include="SkyboxPixelShader.hlsl">
-      <Filter>Shader\SkyBox</Filter>
-    </FxCompile>
-    <FxCompile Include="SkyboxVertexShader.hlsl">
-      <Filter>Shader\SkyBox</Filter>
-    </FxCompile>
-    <FxCompile Include="SolidPixelShader.hlsl">
-      <Filter>Shader\Solid</Filter>
+    <FxCompile Include="Light_PS.hlsl">
+      <Filter>Shader\LightingModel</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
