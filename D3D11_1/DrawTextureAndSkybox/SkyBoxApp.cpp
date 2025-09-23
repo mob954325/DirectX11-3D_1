@@ -35,14 +35,14 @@ struct CubeVertex
 // 상수 버퍼
 struct ConstantBuffer
 {
-	Matrix mWorld;
-	Matrix mView;
-	Matrix mProjection;
+	Matrix world;
+	Matrix view;
+	Matrix projection;
 
-	Vector4 mLightDirection;
-	Color mLightColor;
+	Vector4 lightDirection;
+	Color lightColor;
 
-	Color mOutputColor;
+	Color outputColor;
 };
 
 SkyBoxApp::SkyBoxApp(HINSTANCE hInstance)
@@ -116,8 +116,8 @@ void SkyBoxApp::OnRender()
 
 	ConstantBuffer cb;
 
-	cb.mView = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
-	cb.mProjection = XMMatrixTranspose(m_skyboxProjection);
+	cb.view = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
+	cb.projection = XMMatrixTranspose(m_skyboxProjection);
 	
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	
@@ -140,13 +140,13 @@ void SkyBoxApp::OnRender()
 	m_pDeviceContext->RSSetState(m_pRasterizerState.Get()); // 나머지 오브젝트는 front로 돌림
 
 	// Update Constant Values
-	cb.mWorld = XMMatrixTranspose(m_Cube);
-	cb.mView = XMMatrixTranspose(m_View);
-	cb.mProjection = XMMatrixTranspose(m_Projection);
-	cb.mLightDirection = m_LightDirection;
-	cb.mLightDirection.Normalize();
-	cb.mLightColor = m_LightColor;
-	cb.mOutputColor = Vector4::Zero;
+	cb.world = XMMatrixTranspose(m_Cube);
+	cb.view = XMMatrixTranspose(m_View);
+	cb.projection = XMMatrixTranspose(m_Projection);
+	cb.lightDirection = m_LightDirection;
+	cb.lightDirection.Normalize();
+	cb.lightColor = m_LightColor;
+	cb.outputColor = Vector4::Zero;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	// 텍스처 및 샘플링 설정 
@@ -168,8 +168,8 @@ void SkyBoxApp::OnRender()
 	// Render Light
 	Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
 	Matrix mScale = Matrix::CreateScale(0.4f);
-	cb.mWorld = XMMatrixTranspose(mScale * mLight);
-	cb.mOutputColor = m_LightColor;
+	cb.world = XMMatrixTranspose(mScale * mLight);
+	cb.outputColor = m_LightColor;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
 

@@ -30,14 +30,14 @@ struct Vertex
 // 상수 버퍼
 struct ConstantBuffer
 {
-	Matrix mWorld;
-	Matrix mView;
-	Matrix mProjection;
+	Matrix world;
+	Matrix view;
+	Matrix projection;
 
-	Vector4 mLightDirection;
-	Color mLightColor;
+	Vector4 lightDirection;
+	Color lightColor;
 
-	Color mOutputColor;
+	Color outputColor;
 };
 
 LightingApp::LightingApp(HINSTANCE hInstance)
@@ -105,13 +105,13 @@ void LightingApp::OnRender()
 
 	// Update Constant Values
 	ConstantBuffer cb;
-	cb.mWorld = XMMatrixTranspose(m_Cube);
-	cb.mView = XMMatrixTranspose(m_View);
-	cb.mProjection = XMMatrixTranspose(m_Projection);
-	cb.mLightDirection = m_LightDirection;
-	cb.mLightDirection.Normalize();
-	cb.mLightColor = m_LightColor;
-	cb.mOutputColor = Vector4::Zero;
+	cb.world = XMMatrixTranspose(m_Cube);
+	cb.view = XMMatrixTranspose(m_View);
+	cb.projection = XMMatrixTranspose(m_Projection);
+	cb.lightDirection = m_LightDirection;
+	cb.lightDirection.Normalize();
+	cb.lightColor = m_LightColor;
+	cb.outputColor = Vector4::Zero;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	// Render cube
@@ -129,8 +129,8 @@ void LightingApp::OnRender()
 	// Render Light
 	Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
 	Matrix mScale = Matrix::CreateScale(0.4f);
-	cb.mWorld = XMMatrixTranspose(mScale * mLight);
-	cb.mOutputColor = m_LightColor;
+	cb.world = XMMatrixTranspose(mScale * mLight);
+	cb.outputColor = m_LightColor;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
 

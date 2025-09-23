@@ -30,14 +30,28 @@ struct Vertex
 // 상수 버퍼
 struct ConstantBuffer
 {
-	Matrix mWorld;
-	Matrix mView;
-	Matrix mProjection;
+	Matrix world;
+	Matrix view;
+	Matrix projection;
 
-	Vector4 mLightDirection;
-	Color mLightColor;
+	Vector4 lightDirection;
+	Color lightColor;
 
-	Color mOutputColor;
+	Color outputColor;
+
+	Vector4 ambient;	// 환경광
+	Vector4 diffuse;	// 난반사
+	Vector4 specular;	// 정반사
+	Vector4 indirection; // 간접광 ( ambient light ) -> 재료 반사광
+	FLOAT shininess; // 광택지수
+	Vector3 CameraPos;
+};
+
+struct Material
+{
+	Vector4 ambient;
+	Vector4 diffuse;
+	Vector4 specular;
 };
 
 PhongShadingApp::PhongShadingApp(HINSTANCE hInstance)
@@ -100,19 +114,34 @@ void PhongShadingApp::OnRender()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
-	ConstantBuffer cb;
 
 	// 오브젝트 렌더링 ==================================================================================================================================
 
 	// Update Constant Values
-	cb.mWorld = XMMatrixTranspose(m_Cube);
-	cb.mView = XMMatrixTranspose(m_View);
-	cb.mProjection = XMMatrixTranspose(m_Projection);
-	cb.mLightDirection = m_LightDirection;
-	cb.mLightDirection.Normalize();
-	cb.mLightColor = m_LightColor;
-	cb.mOutputColor = Vector4::Zero;
+	ConstantBuffer cb;
+	cb.world = XMMatrixTranspose(m_Cube);
+	cb.view = XMMatrixTranspose(m_View);
+	cb.projection = XMMatrixTranspose(m_Projection);
+	cb.lightDirection = m_LightDirection;
+	cb.lightDirection.Normalize();
+	cb.lightColor = m_LightColor;
+	cb.outputColor = Vector4::Zero;
+
+	cb.ambient = m_LightAmbient;
+	cb.diffuse = m_LightDiffuse;
+	cb.specular = m_LightSpecular;
+
+	cb.indirection = m_AmbientLight;
+	cb.shininess = m_Shininess;
+	cb.CameraPos = m_Camera.m_Position;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	// Update Cube Material
+	Material mat;
+	mat.ambient = m_CubeAmbient;
+	mat.diffuse = m_CubeDiffuse;
+	mat.specular = m_CubeSpecular;
+	m_pDeviceContext->UpdateSubresource(m_pMaterialBuffer.Get(), 0, nullptr, &mat, 0, 0);
 
 	// 텍스처 및 샘플링 설정 
 	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV1.GetAddressOf());
@@ -124,9 +153,23 @@ void PhongShadingApp::OnRender()
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+	m_pDeviceContext->PSSetShader(m_pLightPixelShader.Get(), nullptr, 0);
+
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf()); // material 값 넘겨주기
+
+	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+
+	// Render Light
+	Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
+	Matrix mScale = Matrix::CreateScale(0.4f);
+	cb.world = XMMatrixTranspose(mScale * mLight);
+	cb.outputColor = m_LightColor;
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
@@ -170,7 +213,7 @@ void PhongShadingApp::RenderImGUI()
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
-	ImGui::SetNextWindowSize(ImVec2(350, 300), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
+	ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
 	ImGui::Begin("World Object Controller");
 
 	// 큐브 위치 조절 
@@ -185,6 +228,12 @@ void PhongShadingApp::RenderImGUI()
 	m_CubeRotation.x = XMConvertToRadians(cubeRotation.x);
 	m_CubeRotation.y = XMConvertToRadians(cubeRotation.y);
 	m_CubeRotation.z = XMConvertToRadians(cubeRotation.z);
+
+
+	// 큐브 크기
+	ImGui::DragFloat("Cube Scale", &m_CubeScale.x, 0.05f);
+	m_CubeScale.y = m_CubeScale.x;
+	m_CubeScale.z = m_CubeScale.x;
 
 	ImGui::NewLine();
 
@@ -216,6 +265,16 @@ void PhongShadingApp::RenderImGUI()
 	ImGui::ColorEdit4("Light Color", &m_LightColor.x);
 	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
 
+	ImGui::ColorEdit3("Light Ambient", &m_LightAmbient.x);
+	ImGui::ColorEdit3("Light Diffuse", &m_LightDiffuse.x);
+	ImGui::ColorEdit3("Light Specular", &m_LightSpecular.x);
+	ImGui::DragFloat("Shininess", &m_Shininess, 0.1f);
+	ImGui::ColorEdit3("Ambient light", &m_AmbientLight.x);
+
+	ImGui::Spacing();
+	ImGui::ColorEdit3("Cube Ambient", &m_CubeAmbient.x);
+	ImGui::ColorEdit3("Cube Diffuse", &m_CubeDiffuse.x);
+	ImGui::ColorEdit3("Cube Specular", &m_CubeSpecular.x);
 
 	// 리셋 버튼
 	if (ImGui::Button("Reset", { 50, 20 }))
@@ -469,8 +528,16 @@ bool PhongShadingApp::InitScene()
 
 	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Light_PS.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
+
+	ComPtr<ID3DBlob> lightPixelShader = nullptr;
+	HR_T(CompileShaderFromFile(L"LightPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pLightPixelShader.GetAddressOf()));
+
+	ComPtr<ID3DBlob> solidPixelShader = nullptr;
+	HR_T(CompileShaderFromFile(L"SolidPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pSolidPixelShader.GetAddressOf()));
 
 	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
 	bufferDesc = {};
@@ -511,6 +578,14 @@ bool PhongShadingApp::InitScene()
 	rasterizerState.FillMode = D3D11_FILL_SOLID;
 	rasterizerState.DepthClipEnable = true;
 	rasterizerState.FrontCounterClockwise = true;
+
+	// material buffer
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(Material);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pMaterialBuffer.GetAddressOf()));
 
 	return true;
 }
