@@ -27,7 +27,7 @@ float4 main(PS_INPUT input) : SV_TARGET
         finalSpecular = specFactor * matSpecular * LightSpecular;
     }  
     
-    float4 finalColor = finalAmbient + finalTexture + finalSpecular;
+    float4 finalColor = finalAmbient + finalDiffuse + finalSpecular;
     
-    return finalColor;
+    return finalColor * finalTexture;
 }
