@@ -22,7 +22,6 @@ cbuffer ConstantBuffer : register(b0)
     float4 LightDiffuse; // 난반사
     float4 LightSpecular; // 정반사
     
-    float4 Indirection; // 간접광
     float Shininess; // 광택지수
     float3 CameraPos; // 카메라 위치
 }

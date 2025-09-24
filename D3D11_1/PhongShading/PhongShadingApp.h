@@ -56,7 +56,8 @@ public:
 
 	// 빛 관련
 	ComPtr<ID3D11PixelShader> m_pSolidPixelShader = nullptr; // 빛 위치 랜더링용
-	ComPtr<ID3D11PixelShader> m_pLightPixelShader = nullptr; // LightPixelShader
+	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr; // Phong Shader
+	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr; // Blinn-Phong Shader
 
 	// imgui 컨트롤 변수
 	// 큐브
@@ -70,17 +71,17 @@ public:
 	Vector4 m_CubeSpecular{ 1.0f, 1.0f, 1.0f, 1.0f }; // 정반사 계수
 
 	// 카메라
-	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -30.0f };
+	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -20.0f };
 	Vector3 m_CameraRotation{};
 
 	// 빛
 	ComPtr<ID3D11Buffer> m_pMaterialBuffer = nullptr;
 	Vector4 m_LightDirectionInitial{ 0, 0, 1, 1.0f };
-	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 1.0f }; // 환경광 반사 계수
+	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 0.1f }; // 환경광 반사 계수
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수 -> Texture로 대체 가능?
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
-	Vector4 m_AmbientLight{ 0.1f, 0.1f, 0.1f, 1.0f };	// 간접광
 	FLOAT m_Shininess = 1000.0f; // 광택 지수
+	bool isBlinnPhong = false;
 
 	float m_Near = 0.01f;
 	float m_Far = 100.0f;

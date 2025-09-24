@@ -30,10 +30,13 @@
     <FxCompile Include="BasicVertexShader.hlsl">
       <Filter>Shader\Basic</Filter>
     </FxCompile>
-    <FxCompile Include="LightPixelShader.hlsl">
+    <FxCompile Include="PhongShader.hlsl">
       <Filter>Shader\LightingModel</Filter>
     </FxCompile>
     <FxCompile Include="SolidPixelShader.hlsl">
+      <Filter>Shader\LightingModel</Filter>
+    </FxCompile>
+    <FxCompile Include="BlinnPhongShader.hlsl">
       <Filter>Shader\LightingModel</Filter>
     </FxCompile>
   </ItemGroup>

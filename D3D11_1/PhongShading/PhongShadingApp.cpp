@@ -42,7 +42,6 @@ struct ConstantBuffer
 	Vector4 ambient;	// 환경광
 	Vector4 diffuse;	// 난반사
 	Vector4 specular;	// 정반사
-	Vector4 indirection; // 간접광 ( ambient light ) -> 재료 반사광
 	FLOAT shininess; // 광택지수
 	Vector3 CameraPos;
 };
@@ -131,7 +130,6 @@ void PhongShadingApp::OnRender()
 	cb.diffuse = m_LightDiffuse;
 	cb.specular = m_LightSpecular;
 
-	cb.indirection = m_AmbientLight;
 	cb.shininess = m_Shininess;
 	cb.CameraPos = m_Camera.m_Position;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
@@ -156,7 +154,7 @@ void PhongShadingApp::OnRender()
 
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	m_pDeviceContext->PSSetShader(m_pLightPixelShader.Get(), nullptr, 0);
+	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), nullptr, 0);
 
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf()); // material 값 넘겨주기
@@ -164,12 +162,12 @@ void PhongShadingApp::OnRender()
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Render Light
-	Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
-	Matrix mScale = Matrix::CreateScale(0.4f);
-	cb.world = XMMatrixTranspose(mScale * mLight);
-	cb.outputColor = m_LightColor;
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
+	// Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
+	// Matrix mScale = Matrix::CreateScale(0.4f);
+	// cb.world = XMMatrixTranspose(mScale * mLight);
+	// cb.outputColor = m_LightColor;
+	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	// m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
@@ -214,7 +212,7 @@ void PhongShadingApp::RenderImGUI()
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
 	ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
-	ImGui::Begin("World Object Controller");
+	ImGui::Begin("World Controller");
 
 	// 큐브 위치 조절 
 	ImGui::DragFloat3("Cube Position", &m_CubePosition.x);
@@ -248,6 +246,8 @@ void PhongShadingApp::RenderImGUI()
 		m_Camera.m_Rotation.z = XMConvertToRadians(m_CameraRotation.z);
 	}
 
+	ImGui::NewLine();
+
 	// Near 값 설정
 	ImGui::DragFloat("Near", &m_Near, 0.5f);
 
@@ -260,27 +260,34 @@ void PhongShadingApp::RenderImGUI()
 	if (m_Near <= 0.0f) m_Near = 0.01f;
 	if (m_Far <= 0.0f) m_Far = 0.2f;
 
+	ImGui::NewLine();
+
+	// Lighting 설정
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	ImGui::ColorEdit4("Light Color", &m_LightColor.x);
 	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
 
-	ImGui::ColorEdit3("Light Ambient", &m_LightAmbient.x);
-	ImGui::ColorEdit3("Light Diffuse", &m_LightDiffuse.x);
-	ImGui::ColorEdit3("Light Specular", &m_LightSpecular.x);
-	ImGui::DragFloat("Shininess", &m_Shininess, 0.1f);
-	ImGui::ColorEdit3("Ambient light", &m_AmbientLight.x);
+	ImGui::ColorEdit4("Light Ambient", &m_LightAmbient.x);
+	ImGui::ColorEdit4("Light Diffuse", &m_LightDiffuse.x);
+	ImGui::ColorEdit4("Light Specular", &m_LightSpecular.x);
+	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
 
 	ImGui::Spacing();
-	ImGui::ColorEdit3("Cube Ambient", &m_CubeAmbient.x);
-	ImGui::ColorEdit3("Cube Diffuse", &m_CubeDiffuse.x);
-	ImGui::ColorEdit3("Cube Specular", &m_CubeSpecular.x);
+	ImGui::ColorEdit4("Cube Ambient", &m_CubeAmbient.x);
+	ImGui::ColorEdit4("Cube Diffuse", &m_CubeDiffuse.x);
+	ImGui::ColorEdit4("Cube Specular", &m_CubeSpecular.x);
+
+	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
+
+	ImGui::NewLine();
 
 	// 리셋 버튼
 	if (ImGui::Button("Reset", { 50, 20 }))
 	{
 		ResetValues();
 	}
+
 	ImGui::End();
 
 	// rendering
@@ -531,11 +538,15 @@ bool PhongShadingApp::InitScene()
 	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
-	ComPtr<ID3DBlob> lightPixelShader = nullptr;
-	HR_T(CompileShaderFromFile(L"LightPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pLightPixelShader.GetAddressOf()));
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"PhongShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPhongShader.GetAddressOf()));
 
-	ComPtr<ID3DBlob> solidPixelShader = nullptr;
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"BlinnPhongShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"SolidPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pSolidPixelShader.GetAddressOf()));
 
