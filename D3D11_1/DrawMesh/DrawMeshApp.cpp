@@ -31,9 +31,9 @@ struct Vertex
 // 상수 버퍼
 struct ConstantBuffer
 {
-	Matrix mWorld;
-	Matrix mView;
-	Matrix mProjection;
+	Matrix world;
+	Matrix view;
+	Matrix projection;
 };
 
 DrawMeshApp::DrawMeshApp(HINSTANCE hInstance)
@@ -132,25 +132,25 @@ void DrawMeshApp::OnRender()
 
 	// Update variables for the first cube
 	ConstantBuffer cb1;
-	cb1.mWorld = XMMatrixTranspose(m_World1);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
+	cb1.world = XMMatrixTranspose(m_World1);
+	cb1.view = XMMatrixTranspose(m_View);
+	cb1.projection = XMMatrixTranspose(m_Projection);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Update variables for the second cube	
-	cb1.mWorld = XMMatrixTranspose(m_World2);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
+	cb1.world = XMMatrixTranspose(m_World2);
+	cb1.view = XMMatrixTranspose(m_View);
+	cb1.projection = XMMatrixTranspose(m_Projection);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Update variables for the third cube	
-	cb1.mWorld = XMMatrixTranspose(m_World3);
-	cb1.mView = XMMatrixTranspose(m_View);
-	cb1.mProjection = XMMatrixTranspose(m_Projection);
+	cb1.world = XMMatrixTranspose(m_World3);
+	cb1.view = XMMatrixTranspose(m_View);
+	cb1.projection = XMMatrixTranspose(m_Projection);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);

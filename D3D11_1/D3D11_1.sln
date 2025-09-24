@@ -18,6 +18,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04_RenderTexture", "RenderT
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "06_DrawTextureAndSkybox", "DrawTextureAndSkybox\DrawTextureAndSkybox.vcxproj", "{845412A7-FA87-457D-B2CC-759E00917559}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "07_PhongShading", "PhongShading\PhongShading.vcxproj", "{33EA7D90-F00D-4495-96FA-5E739BABEA3D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -90,6 +92,14 @@ Global
 		{845412A7-FA87-457D-B2CC-759E00917559}.Release|x64.Build.0 = Release|x64
 		{845412A7-FA87-457D-B2CC-759E00917559}.Release|x86.ActiveCfg = Release|Win32
 		{845412A7-FA87-457D-B2CC-759E00917559}.Release|x86.Build.0 = Release|Win32
+		{33EA7D90-F00D-4495-96FA-5E739BABEA3D}.Debug|x64.ActiveCfg = Debug|x64
+		{33EA7D90-F00D-4495-96FA-5E739BABEA3D}.Debug|x64.Build.0 = Debug|x64
+		{33EA7D90-F00D-4495-96FA-5E739BABEA3D}.Debug|x86.ActiveCfg = Debug|Win32
+		{33EA7D90-F00D-4495-96FA-5E739BABEA3D}.Debug|x86.Build.0 = Debug|Win32
+		{33EA7D90-F00D-4495-96FA-5E739BABEA3D}.Release|x64.ActiveCfg = Release|x64
+		{33EA7D90-F00D-4495-96FA-5E739BABEA3D}.Release|x64.Build.0 = Release|x64
+		{33EA7D90-F00D-4495-96FA-5E739BABEA3D}.Release|x86.ActiveCfg = Release|Win32
+		{33EA7D90-F00D-4495-96FA-5E739BABEA3D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
