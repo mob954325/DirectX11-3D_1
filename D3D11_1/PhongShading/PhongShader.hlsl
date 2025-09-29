@@ -19,8 +19,14 @@ float4 main(PS_INPUT input) : SV_TARGET
     if (diffuseFactor > 0.0f)
     {   
         // Phong
-        float3 v = reflect(normalize((float3)LightDirection), norm); // 
-        float specFactor = pow(max(dot(v, normalize(CameraPos - input.World)), 0.0f), Shininess);
+        float3 reflectionVector = reflect(normalize((float3)LightDirection), norm); // 
+        
+        // reflection calculates 
+        // float3 i = normalize((float3) LightDirection);
+        // float3 n = norm; 
+        // float3 reflectionVector = i - 2 * n * dot(i, n);
+        
+        float specFactor = pow(max(dot(reflectionVector, normalize(CameraPos - input.World)), 0.0f), Shininess);
         
         finalDiffuse = finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor;
         finalSpecular = specFactor * matSpecular * LightSpecular * LightColor;
