@@ -1,8 +1,7 @@
-#include "SkyBoxApp.h"
+#include "NormalMappingApp.h"
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
-#include <directxtk/DDSTextureLoader.h> // dds파일 로더
 #include <dxgidebug.h>
 #include <dxgi1_3.h>
 
@@ -23,13 +22,12 @@ using Microsoft::WRL::ComPtr;
 struct Vertex
 {
 	Vector3 position;
-	Vector3 normal;			// 정점에 대한 수직 벡터
 	Vector2 texture;		// 텍스처 UV 값
-};
-
-struct CubeVertex
-{
-	Vector3 position;
+	
+	// Tangent space
+	Vector3 tenget;
+	Vector3 bitenget;
+	Vector3 normal;
 };
 
 // 상수 버퍼
@@ -43,25 +41,35 @@ struct ConstantBuffer
 	Color lightColor;
 
 	Color outputColor;
+
+	Vector4 ambient;	// 환경광
+	Vector4 diffuse;	// 난반사
+	Vector4 specular;	// 정반사
+	FLOAT shininess; // 광택지수
+	Vector3 CameraPos;
 };
 
-SkyBoxApp::SkyBoxApp(HINSTANCE hInstance)
+struct Material
+{
+	Vector4 ambient;
+	Vector4 diffuse;
+	Vector4 specular;
+};
+
+NormalMappingApp::NormalMappingApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
 
 }
 
-SkyBoxApp::~SkyBoxApp()
+NormalMappingApp::~NormalMappingApp()
 {
 	UninitImGUI();
 }
 
-bool SkyBoxApp::OnInitialize()
+bool NormalMappingApp::OnInitialize()
 {
 	if (!InitD3D())
-		return false;
-
-	if (!InitSkyBox())
 		return false;
 
 	if (!InitScene())
@@ -75,7 +83,7 @@ bool SkyBoxApp::OnInitialize()
 	return true;
 }
 
-void SkyBoxApp::OnUpdate()
+void NormalMappingApp::OnUpdate()
 {
 	float delta = GameTimer::m_Instance->DeltaTime();
 
@@ -96,7 +104,7 @@ void SkyBoxApp::OnUpdate()
 	m_Camera.GetCameraViewMatrix(m_View);
 }
 
-void SkyBoxApp::OnRender()
+void NormalMappingApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
@@ -108,38 +116,11 @@ void SkyBoxApp::OnRender()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
-	// 스카이박스 렌더링 ==================================================================================================================================
-	m_pDeviceContext->OMSetDepthStencilState(m_pSkyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
-
-	// 카메라용 뷰 행렬과, 투영행렬
-	Matrix m_skyboxProjection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, 0.1, m_Far);
-
-	ConstantBuffer cb;
-
-	cb.view = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
-	cb.projection = XMMatrixTranspose(m_skyboxProjection);
-	
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	
-	m_pDeviceContext->IASetInputLayout(m_pSkyboxInputLayout.Get());
-	m_pDeviceContext->IASetIndexBuffer(m_pSkyboxIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pSkyboxVertexBuffer.GetAddressOf(), &m_SkyboxVertexBufferStride, &m_SkyboxVertexBufferOffset);
-	m_pDeviceContext->VSSetShader(m_pSkyboxVertexShader.Get(), nullptr, 0);
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->RSSetState(m_pSkyRasterizerState.Get());
-	m_pDeviceContext->PSSetShader(m_pSkyboxPixelShader.Get(), nullptr, 0);	
-	m_pDeviceContext->PSSetShaderResources(1, 1, m_pTextureRV3.GetAddressOf());
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-	
-	m_pDeviceContext->DrawIndexed(m_nSkyboxIndices, 0, 0);
 
 	// 오브젝트 렌더링 ==================================================================================================================================
 
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilState.Get(), 1); // 오브젝트에 사용할 뎊스스텐실 상태 바인딩
-	m_pDeviceContext->RSSetState(m_pRasterizerState.Get()); // 나머지 오브젝트는 front로 돌림
-
 	// Update Constant Values
+	ConstantBuffer cb;
 	cb.world = XMMatrixTranspose(m_Cube);
 	cb.view = XMMatrixTranspose(m_View);
 	cb.projection = XMMatrixTranspose(m_Projection);
@@ -147,10 +128,26 @@ void SkyBoxApp::OnRender()
 	cb.lightDirection.Normalize();
 	cb.lightColor = m_LightColor;
 	cb.outputColor = Vector4::Zero;
+
+	cb.ambient = m_LightAmbient;
+	cb.diffuse = m_LightDiffuse;
+	cb.specular = m_LightSpecular;
+
+	cb.shininess = m_Shininess;
+	cb.CameraPos = m_Camera.m_Position;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
+	// Update Cube Material
+	Material mat;
+	mat.ambient = m_CubeAmbient;
+	mat.diffuse = m_CubeDiffuse;
+	mat.specular = m_CubeSpecular;
+	m_pDeviceContext->UpdateSubresource(m_pMaterialBuffer.Get(), 0, nullptr, &mat, 0, 0);
+
 	// 텍스처 및 샘플링 설정 
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf()); 
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Render cube
@@ -159,9 +156,13 @@ void SkyBoxApp::OnRender()
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), nullptr, 0);
+
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf()); // material 값 넘겨주기
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
@@ -174,6 +175,7 @@ void SkyBoxApp::OnRender()
 	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+
 	// Render ImGui
 	RenderImGUI();
 
@@ -181,7 +183,7 @@ void SkyBoxApp::OnRender()
 	m_pSwapChain->Present(0, 0);
 }
 
-bool SkyBoxApp::InitImGUI()
+bool NormalMappingApp::InitImGUI()
 {
 	bool isSetupSuccess = false;
 
@@ -205,7 +207,7 @@ bool SkyBoxApp::InitImGUI()
 	return true;
 }
 
-void SkyBoxApp::RenderImGUI()
+void NormalMappingApp::RenderImGUI()
 {
 	// Start the Dear ImGui frame
 	ImGui_ImplDX11_NewFrame();
@@ -214,8 +216,8 @@ void SkyBoxApp::RenderImGUI()
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
-	ImGui::SetNextWindowSize(ImVec2(350, 300), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
-	ImGui::Begin("World Object Controller");
+	ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
+	ImGui::Begin("World Controller");
 
 	// 큐브 위치 조절 
 	ImGui::DragFloat3("Cube Position", &m_CubePosition.x);
@@ -230,6 +232,12 @@ void SkyBoxApp::RenderImGUI()
 	m_CubeRotation.y = XMConvertToRadians(cubeRotation.y);
 	m_CubeRotation.z = XMConvertToRadians(cubeRotation.z);
 
+
+	// 큐브 크기
+	ImGui::DragFloat("Cube Scale", &m_CubeScale.x, 0.05f);
+	m_CubeScale.y = m_CubeScale.x;
+	m_CubeScale.z = m_CubeScale.x;
+
 	ImGui::NewLine();
 
 	// 카메라 위치 및 회전 설정
@@ -243,6 +251,8 @@ void SkyBoxApp::RenderImGUI()
 		m_Camera.m_Rotation.z = XMConvertToRadians(m_CameraRotation.z);
 	}
 
+	ImGui::NewLine();
+
 	// Near 값 설정
 	ImGui::DragFloat("Near", &m_Near, 0.5f);
 
@@ -255,17 +265,34 @@ void SkyBoxApp::RenderImGUI()
 	if (m_Near <= 0.0f) m_Near = 0.01f;
 	if (m_Far <= 0.0f) m_Far = 0.2f;
 
+	ImGui::NewLine();
+
+	// Lighting 설정
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	ImGui::ColorEdit4("Light Color", &m_LightColor.x);
 	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
 
+	ImGui::ColorEdit4("Light Ambient", &m_LightAmbient.x);
+	ImGui::ColorEdit4("Light Diffuse", &m_LightDiffuse.x);
+	ImGui::ColorEdit4("Light Specular", &m_LightSpecular.x);
+	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
+
+	ImGui::Spacing();
+	ImGui::ColorEdit4("Cube Ambient", &m_CubeAmbient.x);
+	ImGui::ColorEdit4("Cube Diffuse", &m_CubeDiffuse.x);
+	ImGui::ColorEdit4("Cube Specular", &m_CubeSpecular.x);
+
+	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
+
+	ImGui::NewLine();
 
 	// 리셋 버튼
 	if (ImGui::Button("Reset", { 50, 20 }))
 	{
 		ResetValues();
 	}
+
 	ImGui::End();
 
 	// rendering
@@ -273,7 +300,7 @@ void SkyBoxApp::RenderImGUI()
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-void SkyBoxApp::UninitImGUI()
+void NormalMappingApp::UninitImGUI()
 {
 	// Cleanup
 	ImGui_ImplDX11_Shutdown();
@@ -281,7 +308,7 @@ void SkyBoxApp::UninitImGUI()
 	ImGui::DestroyContext();
 }
 
-bool SkyBoxApp::InitD3D()
+bool NormalMappingApp::InitD3D()
 {
 	HRESULT hr = S_OK;
 
@@ -396,7 +423,6 @@ bool SkyBoxApp::InitD3D()
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
 
-	m_pDevice->CreateDepthStencilState(&depthStencilDesc, m_pDepthStencilState.GetAddressOf());
 	// m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilState.Get(), 1);
 
 	// create depthStencil texture
@@ -413,7 +439,7 @@ bool SkyBoxApp::InitD3D()
 	return true;
 }
 
-bool SkyBoxApp::InitScene()
+bool NormalMappingApp::InitScene()
 {
 	HRESULT hr = S_OK;
 
@@ -428,37 +454,37 @@ bool SkyBoxApp::InitScene()
 
 
 	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
-	Vertex vertices[] = // Local space, color
+	Vertex vertices[] =  // pos, tx, tan, bitan
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },// Normal Y +	 
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },// Normal Y -		
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
-
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },//	Normal X -
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },// Normal X +
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) }, // Normal Z -
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
-
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) }, // Normal Z +
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },	// Normal Y +	 
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
+															
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },	// Normal Y -		
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
+															
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },	//	Normal X -
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+															
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },	// Normal X +
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
+															
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) }, // Normal Z -
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
+															
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) }, // Normal Z +
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
 	};
 
 	D3D11_BUFFER_DESC bufferDesc = {};
@@ -478,8 +504,10 @@ bool SkyBoxApp::InitScene()
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
@@ -517,9 +545,17 @@ bool SkyBoxApp::InitScene()
 	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
-	ComPtr<ID3DBlob> solidPixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"SolidPixelShader.hlsl", "main", "ps_4_0", &solidPixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(solidPixelShaderBuffer->GetBufferPointer(), solidPixelShaderBuffer->GetBufferSize(), NULL, m_pSolidPixelShader.GetAddressOf()));
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"PhongShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPhongShader.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"BlinnPhongShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"SolidPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pSolidPixelShader.GetAddressOf()));
 
 	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
 	bufferDesc = {};
@@ -539,9 +575,9 @@ bool SkyBoxApp::InitScene()
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	// 텍스쳐 불러오기
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\seafloor.dds", nullptr, m_pTexture.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\WoodCrate.dds", nullptr, m_pTextureRV2.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\cubemap.dds", nullptr, m_pTextureRV3.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_1K-JPG_Color.jpg", m_pTexture.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_1K-JPG_NormalDX.jpg", m_pNormal.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_Specular.png", m_pSpecular.GetAddressOf()));
 
 	// 샘플링 상태 설정
 	D3D11_SAMPLER_DESC sampDesc = {};
@@ -561,134 +597,18 @@ bool SkyBoxApp::InitScene()
 	rasterizerState.DepthClipEnable = true;
 	rasterizerState.FrontCounterClockwise = true;
 
-	HR_T(m_pDevice->CreateRasterizerState(&rasterizerState, m_pRasterizerState.ReleaseAndGetAddressOf()));
+	// material buffer
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(Material);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pMaterialBuffer.GetAddressOf()));
 
 	return true;
 }
 
-bool SkyBoxApp::InitSkyBox()
-{	
-	const float width = 1.0f;
-	const float height = 1.0f;
-	const float depth = 1.0f;
-	CubeVertex skyboxVertices[] =
-	{
-		{ Vector3(-width, -height, -depth) },
-		{ Vector3(-width, +height, -depth) },
-		{ Vector3(+width, +height, -depth) },
-		{ Vector3(+width, -height, -depth) },
-
-		{ Vector3(-width, -height, +depth) },
-		{ Vector3(+width, -height, +depth) },
-		{ Vector3(+width, +height, +depth) },
-		{ Vector3(-width, +height, +depth) },
-
-		{ Vector3(-width, +height, -depth) },
-		{ Vector3(-width, +height, +depth) },
-		{ Vector3(+width, +height, +depth) },
-		{ Vector3(+width, +height, -depth) },
-
-		{ Vector3(-width, -height, -depth) },
-		{ Vector3(+width, -height, -depth) },
-		{ Vector3(+width, -height, +depth) },
-		{ Vector3(-width, -height, +depth) },
-
-		{ Vector3(-width, -height, +depth) },
-		{ Vector3(-width, +height, +depth) },
-		{ Vector3(-width, +height, -depth) },
-		{ Vector3(-width, -height, -depth) },
-
-		{ Vector3(+width, -height, -depth) },
-		{ Vector3(+width, +height, -depth) },
-		{ Vector3(+width, +height, +depth) },
-		{ Vector3(+width, -height, +depth) }
-	};
-
-	// 버텍스 버퍼
-	D3D11_BUFFER_DESC bufferDesc = {};
-	bufferDesc.ByteWidth = sizeof(CubeVertex) * ARRAYSIZE(skyboxVertices);
-	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.CPUAccessFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA vbData = {};
-	vbData.pSysMem = skyboxVertices;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &vbData, m_pSkyboxVertexBuffer.GetAddressOf()));
-
-	m_SkyboxVertexBufferStride = sizeof(CubeVertex); 	// 버텍스 버퍼의 정보
-	m_SkyboxVertexBufferOffset = 0;
-
-	// 파이프라인에 바인딩할 InputLayout 생성
-	D3D11_INPUT_ELEMENT_DESC layout[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-
-	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"SkyboxVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pSkyboxInputLayout.GetAddressOf()));
-
-	// 파이프 라인에 바인딩할 정점 셰이더 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pSkyboxVertexShader.GetAddressOf()));
-
-	// 인덱스 버퍼
-	WORD skyboxIndices[] =
-	{
-		0, 1, 2,
-		0, 2, 3,
-		4, 5, 6,
-		4, 6, 7,
-		8, 9, 10,
-		8, 10, 11,
-		12, 13, 14,
-		12, 14, 15,
-		16, 17, 18,
-		16, 18, 19,
-		20, 21, 22,
-		20, 22, 23,
-	};
-
-	bufferDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(skyboxIndices);
-	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.CPUAccessFlags = 0;
-
-	m_SkyboxVertexBufferStride = sizeof(CubeVertex); 	// 버텍스 버퍼의 정보
-	m_SkyboxVertexBufferOffset = 0;
-
-	m_nSkyboxIndices = ARRAYSIZE(skyboxIndices); // 인덱스 개수 저장
-
-	D3D11_SUBRESOURCE_DATA ibData = {};
-	ibData.pSysMem = skyboxIndices;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &ibData, m_pSkyboxIndexBuffer.GetAddressOf()));
-
-	// 픽셀 셰이더
-	ComPtr<ID3DBlob> sbPixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"SkyboxPixelShader.hlsl", "main", "ps_4_0", &sbPixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(sbPixelShaderBuffer->GetBufferPointer(), sbPixelShaderBuffer->GetBufferSize(), NULL, m_pSkyboxPixelShader.GetAddressOf()));
-
-	// 래스터라이저
-	D3D11_RASTERIZER_DESC rasterizerState = {};
-	rasterizerState.CullMode = D3D11_CULL_BACK;
-	rasterizerState.FillMode = D3D11_FILL_SOLID;
-	rasterizerState.DepthClipEnable = true;
-	rasterizerState.FrontCounterClockwise = true;
-
-	HR_T(m_pDevice->CreateRasterizerState(&rasterizerState, m_pSkyRasterizerState.ReleaseAndGetAddressOf()));
-
-	// 스카이 박스 뎊스 스텐실 상태 개체 추가
-	D3D11_DEPTH_STENCIL_DESC skyboxDsDesc;
-	ZeroMemory(&skyboxDsDesc, sizeof(skyboxDsDesc));
-	skyboxDsDesc.DepthEnable = false;
-	skyboxDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;	// 깊이 버퍼 사용 X
-	// skyboxDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;		
-	skyboxDsDesc.StencilEnable = false;
-	HR_T(m_pDevice->CreateDepthStencilState(&skyboxDsDesc, m_pSkyDepthStencilState.GetAddressOf()));
-
-	return true;
-}
-
-void SkyBoxApp::ResetValues()
+void NormalMappingApp::ResetValues()
 {
 	m_CubePosition = m_CubePositionInitial;
 
@@ -702,13 +622,13 @@ void SkyBoxApp::ResetValues()
 
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
-	m_LightDirection = { -0.577f, 0.577f, -0.577f, 1.0f };
+	m_LightDirection = m_LightDirectionInitial;
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-LRESULT SkyBoxApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT NormalMappingApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;

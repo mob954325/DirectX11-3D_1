@@ -17,11 +17,11 @@
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
 
-class PhongShadingApp : public GameApp
+class NormalMappingApp : public GameApp
 {
 public:
-	PhongShadingApp(HINSTANCE hInstance);
-	~PhongShadingApp();
+	NormalMappingApp(HINSTANCE hInstance);
+	~NormalMappingApp();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	ComPtr<ID3D11Device> m_pDevice = nullptr;						// 디바이스
@@ -41,9 +41,11 @@ public:
 	int m_nIndices = 0;											// 인덱스 버퍼 개수
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 
-	ComPtr<ID3D11ShaderResourceView> m_pTexture;	// 매핑할 텍스처 객체 -> seafloor.dds
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV2;	// WoodCrate.dds
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV3;	// cubemap.dds
+	// 리소스 객체
+	ComPtr<ID3D11ShaderResourceView> m_pTexture;	// 매핑할 텍스처 객체 
+	ComPtr<ID3D11ShaderResourceView> m_pNormal;		// 매핑할 노멀맵
+	ComPtr<ID3D11ShaderResourceView> m_pSpecular;	// 매핑할 스펙큘러맵
+
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
 
 	// 좌표계 변환을 위한 행렬 모음
@@ -76,11 +78,11 @@ public:
 
 	// 빛
 	ComPtr<ID3D11Buffer> m_pMaterialBuffer = nullptr;
-	Vector4 m_LightDirectionInitial{ 0, 0, 1, 1.0f };
+	Vector4 m_LightDirectionInitial{ 0.5f, 0, 0.5f, 1.0f };
 	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 0.1f }; // 환경광 반사 계수
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수 -> Texture로 대체 가능?
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
-	FLOAT m_Shininess = 1000.0f; // 광택 지수
+	FLOAT m_Shininess = 40.0f; // 광택 지수
 	bool isBlinnPhong = false;
 
 	float m_Near = 0.01f;

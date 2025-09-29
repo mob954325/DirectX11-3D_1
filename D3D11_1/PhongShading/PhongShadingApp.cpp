@@ -142,7 +142,7 @@ void PhongShadingApp::OnRender()
 	m_pDeviceContext->UpdateSubresource(m_pMaterialBuffer.Get(), 0, nullptr, &mat, 0, 0);
 
 	// 텍스처 및 샘플링 설정 
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV1.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Render cube
@@ -568,7 +568,7 @@ bool PhongShadingApp::InitScene()
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	// 텍스쳐 불러오기
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\seafloor.dds", nullptr, m_pTextureRV1.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\seafloor.dds", nullptr, m_pTexture.GetAddressOf()));
 	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\WoodCrate.dds", nullptr, m_pTextureRV2.GetAddressOf()));
 	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\cubemap.dds", nullptr, m_pTextureRV3.GetAddressOf()));
 

@@ -43,7 +43,7 @@ public:
 	
 	ComPtr<ID3D11PixelShader> m_pSolidPixelShader = nullptr;	// 단색 출력용 픽셀 셰이더
 
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV1;	// 매핑할 텍스처 객체 -> seafloor.dds
+	ComPtr<ID3D11ShaderResourceView> m_pTexture;	// 매핑할 텍스처 객체 -> seafloor.dds
 	ComPtr<ID3D11ShaderResourceView> m_pTextureRV2;	// WoodCrate.dds
 	ComPtr<ID3D11ShaderResourceView> m_pTextureRV3;	// cubemap.dds
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
