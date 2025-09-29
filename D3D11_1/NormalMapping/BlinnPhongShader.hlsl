@@ -2,8 +2,21 @@
 
 float4 main(PS_INPUT input) : SV_TARGET
 {
+    // sepcularSample
+    float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;
+    
+    // normalSample
+    float3x3 TBN = float3x3(input.Tangent, input.Bitangent, input.Norm);
+    float3 normalMapSample = txNormal.Sample(samLinear, input.Tex).rgb;
+    float3 normalTexture = normalize(DecodeNormal(normalMapSample)); //  Convert normal map color (RGB [0,1]) to normal vector in range [-1,1] 
+    
+    float3 finalNorm = normalize(mul(normalTexture, TBN));
+    
+    // texture Sampling 
     float4 finalTexture = txDiffuse.Sample(samLinear, input.Tex);
-    float3 norm = normalize(input.Norm);	
+    
+    // lighting Calculate
+    float3 norm = finalNorm;
 	
     float4 finalAmbient = matAmbient * LightAmbient;	
     
@@ -17,7 +30,7 @@ float4 main(PS_INPUT input) : SV_TARGET
         // Á¤¹Ý»ç±¤        
         float3 viewVector = CameraPos - input.World;        
         float3 halfVector = viewVector + -(float3)LightDirection;        
-        float specularFactor = pow(saturate(dot(norm, normalize(halfVector))), Shininess);
+        float specularFactor = specularIntensity * pow(saturate(dot(norm, normalize(halfVector))), Shininess);
         
         finalDiffuse = finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor;
         finalSpecular = specularFactor * matSpecular * LightSpecular * LightColor;

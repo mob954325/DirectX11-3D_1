@@ -6,8 +6,21 @@
 
 float4 main(PS_INPUT input) : SV_TARGET
 {       
-    float4 finalTexture = txDiffuse.Sample(samLinear, input.Tex);     
-    float3 norm = normalize(input.Norm);
+    // specularSample
+    float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;
+    
+    // NormalSample to world space
+    float3x3 TBN = float3x3(input.Tangent, input.Bitangent, input.Norm);
+    float3 normalMapSample = txNormal.Sample(samLinear, input.Tex).rgb;
+    float3 normalTexture = normalize(DecodeNormal(normalMapSample)); //  Convert normal map color (RGB [0,1]) to normal vector in range [-1,1]      
+
+    float3 finalNorm = normalize(mul(normalTexture, TBN));
+    
+    // texture sampling
+    float4 finalTexture = txDiffuse.Sample(samLinear, input.Tex);         
+    
+    // lighting Calculate
+    float3 norm = finalNorm;
 
     float4 finalAmbient = matAmbient * LightAmbient;   
     
@@ -19,16 +32,11 @@ float4 main(PS_INPUT input) : SV_TARGET
     if (diffuseFactor > 0.0f)
     {   
         // Phong
-        float3 reflectionVector = reflect(normalize((float3)LightDirection), norm); // 
+        float3 reflectionVector = reflect(normalize((float3)LightDirection), norm); //       
         
-        // reflection calculates 
-        // float3 i = normalize((float3) LightDirection);
-        // float3 n = norm; 
-        // float3 reflectionVector = i - 2 * n * dot(i, n);
+        float specFactor = specularIntensity * pow(max(dot(reflectionVector, normalize(CameraPos - input.World)), 0.0f), Shininess);
         
-        float specFactor = pow(max(dot(reflectionVector, normalize(CameraPos - input.World)), 0.0f), Shininess);
-        
-        finalDiffuse = finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor;
+        finalDiffuse =  finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor;
         finalSpecular = specFactor * matSpecular * LightSpecular * LightColor;
     }  
     

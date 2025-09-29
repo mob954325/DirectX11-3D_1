@@ -41,9 +41,10 @@ public:
 	int m_nIndices = 0;											// 인덱스 버퍼 개수
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV1;	// 매핑할 텍스처 객체 -> seafloor.dds
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV2;	// WoodCrate.dds
-	ComPtr<ID3D11ShaderResourceView> m_pTextureRV3;	// cubemap.dds
+	ComPtr<ID3D11ShaderResourceView> m_pTexture;	// 매핑할 텍스처 객체 
+	ComPtr<ID3D11ShaderResourceView> m_pNormal;		// 매핑할 노멀맵
+	ComPtr<ID3D11ShaderResourceView> m_pSpecular;	// 매핑할 스펙큘러맵
+
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
 
 	// 좌표계 변환을 위한 행렬 모음

@@ -2,7 +2,6 @@
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
-#include <directxtk/DDSTextureLoader.h> // dds파일 로더
 #include <dxgidebug.h>
 #include <dxgi1_3.h>
 
@@ -23,8 +22,12 @@ using Microsoft::WRL::ComPtr;
 struct Vertex
 {
 	Vector3 position;
-	Vector3 normal;			// 정점에 대한 수직 벡터
 	Vector2 texture;		// 텍스처 UV 값
+	
+	// Tangent space
+	Vector3 tenget;
+	Vector3 bitenget;
+	Vector3 normal;
 };
 
 // 상수 버퍼
@@ -142,7 +145,9 @@ void NormalMappingApp::OnRender()
 	m_pDeviceContext->UpdateSubresource(m_pMaterialBuffer.Get(), 0, nullptr, &mat, 0, 0);
 
 	// 텍스처 및 샘플링 설정 
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTextureRV1.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Render cube
@@ -449,37 +454,37 @@ bool NormalMappingApp::InitScene()
 
 
 	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
-	Vertex vertices[] = // Local space, color
+	Vertex vertices[] =  // pos, tx, tan, bitan
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 0.0f) },// Normal Y +	 
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 0.0f) },// Normal Y -		
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, -1.0f, 0.0f), Vector2(0.0f, 1.0f) },
-
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },//	Normal X -
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(-1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 0.0f) },// Normal X +
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(1.0f, 0.0f, 0.0f), Vector2(1.0f, 1.0f) },
-
-		{ Vector3(-1.0f, -1.0f, -1.0f), Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 1.0f) }, // Normal Z -
-		{ Vector3(1.0f, -1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 1.0f) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(1.0f, 0.0f) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	Vector3(0.0f, 0.0f, -1.0f), Vector2(0.0f, 0.0f) },
-
-		{ Vector3(-1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 0.0f) }, // Normal Z +
-		{ Vector3(1.0f, -1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 0.0f) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(0.0f, 1.0f) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	Vector3(0.0f, 0.0f, 1.0f), Vector2(1.0f, 1.0f) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },	// Normal Y +	 
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
+															
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },	// Normal Y -		
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
+															
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },	//	Normal X -
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+															
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },	// Normal X +
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
+															
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) }, // Normal Z -
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
+															
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) }, // Normal Z +
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
 	};
 
 	D3D11_BUFFER_DESC bufferDesc = {};
@@ -499,8 +504,10 @@ bool NormalMappingApp::InitScene()
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
@@ -568,9 +575,9 @@ bool NormalMappingApp::InitScene()
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	// 텍스쳐 불러오기
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\seafloor.dds", nullptr, m_pTextureRV1.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\WoodCrate.dds", nullptr, m_pTextureRV2.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"Resource\\cubemap.dds", nullptr, m_pTextureRV3.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_1K-JPG_Color.jpg", m_pTexture.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_1K-JPG_NormalDX.jpg", m_pNormal.GetAddressOf()));
+	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_Specular.png", m_pSpecular.GetAddressOf()));
 
 	// 샘플링 상태 설정
 	D3D11_SAMPLER_DESC sampDesc = {};
