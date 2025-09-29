@@ -41,6 +41,7 @@ public:
 	int m_nIndices = 0;											// 인덱스 버퍼 개수
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 
+	// 리소스 객체
 	ComPtr<ID3D11ShaderResourceView> m_pTexture;	// 매핑할 텍스처 객체 
 	ComPtr<ID3D11ShaderResourceView> m_pNormal;		// 매핑할 노멀맵
 	ComPtr<ID3D11ShaderResourceView> m_pSpecular;	// 매핑할 스펙큘러맵

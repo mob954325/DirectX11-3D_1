@@ -1,8 +1,4 @@
 #include <Shared.fxh>
-// Phong
-// I = k_a * l_a + k_d(N dot L) I_l + k_s (R dot V)^a * I_l   
-// 최종 출력 값 = 환경광 + 확산광 + 정반사광    
-// 빛의 광들과 머터리얼의 광들을 dot의 각도에 따라서 색을 결정함    
 
 float4 main(PS_INPUT input) : SV_TARGET
 {       
