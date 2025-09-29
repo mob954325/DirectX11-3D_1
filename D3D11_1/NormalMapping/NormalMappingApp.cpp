@@ -167,12 +167,12 @@ void NormalMappingApp::OnRender()
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 
 	// Render Light
-	// Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
-	// Matrix mScale = Matrix::CreateScale(0.4f);
-	// cb.world = XMMatrixTranspose(mScale * mLight);
-	// cb.outputColor = m_LightColor;
-	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	// m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
+	Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
+	Matrix mScale = Matrix::CreateScale(0.4f);
+	cb.world = XMMatrixTranspose(mScale * mLight);
+	cb.outputColor = m_LightColor;
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
 
 	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
 

@@ -78,11 +78,11 @@ public:
 
 	// 빛
 	ComPtr<ID3D11Buffer> m_pMaterialBuffer = nullptr;
-	Vector4 m_LightDirectionInitial{ 0, 0, 1, 1.0f };
+	Vector4 m_LightDirectionInitial{ 0.5f, 0, 0.5f, 1.0f };
 	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 0.1f }; // 환경광 반사 계수
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수 -> Texture로 대체 가능?
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
-	FLOAT m_Shininess = 1000.0f; // 광택 지수
+	FLOAT m_Shininess = 40.0f; // 광택 지수
 	bool isBlinnPhong = false;
 
 	float m_Near = 0.01f;
