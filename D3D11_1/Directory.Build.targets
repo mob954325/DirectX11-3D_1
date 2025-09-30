@@ -1,36 +1,58 @@
+
 <Project>
-  <!-- 공통 bin 폴더 정의 -->
-  <PropertyGroup>
-    <CommonBinDir>$(SolutionDir)bin\$(ProjectName)\</CommonBinDir>
-  </PropertyGroup>
+	<!-- 공통 bin 폴더 정의 -->
+	<PropertyGroup>
+		<CommonBinDir>$(SolutionDir)bin\$(ProjectName)\</CommonBinDir>
+	</PropertyGroup>
+	
+	<!-- bin 폴더에 프로젝트 폴더 생성 -->
+	<Target Name="EnsureCommonBin"
+	        BeforeTargets="PrepareForBuild">
+		<MakeDir Directories="$(CommonBinDir)" />	  
+	</Target>
 
-  <!-- bin 및 shaders 폴더 생성 -->
-  <Target Name="EnsureCommonBin"
-          BeforeTargets="PrepareForBuild">
-    <MakeDir Directories="$(CommonBinDir)" />
-  </Target>
+	<!-- 아이템 그룹 정의-->
+	<ItemGroup>
+		<ResourceFiles Include="Resource\**\*.*" />
+		<HlslFiles Include="Shaders\**\*.*">
+			<ExcludedFromBuild>true</ExcludedFromBuild>
+		</HlslFiles>
+	</ItemGroup>
+	
+	<!-- 리소스 복제-->
+	<Target Name="CopyResources" AfterTargets="Build">
+		<!-- Resource 폴더 생성 -->
+		<MakeDir Directories="$(CommonBinDir)Resource" />
 
-    <Target Name="CopyResourcesToCommonBin" AfterTargets="Build">
-    	<Copy SourceFiles="@(Content)"
-    		  DestinationFolder="$(CommonBinDir)%(RecursiveDir)"
-    		  SkipUnchangedFiles="true" />
-    </Target>
+		<!-- Resource 안의 모든 파일 복사 -->
+		<Copy
+			SourceFiles="@(ResourceFiles)"
+			DestinationFolder="$(CommonBinDir)Resource\%(RecursiveDir)"
+			SkipUnchangedFiles="true" />		
+	</Target>
+	
+	<!-- 셰이더 파일들 복제-->
+	<Target Name="CopyHlsl" AfterTargets="Build">
+		<Copy SourceFiles="@(HlslFiles)"
+			  DestinationFolder="$(CommonBinDir)Shaders\%(RecursiveDir)"
+			  SkipUnchangedFiles="true" />
+	</Target>
 
 	<!-- 빌드 후 결과물 복사 -->
-  <Target Name="CopyOutputsToCommonBin"
-          AfterTargets="Build">
-    <Message Importance="high"
-             Text=">>> [Copy] 실행됨: $(TargetPath) -> $(CommonBinDir)" />
-
-    <!-- exe/dll -->
-    <Copy SourceFiles="$(TargetPath)"
-          DestinationFolder="$(CommonBinDir)"
-          SkipUnchangedFiles="true" />
-
-    <!-- pdb (있는 경우만) -->
-    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb"
-          DestinationFolder="$(CommonBinDir)"
-          SkipUnchangedFiles="true"
-          Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
-  </Target>
+	<Target Name="CopyOutputsToCommonBin"
+	        AfterTargets="Build">
+		<Message Importance="high"
+	           Text=">>> [Copy] 실행됨: $(TargetPath) -> $(CommonBinDir)" />
+	
+		<!-- exe/dll -->
+		<Copy SourceFiles="$(TargetPath)"
+	        DestinationFolder="$(CommonBinDir)"
+	        SkipUnchangedFiles="true" />
+	
+		<!-- pdb (있는 경우만) -->
+		<Copy SourceFiles="$(TargetDir)$(TargetName).pdb"
+			DestinationFolder="$(CommonBinDir)"
+			SkipUnchangedFiles="true"
+			Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+	</Target>
 </Project>

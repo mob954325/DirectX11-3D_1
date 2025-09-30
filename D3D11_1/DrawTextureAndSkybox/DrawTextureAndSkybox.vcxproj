@@ -128,31 +128,31 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="BasicPixelShader.hlsl">
+    <CopyFileToFolders Include="Shaders\BasicPixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <FileType>Document</FileType>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="BasicVertexShader.hlsl">
+    <CopyFileToFolders Include="Shaders\BasicVertexShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <FileType>Document</FileType>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="SkyboxPixelShader.hlsl">
+    <CopyFileToFolders Include="Shaders\SkyboxPixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <FileType>Document</FileType>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="SkyboxVertexShader.hlsl">
+    <CopyFileToFolders Include="Shaders\SkyboxVertexShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <FileType>Document</FileType>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="SolidPixelShader.hlsl">
+    <CopyFileToFolders Include="Shaders\SolidPixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <FileType>Document</FileType>
@@ -166,7 +166,7 @@
     <ClInclude Include="SkyBoxApp.h" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="Shared.fxh">
+    <CopyFileToFolders Include="Shaders\Shared.fxh">
       <FileType>Document</FileType>
     </CopyFileToFolders>
   </ItemGroup>

@@ -24,19 +24,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="BasicPixelShader.hlsl">
+    <FxCompile Include="Shaders\BasicPixelShader.hlsl">
       <Filter>Shader\Basic</Filter>
     </FxCompile>
-    <FxCompile Include="BasicVertexShader.hlsl">
+    <FxCompile Include="Shaders\BasicVertexShader.hlsl">
       <Filter>Shader\Basic</Filter>
     </FxCompile>
-    <FxCompile Include="PhongShader.hlsl">
+    <FxCompile Include="Shaders\PhongShader.hlsl">
       <Filter>Shader\LightingModel</Filter>
     </FxCompile>
-    <FxCompile Include="SolidPixelShader.hlsl">
+    <FxCompile Include="Shaders\SolidPixelShader.hlsl">
       <Filter>Shader\LightingModel</Filter>
     </FxCompile>
-    <FxCompile Include="BlinnPhongShader.hlsl">
+    <FxCompile Include="Shaders\BlinnPhongShader.hlsl">
       <Filter>Shader\LightingModel</Filter>
     </FxCompile>
   </ItemGroup>
@@ -54,7 +54,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shared.fxh">
+    <None Include="Shaders\Shared.fxh">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

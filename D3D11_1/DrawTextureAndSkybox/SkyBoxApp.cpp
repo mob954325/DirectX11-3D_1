@@ -483,7 +483,7 @@ bool SkyBoxApp::InitScene()
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
+	HR_T(CompileShaderFromFile(L"Shaders\\BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
 	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
@@ -514,11 +514,11 @@ bool SkyBoxApp::InitScene()
 
 	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
+	HR_T(CompileShaderFromFile(L"Shaders\\BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	ComPtr<ID3DBlob> solidPixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"SolidPixelShader.hlsl", "main", "ps_4_0", &solidPixelShaderBuffer));
+	HR_T(CompileShaderFromFile(L"Shaders\\SolidPixelShader.hlsl", "main", "ps_4_0", &solidPixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(solidPixelShaderBuffer->GetBufferPointer(), solidPixelShaderBuffer->GetBufferSize(), NULL, m_pSolidPixelShader.GetAddressOf()));
 
 	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
@@ -625,7 +625,7 @@ bool SkyBoxApp::InitSkyBox()
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"SkyboxVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
+	HR_T(CompileShaderFromFile(L"Shaders\\SkyboxVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pSkyboxInputLayout.GetAddressOf()));
 
 	// 파이프 라인에 바인딩할 정점 셰이더 생성
@@ -664,7 +664,7 @@ bool SkyBoxApp::InitSkyBox()
 
 	// 픽셀 셰이더
 	ComPtr<ID3DBlob> sbPixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"SkyboxPixelShader.hlsl", "main", "ps_4_0", &sbPixelShaderBuffer));
+	HR_T(CompileShaderFromFile(L"Shaders\\SkyboxPixelShader.hlsl", "main", "ps_4_0", &sbPixelShaderBuffer));
 	HR_T(m_pDevice->CreatePixelShader(sbPixelShaderBuffer->GetBufferPointer(), sbPixelShaderBuffer->GetBufferSize(), NULL, m_pSkyboxPixelShader.GetAddressOf()));
 
 	// 래스터라이저

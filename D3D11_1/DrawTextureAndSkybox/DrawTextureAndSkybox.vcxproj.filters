@@ -28,22 +28,22 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="BasicPixelShader.hlsl">
+    <CopyFileToFolders Include="Shaders\BasicPixelShader.hlsl">
       <Filter>리소스 파일</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="BasicVertexShader.hlsl">
+    <CopyFileToFolders Include="Shaders\BasicVertexShader.hlsl">
       <Filter>리소스 파일</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="Shared.fxh">
+    <CopyFileToFolders Include="Shaders\Shared.fxh">
       <Filter>리소스 파일</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="SkyboxPixelShader.hlsl">
+    <CopyFileToFolders Include="Shaders\SkyboxPixelShader.hlsl">
       <Filter>리소스 파일</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="SkyboxVertexShader.hlsl">
+    <CopyFileToFolders Include="Shaders\SkyboxVertexShader.hlsl">
       <Filter>리소스 파일</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="SolidPixelShader.hlsl">
+    <CopyFileToFolders Include="Shaders\SolidPixelShader.hlsl">
       <Filter>리소스 파일</Filter>
     </CopyFileToFolders>
   </ItemGroup>
