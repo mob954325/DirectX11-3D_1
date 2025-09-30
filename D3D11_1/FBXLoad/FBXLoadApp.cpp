@@ -19,7 +19,7 @@ using Microsoft::WRL::ComPtr;
 #define USE_FLIPMODE 1 // 경고 메세지를 없애려면 Flip 모드를 사용한다.
 
 // 정점 
-struct Vertex
+struct Vertex2
 {
 	Vector3 position;
 	Vector2 texture;		// 텍스처 UV 값
@@ -78,6 +78,9 @@ bool FBXLoadApp::OnInitialize()
 	if (!InitImGUI())
 		return false;
 
+	if (!InitEffect())
+		return false;
+
 	ResetValues();
 
 	return true;
@@ -116,7 +119,6 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
-
 	// 오브젝트 렌더링 ==================================================================================================================================
 
 	// Update Constant Values
@@ -137,44 +139,19 @@ void FBXLoadApp::OnRender()
 	cb.CameraPos = m_Camera.m_Position;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	// Update Cube Material
-	Material mat;
-	mat.ambient = m_CubeAmbient;
-	mat.diffuse = m_CubeDiffuse;
-	mat.specular = m_CubeSpecular;
-	m_pDeviceContext->UpdateSubresource(m_pMaterialBuffer.Get(), 0, nullptr, &mat, 0, 0);
-
 	// 텍스처 및 샘플링 설정 
-	// m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());
-	// m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());
-	// m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-
-	// Render cube
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	// m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertexBufferStride, &m_VertexBufferOffset);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
-	// m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-	// m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 
+	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), 0, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), nullptr, 0);
-
+	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), 0, 0);
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf()); // material 값 넘겨주기
 
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// Render Light
-	Matrix mLight = XMMatrixTranslationFromVector(5.0f * -XMLoadFloat4(&m_LightDirection));
-	Matrix mScale = Matrix::CreateScale(0.4f);
-	cb.world = XMMatrixTranspose(mScale * mLight);
-	cb.outputColor = m_LightColor;
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_pDeviceContext->PSSetShader(m_pSolidPixelShader.Get(), nullptr, 0);
-
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	m_pModel1->Draw(m_pDeviceContext);
 
 	// Render ImGui
 	RenderImGUI();
@@ -443,122 +420,8 @@ bool FBXLoadApp::InitScene()
 {
 	HRESULT hr = S_OK;
 
-	///   ---------------
-	///  / |           / |
-	/// /  |          /  |
-	/// |--+----------   |		
-	/// |  |---------|---/
-	/// | /          |  /
-	/// |/           | /
-	/// +-------------+
-
-
-	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
-	Vertex vertices[] =  // pos, tx, tan, bitan
-	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0) },	// Normal Y +	 
-		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0) },
-															
-		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0) },	// Normal Y -		
-		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0) },
-															
-		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)},	//	Normal X -
-		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)},
-		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)},
-		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)},
-															
-		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0) },	// Normal X +
-		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0) },
-															
-		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1) }, // Normal Z -
-		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1) },
-															
-		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0), Vector3(0, 0, 1) }, // Normal Z +
-		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0), Vector3(0, 0, 1) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0), Vector3(0, 0, 1) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0), Vector3(0, 0, 1) },
-	};
-
-	D3D11_BUFFER_DESC bufferDesc = {};
-	bufferDesc.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
-	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.CPUAccessFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA vbData = {};
-	vbData.pSysMem = vertices;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &vbData, m_pVertexBuffer.GetAddressOf()));
-
-	m_VertexBufferStride = sizeof(Vertex); 	// 버텍스 버퍼의 정보
-	m_VertexBufferOffset = 0;
-
-	// 2. 파이프라인에 바인딩할 InputLayout 생성
-	D3D11_INPUT_ELEMENT_DESC layout[] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-	};
-
-	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
-
-	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
-
-	// 4. 파이프라인에 바인딩할 인덱스 버퍼
-	WORD indices[] =
-	{
-		3,1,0, 2,1,3,
-		6,4,5, 7,4,6,
-		11,9,8, 10,9,11,
-		14,12,13, 15,12,14,
-		19,17,16, 18,17,19,
-		22,20,21, 23,20,22
-	};
-
-	m_nIndices = ARRAYSIZE(indices); // 인덱스 개수 저장
-
-	bufferDesc = {};
-	bufferDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
-	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.CPUAccessFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA ibData = {};
-	ibData.pSysMem = indices;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &ibData, m_pIndexBuffer.GetAddressOf()));
-
-	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
-	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\BasicPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PhongShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPhongShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\BlinnPhongShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\SolidPixelShader.hlsl", "main", "ps_4_0", &pixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pSolidPixelShader.GetAddressOf()));
-
 	// 6. Render() 에서 파이프라인에 바인딩할 상수 버퍼 생성
-	bufferDesc = {};
+	D3D11_BUFFER_DESC bufferDesc = {};
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.ByteWidth = sizeof(ConstantBuffer);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -573,11 +436,6 @@ bool FBXLoadApp::InitScene()
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	m_View = XMMatrixLookAtLH(Eye, At, Up);
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
-
-	// 텍스쳐 불러오기
-	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_1K-JPG_Color.jpg", m_pTexture.GetAddressOf()));
-	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_1K-JPG_NormalDX.jpg", m_pNormal.GetAddressOf()));
-	HR_T(CreateTextureFromFile(m_pDevice.Get(), L"Resource\\Bricks059_Specular.png", m_pSpecular.GetAddressOf()));
 
 	// 샘플링 상태 설정
 	D3D11_SAMPLER_DESC sampDesc = {};
@@ -597,13 +455,39 @@ bool FBXLoadApp::InitScene()
 	rasterizerState.DepthClipEnable = true;
 	rasterizerState.FrontCounterClockwise = true;
 
-	// material buffer
-	bufferDesc = {};
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(Material);
-	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pMaterialBuffer.GetAddressOf()));
+	return true;
+}
+
+bool FBXLoadApp::InitEffect()
+{
+	// 2. 파이프라인에 바인딩할 InputLayout 생성
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
+	HR_T(CompileShaderFromFile(L"Shaders\\BasicVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
+
+	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
+
+	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
+	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
+	HR_T(CompileShaderFromFile(L"Shaders\\BasicPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
+
+	// 모델 생성
+	m_pModel1 = make_unique<ModelLoader>();
+	if (!m_pModel1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Character.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
 
 	return true;
 }

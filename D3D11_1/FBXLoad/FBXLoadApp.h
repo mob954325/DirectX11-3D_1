@@ -29,6 +29,8 @@ public:
 
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
+	ComPtr<ID3D11VertexShader> m_pVertexShader = nullptr;			// 사용할 정점 셰이더
+	ComPtr<ID3D11PixelShader> m_pPixelShader = nullptr;				// 사용할 픽셀 셰이더
 	ComPtr<ID3D11Device> m_pDevice = nullptr;						// 디바이스
 	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;			// 디바이스 컨텍스트
 	ComPtr<IDXGISwapChain1> m_pSwapChain = nullptr;					// 스왑체인 
@@ -40,7 +42,6 @@ public:
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 
 	// 리소스 객체
-
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
 
 	// 좌표계 변환을 위한 행렬 모음
@@ -50,11 +51,6 @@ public:
 
 	Vector4 m_LightDirection;				// Directional Light의 방향
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
-
-	// 빛 관련
-	ComPtr<ID3D11PixelShader> m_pSolidPixelShader = nullptr; // 빛 위치 랜더링용
-	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr; // Phong Shader
-	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr; // Blinn-Phong Shader
 
 	// imgui 컨트롤 변수
 	// 큐브
@@ -72,7 +68,6 @@ public:
 	Vector3 m_CameraRotation{};
 
 	// 빛
-	ComPtr<ID3D11Buffer> m_pMaterialBuffer = nullptr;
 	Vector4 m_LightDirectionInitial{ 0.5f, 0, 0.5f, 1.0f };
 	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 0.1f }; // 환경광 반사 계수
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수 -> Texture로 대체 가능?
@@ -95,6 +90,7 @@ public:
 
 	bool InitD3D();
 	bool InitScene();
+	bool InitEffect();
 
 	void ResetValues();
 

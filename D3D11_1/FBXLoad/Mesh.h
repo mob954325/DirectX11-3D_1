@@ -17,8 +17,12 @@ using Microsoft::WRL::ComPtr;
 
 struct Vertex
 {
-	Vector3 position;
-	Vector2 texture;
+    Vector3 position;
+    Vector2 texture;
+
+    Vector3 tenget;
+    Vector3 bitenget;
+    Vector3 normal;
 };
 
 struct Texture

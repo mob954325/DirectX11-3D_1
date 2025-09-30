@@ -9,6 +9,7 @@
 #include <assimp\postprocess.h>
 
 #include "Mesh.h"
+#include "TextureLoader.h"
 
 class ModelLoader
 {
@@ -17,7 +18,7 @@ public:
 	~ModelLoader();
 
 	bool Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string filename);
-	void Draw(ComPtr<ID3D11DeviceContext> pDeviceContext);
+	void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext);
 
 	void Close();
 private:
@@ -31,6 +32,6 @@ private:
 	void processNode(aiNode* node, const aiScene* scene);
 	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
 	std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene);
-	ComPtr<ID3D11ShaderResourceView>& loadEmbeddedTexture(const aiTexture* embeddedTexture);
+	void loadEmbeddedTexture(const aiTexture* embeddedTexture, ComPtr<ID3D11ShaderResourceView>& outTexture);
 };
 

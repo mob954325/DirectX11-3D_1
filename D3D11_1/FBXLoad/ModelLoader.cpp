@@ -30,7 +30,7 @@ bool ModelLoader::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11De
 	return true;
 }
 
-void ModelLoader::Draw(ComPtr<ID3D11DeviceContext> pDeviceContext)
+void ModelLoader::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext)
 {
 	int size = meshes.size();
 	for (size_t i = 0; i < size; i++)
@@ -45,6 +45,16 @@ void ModelLoader::Close()
 
 void ModelLoader::processNode(aiNode* node, const aiScene* scene)
 {
+	for (UINT i = 0; i < node->mNumMeshes; i++) 
+	{
+		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+		meshes.push_back(this->processMesh(mesh, scene));
+	}
+
+	for (UINT i = 0; i < node->mNumChildren; i++) 
+	{
+		this->processNode(node->mChildren[i], scene);
+	}
 }
 
 Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene)
@@ -117,14 +127,14 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
 			const aiTexture* embeddedTexture = scene->GetEmbeddedTexture(str.C_Str());
 			if (embeddedTexture != nullptr) 
 			{
-				texture.pTexture.Attach(loadEmbeddedTexture(embeddedTexture).Get());
+				loadEmbeddedTexture(embeddedTexture, texture.pTexture);
 			}
 			else 
 			{
 				std::string filename = std::string(str.C_Str());
 				filename = directory + '/' + filename;
 				std::wstring filenamews = std::wstring(filename.begin(), filename.end());
-				HR_T(CreateTextureFromFile(m_pDevice.Get(), filenamews.c_str(), texture.pTexture.GetAddressOf()));
+				HR_T(CreateWICTextureFromFile(m_pDevice.Get(), m_pDeviceContext.Get(), filenamews.c_str(), nullptr, texture.pTexture.GetAddressOf()));
 			}
 
 			texture.type = typeName;
@@ -136,10 +146,8 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
 	return textures;
 }
 
-ComPtr<ID3D11ShaderResourceView>& ModelLoader::loadEmbeddedTexture(const aiTexture* embeddedTexture)
+void ModelLoader::loadEmbeddedTexture(const aiTexture* embeddedTexture, ComPtr<ID3D11ShaderResourceView>& outTexture)
 {
-	ComPtr<ID3D11ShaderResourceView> texture = nullptr;
-
 	if (embeddedTexture->mHeight != 0) 
 	{
 		// Load an uncompressed ARGB8888 embedded texture
@@ -164,16 +172,13 @@ ComPtr<ID3D11ShaderResourceView>& ModelLoader::loadEmbeddedTexture(const aiTextu
 		ID3D11Texture2D* texture2D = nullptr;
 		HR_T(m_pDevice->CreateTexture2D(&desc, &subresourceData, &texture2D));
 
-
-		HR_T(m_pDevice->CreateShaderResourceView(texture2D, nullptr, &texture));
-
-		return texture;
+		HR_T(m_pDevice->CreateShaderResourceView(texture2D, nullptr, outTexture.GetAddressOf()));
 	}
+	else
+	{
+		// mHeight is 0, so try to load a compressed texture of mWidth bytes
+		const size_t size = embeddedTexture->mWidth;
 
-	// mHeight is 0, so try to load a compressed texture of mWidth bytes
-	const size_t size = embeddedTexture->mWidth;
-
-	HR_T(CreateTextureFromFile(m_pDevice.Get(), reinterpret_cast<const wchar_t*>(embeddedTexture->pcData), texture.GetAddressOf());
-
-	return texture;
+		HR_T(CreateWICTextureFromMemory(m_pDevice.Get(), m_pDeviceContext.Get(), reinterpret_cast<const unsigned char*>(embeddedTexture->pcData), size, nullptr, outTexture.GetAddressOf()));
+	}
 }
