@@ -145,17 +145,17 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->UpdateSubresource(m_pMaterialBuffer.Get(), 0, nullptr, &mat, 0, 0);
 
 	// 텍스처 및 샘플링 설정 
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());
-	m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());
-	m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());
+	// m_pDeviceContext->PSSetShaderResources(0, 1, m_pTexture.GetAddressOf());
+	// m_pDeviceContext->PSSetShaderResources(1, 1, m_pNormal.GetAddressOf());
+	// m_pDeviceContext->PSSetShaderResources(2, 1, m_pSpecular.GetAddressOf());
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// Render cube
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertexBufferStride, &m_VertexBufferOffset);
+	// m_pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &m_VertexBufferStride, &m_VertexBufferOffset);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
-	m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
+	// m_pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	// m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 

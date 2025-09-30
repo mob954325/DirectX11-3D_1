@@ -1,4 +1,5 @@
 #pragma once
+#include "ModelLoader.h"
 
 // DirectX11 
 #include <d3d11.h>
@@ -23,6 +24,10 @@ public:
 	FBXLoadApp(HINSTANCE hInstance);
 	~FBXLoadApp();
 
+	// Model
+	unique_ptr<ModelLoader> m_pModel1 = nullptr;
+
+
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	ComPtr<ID3D11Device> m_pDevice = nullptr;						// 디바이스
 	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;			// 디바이스 컨텍스트
@@ -31,20 +36,10 @@ public:
 	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView = nullptr;	// 깊이 값 처리를 위한 뎊스스텐실 뷰
 
 	// 렌더링 파이프라인에 적용하는 객체와 정보
-	ComPtr<ID3D11VertexShader> m_pVertexShader = nullptr;		// 정점 쉐이더
-	ComPtr<ID3D11PixelShader> m_pPixelShader = nullptr;			// 픽셀 쉐이더
 	ComPtr<ID3D11InputLayout> m_pInputLayout = nullptr;			// 입력 레이아웃
-	ComPtr<ID3D11Buffer> m_pVertexBuffer = nullptr;				// 정점 버퍼
-	UINT m_VertexBufferStride = 0;								// 정점 하나의 버퍼 크기
-	UINT m_VertexBufferOffset = 0;								// 정점 버퍼의 오프셋
-	ComPtr<ID3D11Buffer> m_pIndexBuffer = nullptr;				// 인덱스 버퍼
-	int m_nIndices = 0;											// 인덱스 버퍼 개수
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 
 	// 리소스 객체
-	ComPtr<ID3D11ShaderResourceView> m_pTexture;	// 매핑할 텍스처 객체 
-	ComPtr<ID3D11ShaderResourceView> m_pNormal;		// 매핑할 노멀맵
-	ComPtr<ID3D11ShaderResourceView> m_pSpecular;	// 매핑할 스펙큘러맵
 
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
 
