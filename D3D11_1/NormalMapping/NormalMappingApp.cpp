@@ -456,35 +456,35 @@ bool NormalMappingApp::InitScene()
 	// 1. 파이프라인에서 바인딩할 정점 버퍼 및 버퍼 정보 생성
 	Vertex vertices[] =  // pos, tx, tan, bitan
 	{
-		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },	// Normal Y +	 
-		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0) },	// Normal Y +	 
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0) },
 															
-		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },	// Normal Y -		
-		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
-		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
-		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0) },
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0) },	// Normal Y -		
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0) },
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(1, 0, 0), Vector3(0, -1, 0) },
 															
-		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },	//	Normal X -
-		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)},	//	Normal X -
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)},
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)},
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(0, 0, 1), Vector3(-1, 0, 0)},
 															
-		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },	// Normal X +
-		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0) },
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0) },	// Normal X +
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0) },
 															
-		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) }, // Normal Z -
-		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
-		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
-		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0) },
+		{ Vector3(-1.0f, -1.0f, -1.0f),  Vector2(0.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1) }, // Normal Z -
+		{ Vector3(1.0f, -1.0f, -1.0f),	 Vector2(1.0f, 1.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1) },
+		{ Vector3(1.0f, 1.0f, -1.0f),	 Vector2(1.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1) },
+		{ Vector3(-1.0f, 1.0f, -1.0f),	 Vector2(0.0f, 0.0f), Vector3(0, -1, 0), Vector3(-1, 0, 0), Vector3(0, 0, -1) },
 															
-		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) }, // Normal Z +
-		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
-		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
-		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0) },
+		{ Vector3(-1.0f, -1.0f, 1.0f),	 Vector2(1.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0), Vector3(0, 0, 1) }, // Normal Z +
+		{ Vector3(1.0f, -1.0f, 1.0f),	 Vector2(0.0f, 0.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+		{ Vector3(1.0f, 1.0f, 1.0f),	 Vector2(0.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0), Vector3(0, 0, 1) },
+		{ Vector3(-1.0f, 1.0f, 1.0f),	 Vector2(1.0f, 1.0f), Vector3(-1, 0, 0), Vector3(0, -1, 0), Vector3(0, 0, 1) },
 	};
 
 	D3D11_BUFFER_DESC bufferDesc = {};

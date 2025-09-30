@@ -11,7 +11,7 @@ PS_INPUT main(VS_INPUT input)
     output.Pos = mul(output.Pos, Projection);
     
     // normal
-    output.Norm = normalize(cross(input.Tangent, input.Bitangent));
+    output.Norm = input.Norm;
     output.Tangent = input.Tangent;
     output.Bitangent = input.Bitangent;
     
