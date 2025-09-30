@@ -56,18 +56,18 @@ struct Material
 	Vector4 specular;
 };
 
-NormalMappingApp::NormalMappingApp(HINSTANCE hInstance)
+FBXLoadApp::FBXLoadApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
 
 }
 
-NormalMappingApp::~NormalMappingApp()
+FBXLoadApp::~FBXLoadApp()
 {
 	UninitImGUI();
 }
 
-bool NormalMappingApp::OnInitialize()
+bool FBXLoadApp::OnInitialize()
 {
 	if (!InitD3D())
 		return false;
@@ -83,7 +83,7 @@ bool NormalMappingApp::OnInitialize()
 	return true;
 }
 
-void NormalMappingApp::OnUpdate()
+void FBXLoadApp::OnUpdate()
 {
 	float delta = GameTimer::m_Instance->DeltaTime();
 
@@ -104,7 +104,7 @@ void NormalMappingApp::OnUpdate()
 	m_Camera.GetCameraViewMatrix(m_View);
 }
 
-void NormalMappingApp::OnRender()
+void FBXLoadApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
@@ -183,7 +183,7 @@ void NormalMappingApp::OnRender()
 	m_pSwapChain->Present(0, 0);
 }
 
-bool NormalMappingApp::InitImGUI()
+bool FBXLoadApp::InitImGUI()
 {
 	bool isSetupSuccess = false;
 
@@ -207,7 +207,7 @@ bool NormalMappingApp::InitImGUI()
 	return true;
 }
 
-void NormalMappingApp::RenderImGUI()
+void FBXLoadApp::RenderImGUI()
 {
 	// Start the Dear ImGui frame
 	ImGui_ImplDX11_NewFrame();
@@ -300,7 +300,7 @@ void NormalMappingApp::RenderImGUI()
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-void NormalMappingApp::UninitImGUI()
+void FBXLoadApp::UninitImGUI()
 {
 	// Cleanup
 	ImGui_ImplDX11_Shutdown();
@@ -308,7 +308,7 @@ void NormalMappingApp::UninitImGUI()
 	ImGui::DestroyContext();
 }
 
-bool NormalMappingApp::InitD3D()
+bool FBXLoadApp::InitD3D()
 {
 	HRESULT hr = S_OK;
 
@@ -439,7 +439,7 @@ bool NormalMappingApp::InitD3D()
 	return true;
 }
 
-bool NormalMappingApp::InitScene()
+bool FBXLoadApp::InitScene()
 {
 	HRESULT hr = S_OK;
 
@@ -608,7 +608,7 @@ bool NormalMappingApp::InitScene()
 	return true;
 }
 
-void NormalMappingApp::ResetValues()
+void FBXLoadApp::ResetValues()
 {
 	m_CubePosition = m_CubePositionInitial;
 
@@ -628,7 +628,7 @@ void NormalMappingApp::ResetValues()
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-LRESULT NormalMappingApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT FBXLoadApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;

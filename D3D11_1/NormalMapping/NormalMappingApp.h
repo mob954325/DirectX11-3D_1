@@ -17,11 +17,11 @@
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
 
-class NormalMappingApp : public GameApp
+class FBXLoadApp : public GameApp
 {
 public:
-	NormalMappingApp(HINSTANCE hInstance);
-	~NormalMappingApp();
+	FBXLoadApp(HINSTANCE hInstance);
+	~FBXLoadApp();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	ComPtr<ID3D11Device> m_pDevice = nullptr;						// 디바이스
