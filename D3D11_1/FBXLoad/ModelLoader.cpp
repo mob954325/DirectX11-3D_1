@@ -132,7 +132,7 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
 			else 
 			{
 				std::string filename = std::string(str.C_Str());
-				filename = directory + '/' + filename;
+				filename = directory + '\\' + filename;
 				std::wstring filenamews = std::wstring(filename.begin(), filename.end());
 				HR_T(CreateWICTextureFromFile(m_pDevice.Get(), m_pDeviceContext.Get(), filenamews.c_str(), nullptr, texture.pTexture.GetAddressOf()));
 			}

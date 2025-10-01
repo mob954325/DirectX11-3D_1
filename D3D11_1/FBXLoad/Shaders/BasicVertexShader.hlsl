@@ -4,7 +4,7 @@ PS_INPUT main(VS_INPUT input)
 {
     PS_INPUT output = (PS_INPUT) 0;
     
-    // pos ±¸ÇÏ±â
+    // pos êµ¬í•˜ê¸°
     output.Pos = mul(input.Pos, World);
     output.World = output.Pos;    
     output.Pos = mul(output.Pos, View);

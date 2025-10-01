@@ -484,7 +484,7 @@ bool FBXLoadApp::InitEffect()
 
 	// 모델 생성
 	m_pModel1 = make_unique<ModelLoader>();
-	if (!m_pModel1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Character.fbx"))
+	if (!m_pModel1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\zeldaPosed001.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
