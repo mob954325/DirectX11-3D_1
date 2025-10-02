@@ -76,11 +76,11 @@ void LightingApp::OnUpdate()
 	Matrix position = Matrix::Identity;
 
 	// Cube Position
-	position = m_Cube.CreateTranslation(m_CubePosition);
-	rotate = m_Cube.CreateFromYawPitchRoll(m_CubeRotation);
-	scale = m_Cube.CreateScale(m_CubeScale);
+	position = m_World.CreateTranslation(m_CubePosition);
+	rotate = m_World.CreateFromYawPitchRoll(m_CubeRotation);
+	scale = m_World.CreateScale(m_CubeScale);
 
-	m_Cube = scale * rotate * position;
+	m_World = scale * rotate * position;
 
 	// Directional Light Position
 
@@ -105,7 +105,7 @@ void LightingApp::OnRender()
 
 	// Update Constant Values
 	ConstantBuffer cb;
-	cb.world = XMMatrixTranspose(m_Cube);
+	cb.world = XMMatrixTranspose(m_World);
 	cb.view = XMMatrixTranspose(m_View);
 	cb.projection = XMMatrixTranspose(m_Projection);
 	cb.lightDirection = m_LightDirection;
@@ -507,7 +507,7 @@ bool LightingApp::InitScene()
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pConstantBuffer.GetAddressOf()));
 
 	// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
-	m_Cube = XMMatrixIdentity();
+	m_World = XMMatrixIdentity();
 
 	XMVECTOR Eye = XMVectorSet(0.0f, 10.0f, -8.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);

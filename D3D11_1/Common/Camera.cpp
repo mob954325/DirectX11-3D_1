@@ -80,6 +80,20 @@ void FreeCamera::OnInputProcess(const Keyboard::State& KeyState, const Keyboard:
 		SetInputVec(m_World.Up());
 	}
 
+	// 속도 추가
+	if (KeyState.IsKeyDown(DirectX::Keyboard::Keys::D1))
+	{
+		m_MoveSpeed = 20;
+	}
+	if (KeyState.IsKeyDown(DirectX::Keyboard::Keys::D2))
+	{
+		m_MoveSpeed = 100;
+	}
+	if (KeyState.IsKeyDown(DirectX::Keyboard::Keys::D3))
+	{
+		m_MoveSpeed = 200;
+	}
+
 	InputSystem::Instance->m_Mouse->SetMode(MouseState.rightButton ? Mouse::MODE_RELATIVE : Mouse::MODE_ABSOLUTE);
 	if (MouseState.positionMode == Mouse::MODE_RELATIVE)
 	{

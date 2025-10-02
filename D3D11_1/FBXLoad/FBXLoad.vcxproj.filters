@@ -24,12 +24,6 @@
     <FxCompile Include="Shaders\BasicVertexShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\BlinnPhongShader.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\PhongShader.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\SolidPixelShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>

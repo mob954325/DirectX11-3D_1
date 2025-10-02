@@ -95,11 +95,11 @@ void FBXLoadApp::OnUpdate()
 	Matrix position = Matrix::Identity;
 
 	// Cube Position
-	position = m_Cube.CreateTranslation(m_CubePosition);
-	rotate = m_Cube.CreateFromYawPitchRoll(m_CubeRotation);
-	scale = m_Cube.CreateScale(m_CubeScale);
+	position = m_World.CreateTranslation(m_CubePosition);
+	rotate = m_World.CreateFromYawPitchRoll(m_CubeRotation);
+	scale = m_World.CreateScale(m_CubeScale);
 
-	m_Cube = scale * rotate * position;
+	m_World = scale * rotate * position;
 
 	// Directional Light Position
 
@@ -114,6 +114,12 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
 #endif	
 
+	// 블랜드 상태 바인딩
+	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	UINT sampleMask = 0xffffffff;
+
+	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
+
 	// 화면 칠하기.
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
@@ -123,7 +129,7 @@ void FBXLoadApp::OnRender()
 
 	// Update Constant Values
 	ConstantBuffer cb;
-	cb.world = XMMatrixTranspose(m_Cube);
+	cb.world = XMMatrixTranspose(m_World);
 	cb.view = XMMatrixTranspose(m_View);
 	cb.projection = XMMatrixTranspose(m_Projection);
 	cb.lightDirection = m_LightDirection;
@@ -151,7 +157,32 @@ void FBXLoadApp::OnRender()
 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	m_pModel1->Draw(m_pDeviceContext);
+	// zelda1 rendering
+	m_pZelda1->Draw(m_pDeviceContext);
+
+	// character1 rendering
+	Matrix position = m_World.CreateTranslation(m_CharaPosition);
+	Matrix rotate = m_World.CreateFromYawPitchRoll(m_CharaRotation);
+	Matrix scale = m_World.CreateScale(m_CharaScale);
+
+	m_World = scale * rotate * position;
+	cb.world = XMMatrixTranspose(m_World);
+
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	m_pCharacter1->Draw(m_pDeviceContext);
+
+	// tree redering
+	position = m_World.CreateTranslation(m_TreePosition);
+	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
+	scale = m_World.CreateScale(m_TreeScale);
+
+	m_World = scale * rotate * position;
+	cb.world = XMMatrixTranspose(m_World);
+
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	m_pTree1->Draw(m_pDeviceContext);
 
 	// Render ImGui
 	RenderImGUI();
@@ -413,6 +444,24 @@ bool FBXLoadApp::InitD3D()
 	descDSV.Texture2D.MipSlice = 0;
 	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
 
+	// create blending state https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ns-d3d11-d3d11_blend_desc
+	D3D11_BLEND_DESC descBlend = {};
+	ZeroMemory(&descBlend, sizeof(D3D11_BLEND_DESC));
+	descBlend.RenderTarget[0].BlendEnable = true;
+
+	descBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;		
+	descBlend.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;	
+
+	descBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	descBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+	descBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE; 
+	descBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+
+	descBlend.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL; 
+
+	m_pDevice->CreateBlendState(&descBlend, m_pBlendState.GetAddressOf());
+
 	return true;
 }
 
@@ -429,7 +478,7 @@ bool FBXLoadApp::InitScene()
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pConstantBuffer.GetAddressOf()));
 
 	// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
-	m_Cube = XMMatrixIdentity();
+	m_World = XMMatrixIdentity();
 
 	XMVECTOR Eye = XMVectorSet(0.0f, 10.0f, -8.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
@@ -483,8 +532,20 @@ bool FBXLoadApp::InitEffect()
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	// 모델 생성
-	m_pModel1 = make_unique<ModelLoader>();
-	if (!m_pModel1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\zeldaPosed001.fbx"))
+	m_pZelda1 = make_unique<ModelLoader>();
+	if (!m_pZelda1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\zeldaPosed001.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
+	m_pCharacter1 = make_unique<ModelLoader>();
+	if (!m_pCharacter1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Character.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
+	m_pTree1 = make_unique<ModelLoader>();
+	if (!m_pTree1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Tree.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
@@ -495,9 +556,10 @@ bool FBXLoadApp::InitEffect()
 void FBXLoadApp::ResetValues()
 {
 	m_CubePosition = m_CubePositionInitial;
+	m_CharaPosition = m_CharaPositionInitial;
 
 	m_Near = 0.01f;
-	m_Far = 100.0f;
+	m_Far = 1000.0f;
 	m_PovAngle = XM_PIDIV2;
 
 	m_CameraRotation = Vector3::Zero;
