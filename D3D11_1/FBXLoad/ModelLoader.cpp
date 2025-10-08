@@ -93,8 +93,13 @@ Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene)
 	{
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-		std::vector<Texture> diffuseMaps = this->loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse", scene);
+		// diffuseMap 불러오기
+		std::vector<Texture> diffuseMaps = this->loadMaterialTextures(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE, scene);
 		textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+
+		// emissiveMap 불러오기
+		std::vector<Texture> emissiveMaps = this->loadMaterialTextures(material, aiTextureType_EMISSIVE, TEXTURE_EMISSIVE, scene);
+		if(!emissiveMaps.empty()) textures.insert(textures.end(), emissiveMaps.begin(), emissiveMaps.end());
 	}
 
 	return Mesh(m_pDevice, vertices, indices, textures);

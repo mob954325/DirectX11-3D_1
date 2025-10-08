@@ -158,7 +158,7 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// zelda1 rendering
-	m_pZelda1->Draw(m_pDeviceContext);
+	//m_pZelda1->Draw(m_pDeviceContext);
 
 	// character1 rendering
 	Matrix position = m_World.CreateTranslation(m_CharaPosition);
@@ -182,7 +182,7 @@ void FBXLoadApp::OnRender()
 
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	m_pTree1->Draw(m_pDeviceContext);
+	//m_pTree1->Draw(m_pDeviceContext);
 
 	// Render ImGui
 	RenderImGUI();
@@ -532,11 +532,11 @@ bool FBXLoadApp::InitEffect()
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	// 모델 생성
-	m_pZelda1 = make_unique<ModelLoader>();
-	if (!m_pZelda1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\zeldaPosed001.fbx"))
-	{
-		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	}
+	//m_pZelda1 = make_unique<ModelLoader>();
+	//if (!m_pZelda1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\zeldaPosed001.fbx"))
+	//{
+	//	MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	//}
 
 	m_pCharacter1 = make_unique<ModelLoader>();
 	if (!m_pCharacter1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Character.fbx"))
@@ -544,11 +544,11 @@ bool FBXLoadApp::InitEffect()
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
 
-	m_pTree1 = make_unique<ModelLoader>();
-	if (!m_pTree1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Tree.fbx"))
-	{
-		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	}
+	// m_pTree1 = make_unique<ModelLoader>();
+	// if (!m_pTree1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Tree.fbx"))
+	// {
+	// 	MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	// }
 
 	return true;
 }

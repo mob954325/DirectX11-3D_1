@@ -15,13 +15,15 @@ using namespace DirectX::SimpleMath;
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
+const string TEXTURE_DIFFUSE = "texture_diffuse";
+const string TEXTURE_EMISSIVE = "texture_emissive";
+
 struct Vertex
 {
     Vector3 position;
     Vector2 texture;
-
-    Vector3 tenget;
-    Vector3 bitenget;
+    Vector3 tangent;
+    Vector3 bitangent;
     Vector3 normal;
 };
 
@@ -59,7 +61,11 @@ public:
         pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &stride, &offset);
         pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 
-        pDeviceContext->PSSetShaderResources(0, 1, textures[0].pTexture.GetAddressOf());
+        int textureCount = textures.size();
+        for (int i = 0; i < textureCount; i++)
+        {
+            ProcessTextureByType(pDeviceContext, i);
+        }
 
         pDeviceContext->DrawIndexed(static_cast<UINT>(indices.size()), 0, 0);
     }
@@ -96,5 +102,18 @@ private:
         initData.pSysMem = &indices[0];
 
         HR_T(dev->CreateBuffer(&ibd, &initData, m_pIndexBuffer.GetAddressOf()));
+    }
+
+    void ProcessTextureByType(ComPtr<ID3D11DeviceContext>& pDeviceContext, int index)
+    {
+        string typeName = textures[index].type;
+        if (typeName == TEXTURE_DIFFUSE)
+        {
+            pDeviceContext->PSSetShaderResources(0, 1, textures[index].pTexture.GetAddressOf());
+        }
+        else if (typeName == TEXTURE_EMISSIVE)
+        {
+            pDeviceContext->PSSetShaderResources(1, 1, textures[index].pTexture.GetAddressOf());
+        }
     }
 };
