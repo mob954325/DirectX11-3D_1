@@ -4,10 +4,10 @@
 
 SamplerState samLinear : register(s0);
 
-Texture2D txDiffuse : register(t0);
-Texture2D txEmission : register(t1);
-Texture2D txNormal : register(t2); // 노멀맵 텍스처
-Texture2D txSpec : register(t3);    // 스펙큘러맵 텍스처
+Texture2D txDiffuse : register(t0);     // 
+Texture2D txEmission : register(t1);    // Emission 
+Texture2D txNormal : register(t2);      // 노멀맵 텍스처
+Texture2D txSpec : register(t3);        // 스펙큘러맵 텍스처
 // TextureCube txCubemap : register(t1); // skybox용 큐브맵 텍스처
 
 cbuffer ConstantBuffer : register(b0)

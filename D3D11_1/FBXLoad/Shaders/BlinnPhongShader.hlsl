@@ -3,7 +3,10 @@
 float4 main(PS_INPUT input) : SV_TARGET
 {
     // sepcularSample
-    float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;
+    float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;   
+
+    // EmissionSample
+    float4 textureEmission = txEmission.Sample(samLinear, input.Tex);
     
     // normalSample
     float3x3 TBN = float3x3(input.Tangent, input.Bitangent, input.Norm);
@@ -16,7 +19,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     float4 finalTexture = txDiffuse.Sample(samLinear, input.Tex);
     
     // lighting Calculate
-    float3 norm = finalNorm;
+    float3 norm = finalNorm; // normal
 	
     float4 finalAmbient = matAmbient * LightAmbient;	
     
@@ -39,5 +42,5 @@ float4 main(PS_INPUT input) : SV_TARGET
     float4 finalColor = finalAmbient + finalDiffuse + finalSpecular; // ÃÖÁ¾ »ö
     finalColor.a = finalTexture.a;
     
-    return finalColor;
+    return finalColor + textureEmission;
 }

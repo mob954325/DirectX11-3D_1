@@ -69,9 +69,8 @@ Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene)
 	{
 		Vertex vertex;
 
-		vertex.position.x = mesh->mVertices[i].x;
-		vertex.position.y = mesh->mVertices[i].y;
-		vertex.position.z = mesh->mVertices[i].z;
+		vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y,  mesh->mVertices[i].z };
+		vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z};
 
 		if (mesh->mTextureCoords[0]) {
 			vertex.texture.x = (float)mesh->mTextureCoords[0][i].x;
@@ -100,7 +99,17 @@ Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene)
 		// emissiveMap 불러오기
 		std::vector<Texture> emissiveMaps = this->loadMaterialTextures(material, aiTextureType_EMISSIVE, TEXTURE_EMISSIVE, scene);
 		if(!emissiveMaps.empty()) textures.insert(textures.end(), emissiveMaps.begin(), emissiveMaps.end());
+
+		// normalMap 불러오기
+		std::vector<Texture> normalMaps = this->loadMaterialTextures(material, aiTextureType_NORMALS, TEXTURE_NORMAL, scene);
+		if (!normalMaps.empty()) textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+
+		// specularMap 불러오기
+		std::vector<Texture> sepcualrMaps = this->loadMaterialTextures(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR, scene);
+		if (!sepcualrMaps.empty()) textures.insert(textures.end(), sepcualrMaps.begin(), sepcualrMaps.end());
 	}
+
+	int a = 0;
 
 	return Mesh(m_pDevice, vertices, indices, textures);
 }

@@ -39,9 +39,15 @@ public:
 	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView = nullptr;	// 깊이 값 처리를 위한 뎊스스텐실 뷰
 	ComPtr<ID3D11BlendState> m_pBlendState = nullptr;				// 혼합 상태 객체 
 
+	// Phong Shader
+	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;				// Phong PS
+	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;				// Blinn-Phong PS
+
+
 	// 렌더링 파이프라인에 적용하는 객체와 정보
 	ComPtr<ID3D11InputLayout> m_pInputLayout = nullptr;			// 입력 레이아웃
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
+	ComPtr<ID3D11Buffer> m_pMaterialBuffer = nullptr;			// 임시 재질 버퍼
 
 	// 리소스 객체
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
@@ -55,10 +61,10 @@ public:
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
 
 	// imgui 컨트롤 변수
-	Vector3 m_CubePosition{};
-	Vector3 m_CubeRotation{};
-	Vector3 m_CubeScale{ 1.0f,1.0f,1.0f };
-	Vector3 m_CubePositionInitial{ 0.0f, 0.0f, 0.0f };
+	Vector3 m_ZeldaPosition{};
+	Vector3 m_ZeldaRotation{};
+	Vector3 m_ZeldaScale{ 1.0f,1.0f,1.0f };
+	Vector3 m_ZeldaPositionInitial{ 0.0f, 0.0f, 0.0f };
 
 	Vector3 m_CharaPosition{};
 	Vector3 m_CharaRotation{};
@@ -67,12 +73,12 @@ public:
 
 	Vector3 m_TreePosition{};
 	Vector3 m_TreeRotation{};
-	Vector3 m_TreeScale{ 1.0f,1.0f,1.0f };
-	Vector3 m_TreePositionInitial{ -100.0f, 0.0f, 0.0f };
+	Vector3 m_TreeScale{ 100.0f, 100.0f, 100.0f };
+	Vector3 m_TreePositionInitial{ -200.0f, 0.0f, 0.0f };
 
-	Vector4 m_CubeAmbient{ 1.0f, 1.0f, 1.0f, 1.0f }; // 환경광 반사 계수
-	Vector4 m_CubeDiffuse{ 1.0f, 1.0f, 1.0f, 1.0f }; // 난반사 계수 -> Texture로 대체 가능?
-	Vector4 m_CubeSpecular{ 1.0f, 1.0f, 1.0f, 1.0f }; // 정반사 계수
+	Vector4 m_ModelAmbient{ 1.0f, 1.0f, 1.0f, 1.0f }; // 환경광 반사 계수
+	Vector4 m_ModelDiffuse{ 1.0f, 1.0f, 1.0f, 1.0f }; // 난반사 계수 -> Texture로 대체 가능?
+	Vector4 m_ModelSpecular{ 1.0f, 1.0f, 1.0f, 1.0f }; // 정반사 계수
 
 	// 카메라
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -20.0f };

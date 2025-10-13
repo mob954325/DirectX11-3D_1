@@ -18,18 +18,6 @@ using Microsoft::WRL::ComPtr;
 
 #define USE_FLIPMODE 1 // 경고 메세지를 없애려면 Flip 모드를 사용한다.
 
-// 정점 
-struct Vertex2
-{
-	Vector3 position;
-	Vector2 texture;		// 텍스처 UV 값
-	
-	// Tangent space
-	Vector3 tenget;
-	Vector3 bitenget;
-	Vector3 normal;
-};
-
 // 상수 버퍼
 struct ConstantBuffer
 {
@@ -45,7 +33,7 @@ struct ConstantBuffer
 	Vector4 ambient;	// 환경광
 	Vector4 diffuse;	// 난반사
 	Vector4 specular;	// 정반사
-	FLOAT shininess; // 광택지수
+	FLOAT shininess;	// 광택지수
 	Vector3 CameraPos;
 };
 
@@ -95,9 +83,9 @@ void FBXLoadApp::OnUpdate()
 	Matrix position = Matrix::Identity;
 
 	// Cube Position
-	position = m_World.CreateTranslation(m_CubePosition);
-	rotate = m_World.CreateFromYawPitchRoll(m_CubeRotation);
-	scale = m_World.CreateScale(m_CubeScale);
+	position = m_World.CreateTranslation(m_ZeldaPosition);
+	rotate = m_World.CreateFromYawPitchRoll(m_ZeldaRotation);
+	scale = m_World.CreateScale(m_ZeldaScale);
 
 	m_World = scale * rotate * position;
 
@@ -145,6 +133,12 @@ void FBXLoadApp::OnRender()
 	cb.CameraPos = m_Camera.m_Position;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
+	Material mat;
+	mat.ambient = m_ModelAmbient;
+	mat.diffuse = m_ModelDiffuse;
+	mat.specular = m_ModelSpecular;
+	m_pDeviceContext->UpdateSubresource(m_pMaterialBuffer.Get(), 0, nullptr, &mat, 0, 0);
+
 	// 텍스처 및 샘플링 설정 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
@@ -152,37 +146,44 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), 0, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), 0, 0);
+	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	// zelda1 rendering
-	//m_pZelda1->Draw(m_pDeviceContext);
-
-	// character1 rendering
-	Matrix position = m_World.CreateTranslation(m_CharaPosition);
-	Matrix rotate = m_World.CreateFromYawPitchRoll(m_CharaRotation);
-	Matrix scale = m_World.CreateScale(m_CharaScale);
+	Matrix position = m_World.CreateTranslation(m_ZeldaPosition);
+	Matrix rotate = m_World.CreateFromYawPitchRoll(m_ZeldaRotation);
+	Matrix scale = m_World.CreateScale(m_ZeldaScale);
 
 	m_World = scale * rotate * position;
 	cb.world = XMMatrixTranspose(m_World);
-
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	m_pCharacter1->Draw(m_pDeviceContext);
+	m_pZelda1->Draw(m_pDeviceContext);
 
+	// character1 rendering
+	position = m_World.CreateTranslation(m_CharaPosition);
+	rotate = m_World.CreateFromYawPitchRoll(m_CharaRotation);
+	scale = m_World.CreateScale(m_CharaScale);
+	
+	m_World = scale * rotate * position;
+	cb.world = XMMatrixTranspose(m_World);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	
+	m_pCharacter1->Draw(m_pDeviceContext);
+	
 	// tree redering
 	position = m_World.CreateTranslation(m_TreePosition);
 	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
 	scale = m_World.CreateScale(m_TreeScale);
-
+	
 	m_World = scale * rotate * position;
-	cb.world = XMMatrixTranspose(m_World);
-
+	cb.world = XMMatrixTranspose(m_World);	
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	//m_pTree1->Draw(m_pDeviceContext);
+	
+	m_pTree1->Draw(m_pDeviceContext);
 
 	// Render ImGui
 	RenderImGUI();
@@ -227,24 +228,63 @@ void FBXLoadApp::RenderImGUI()
 	ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
 	ImGui::Begin("World Controller");
 
-	// 큐브 위치 조절 
-	ImGui::DragFloat3("Cube Position", &m_CubePosition.x);
+	// zelda config
+	{
+		// zelda1 위치 조절 
+		ImGui::DragFloat3("Zelda Position", &m_ZeldaPosition.x);
 
-	// 큐브 회전
-	Vector3 cubeRotation;
-	cubeRotation.x = XMConvertToDegrees(m_CubeRotation.x);
-	cubeRotation.y = XMConvertToDegrees(m_CubeRotation.y);
-	cubeRotation.z = XMConvertToDegrees(m_CubeRotation.z);
-	ImGui::DragFloat3("Cube Rotation", &cubeRotation.x);
-	m_CubeRotation.x = XMConvertToRadians(cubeRotation.x);
-	m_CubeRotation.y = XMConvertToRadians(cubeRotation.y);
-	m_CubeRotation.z = XMConvertToRadians(cubeRotation.z);
+		// zelda1 회전
+		Vector3 zeldaRotation;
+		zeldaRotation.x = XMConvertToDegrees(m_ZeldaRotation.x);
+		zeldaRotation.y = XMConvertToDegrees(m_ZeldaRotation.y);
+		zeldaRotation.z = XMConvertToDegrees(m_ZeldaRotation.z);
+		ImGui::DragFloat3("Zelda Rotation", &zeldaRotation.x);
+		m_ZeldaRotation.x = XMConvertToRadians(zeldaRotation.x);
+		m_ZeldaRotation.y = XMConvertToRadians(zeldaRotation.y);
+		m_ZeldaRotation.z = XMConvertToRadians(zeldaRotation.z);
 
 
-	// 큐브 크기
-	ImGui::DragFloat("Cube Scale", &m_CubeScale.x, 0.05f);
-	m_CubeScale.y = m_CubeScale.x;
-	m_CubeScale.z = m_CubeScale.x;
+		// zelda1 크기
+		ImGui::DragFloat("Zelda Scale", &m_ZeldaScale.x, 0.05f);
+		m_ZeldaScale.y = m_ZeldaScale.x;
+		m_ZeldaScale.z = m_ZeldaScale.x;
+	}
+
+	// character config
+	{
+		ImGui::DragFloat3("Character Position", &m_CharaPosition.x);
+
+		Vector3 charaRotation;
+		charaRotation.x = XMConvertToDegrees(m_CharaRotation.x);
+		charaRotation.y = XMConvertToDegrees(m_CharaRotation.y);
+		charaRotation.z = XMConvertToDegrees(m_CharaRotation.z);
+		ImGui::DragFloat3("Character Rotation", &charaRotation.x);
+		m_CharaRotation.x = XMConvertToRadians(charaRotation.x);
+		m_CharaRotation.y = XMConvertToRadians(charaRotation.y);
+		m_CharaRotation.z = XMConvertToRadians(charaRotation.z);
+
+		ImGui::DragFloat("Character Scale", &m_CharaScale.x, 0.05f);
+		m_CharaScale.y = m_CharaScale.x;
+		m_CharaScale.z = m_CharaScale.x;
+	}
+
+	// tree config
+	{
+		ImGui::DragFloat3("Tree Position", &m_TreePosition.x);
+
+		Vector3 treeRotation;
+		treeRotation.x = XMConvertToDegrees(m_TreeRotation.x);
+		treeRotation.y = XMConvertToDegrees(m_TreeRotation.y);
+		treeRotation.z = XMConvertToDegrees(m_TreeRotation.z);
+		ImGui::DragFloat3("tree Rotation", &treeRotation.x);
+		m_TreeRotation.x = XMConvertToRadians(treeRotation.x);
+		m_TreeRotation.y = XMConvertToRadians(treeRotation.y);
+		m_TreeRotation.z = XMConvertToRadians(treeRotation.z);
+
+		ImGui::DragFloat("tree Scale", &m_TreeScale.x, 0.05f);
+		m_TreeScale.y = m_TreeScale.x;
+		m_TreeScale.z = m_TreeScale.x;
+	}
 
 	ImGui::NewLine();
 
@@ -287,9 +327,9 @@ void FBXLoadApp::RenderImGUI()
 	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
 
 	ImGui::Spacing();
-	ImGui::ColorEdit4("Cube Ambient", &m_CubeAmbient.x);
-	ImGui::ColorEdit4("Cube Diffuse", &m_CubeDiffuse.x);
-	ImGui::ColorEdit4("Cube Specular", &m_CubeSpecular.x);
+	ImGui::ColorEdit4("Cube Ambient", &m_ModelAmbient.x);
+	ImGui::ColorEdit4("Cube Diffuse", &m_ModelDiffuse.x);
+	ImGui::ColorEdit4("Cube Specular", &m_ModelSpecular.x);
 
 	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
 
@@ -504,6 +544,33 @@ bool FBXLoadApp::InitScene()
 	rasterizerState.DepthClipEnable = true;
 	rasterizerState.FrontCounterClockwise = true;
 
+	// material buffer
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(Material);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pMaterialBuffer.GetAddressOf()));
+
+	// 모델 생성
+	m_pZelda1 = make_unique<ModelLoader>();
+	if (!m_pZelda1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\zeldaPosed001.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
+	m_pCharacter1 = make_unique<ModelLoader>();
+	if (!m_pCharacter1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Character.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
+	m_pTree1 = make_unique<ModelLoader>();
+	if (!m_pTree1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Tree.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
 	return true;
 }
 
@@ -531,32 +598,22 @@ bool FBXLoadApp::InitEffect()
 	HR_T(CompileShaderFromFile(L"Shaders\\BasicPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
-	// 모델 생성
-	//m_pZelda1 = make_unique<ModelLoader>();
-	//if (!m_pZelda1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\zeldaPosed001.fbx"))
-	//{
-	//	MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	//}
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\PhongShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPhongShader.GetAddressOf()));
 
-	m_pCharacter1 = make_unique<ModelLoader>();
-	if (!m_pCharacter1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Character.fbx"))
-	{
-		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	}
-
-	// m_pTree1 = make_unique<ModelLoader>();
-	// if (!m_pTree1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Tree.fbx"))
-	// {
-	// 	MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	// }
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\BlinnPhongShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
 
 	return true;
 }
 
 void FBXLoadApp::ResetValues()
 {
-	m_CubePosition = m_CubePositionInitial;
+	m_ZeldaPosition = m_ZeldaPositionInitial;
 	m_CharaPosition = m_CharaPositionInitial;
+	m_TreePosition = m_TreePositionInitial;
 
 	m_Near = 0.01f;
 	m_Far = 1000.0f;

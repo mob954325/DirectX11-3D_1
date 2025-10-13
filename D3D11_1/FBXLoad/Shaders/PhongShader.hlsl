@@ -5,9 +5,18 @@ float4 main(PS_INPUT input) : SV_TARGET
     // specularSample
     float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;
     
+    // EmissionSample
+    float4 textureEmission = txEmission.Sample(samLinear, input.Tex);
+    
     // NormalSample to world space
     float3x3 TBN = float3x3(input.Tangent, input.Bitangent, input.Norm);
+    
     float3 normalMapSample = txNormal.Sample(samLinear, input.Tex).rgb;
+    // normal map이 없을 경우를 대비
+    if (dot(normalMapSample, normalMapSample) < 0.001f) // normal map sampling test  
+    {
+        normalMapSample = float3(0.5f, 0.5f, 1.0f); // flat normal (no perturbation)
+    }
     float3 normalTexture = normalize(DecodeNormal(normalMapSample)); //  Convert normal map color (RGB [0,1]) to normal vector in range [-1,1]      
 
     float3 finalNorm = normalize(mul(normalTexture, TBN));
@@ -39,6 +48,6 @@ float4 main(PS_INPUT input) : SV_TARGET
     float4 finalColor = finalAmbient + finalDiffuse + finalSpecular;
     finalColor.a = finalTexture.a;
     
-    return finalColor;
+    return finalColor + textureEmission;
 
 }

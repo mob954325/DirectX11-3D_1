@@ -17,6 +17,8 @@ using Microsoft::WRL::ComPtr;
 
 const string TEXTURE_DIFFUSE = "texture_diffuse";
 const string TEXTURE_EMISSIVE = "texture_emissive";
+const string TEXTURE_NORMAL = "texture_normal";
+const string TEXTURE_SPECULAR = "texture_specular";
 
 struct Vertex
 {
@@ -55,6 +57,10 @@ public:
 
     void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext)
     {
+        // ps ÃÊ±âÈ­ 
+        ID3D11ShaderResourceView* nullSRV[4] = { nullptr };
+        pDeviceContext->PSSetShaderResources(0, 4, nullSRV);
+
         UINT stride = sizeof(Vertex);
         UINT offset = 0;
 
@@ -107,6 +113,7 @@ private:
     void ProcessTextureByType(ComPtr<ID3D11DeviceContext>& pDeviceContext, int index)
     {
         string typeName = textures[index].type;
+
         if (typeName == TEXTURE_DIFFUSE)
         {
             pDeviceContext->PSSetShaderResources(0, 1, textures[index].pTexture.GetAddressOf());
@@ -114,6 +121,14 @@ private:
         else if (typeName == TEXTURE_EMISSIVE)
         {
             pDeviceContext->PSSetShaderResources(1, 1, textures[index].pTexture.GetAddressOf());
+        }
+        else if (typeName == TEXTURE_NORMAL)
+        {
+            pDeviceContext->PSSetShaderResources(2, 1, textures[index].pTexture.GetAddressOf());
+        }
+        else if (typeName == TEXTURE_SPECULAR)
+        {
+            pDeviceContext->PSSetShaderResources(3, 1, textures[index].pTexture.GetAddressOf());
         }
     }
 };
