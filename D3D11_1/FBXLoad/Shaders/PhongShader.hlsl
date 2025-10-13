@@ -9,8 +9,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     float4 textureEmission = txEmission.Sample(samLinear, input.Tex);
     
     // NormalSample to world space
-    float3x3 TBN = float3x3(input.Tangent, input.Bitangent, input.Norm);
-    
+    float3x3 TBN = float3x3(input.Tangent, input.Bitangent, input.Norm);    
     float3 normalMapSample = txNormal.Sample(samLinear, input.Tex).rgb;
     // normal map이 없을 경우를 대비
     if (dot(normalMapSample, normalMapSample) < 0.001f) // normal map sampling test  
