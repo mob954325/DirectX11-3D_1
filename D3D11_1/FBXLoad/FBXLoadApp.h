@@ -39,6 +39,8 @@ public:
 	ComPtr<ID3D11RenderTargetView> m_pRenderTargetView = nullptr;	// 랜더 타겟
 	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView = nullptr;	// 깊이 값 처리를 위한 뎊스스텐실 뷰
 	ComPtr<ID3D11BlendState> m_pBlendState = nullptr;				// 혼합 상태 객체 
+	ComPtr<ID3D11DepthStencilState> m_pDepthStencilStateAllMask = nullptr;
+	ComPtr<ID3D11DepthStencilState> m_pDepthStencilStateZeroMask = nullptr;
 
 	// Phong Shader
 	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;				// Phong PS

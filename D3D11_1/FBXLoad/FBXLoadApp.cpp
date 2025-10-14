@@ -93,6 +93,8 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
 #endif	
 
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
+
 	// 블랜드 상태 바인딩
 	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	UINT sampleMask = 0xffffffff;
@@ -174,6 +176,7 @@ void FBXLoadApp::OnRender()
 	}
 
 	// tree redering
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
 	position = m_World.CreateTranslation(m_TreePosition);
 	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
 	scale = m_World.CreateScale(m_TreeScale);
@@ -183,6 +186,7 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	
 	m_pTree1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 
 	// cube after tree
 	if (RenderAfterTree)
@@ -478,11 +482,22 @@ bool FBXLoadApp::InitD3D()
 	descDepth.CPUAccessFlags = 0;
 	descDepth.MiscFlags = 0;
 
+	// 뎊스 스탠실 상태 설정
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
 	depthStencilDesc.DepthEnable = TRUE;                // 깊이 테스트 활성화
 	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 깊이 버퍼 업데이트 허용
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
+
+	m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilStateZeroMask);
+
+	depthStencilDesc = {};
+	depthStencilDesc.DepthEnable = TRUE;                // 깊이 테스트 활성화
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; // 깊이 버퍼 업데이트 허용
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
+	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
+
+	m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilStateAllMask);
 
 	// create depthStencil texture
 	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
