@@ -4,15 +4,23 @@ float4 main(PS_INPUT input) : SV_TARGET
 {
     // specularSample
     float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;   
-
+    if (!hasSpecular)
+    {
+        specularIntensity = 1.0f;
+    }
+    
     // EmissionSample
     float4 textureEmission = txEmission.Sample(samLinear, input.Tex);
+    if (!hasEmissive)
+    {
+        textureEmission = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    }
     
     // normalSample
     float3x3 TBN = float3x3(input.Tangent, input.Bitangent, input.Norm);    
     float3 normalMapSample = txNormal.Sample(samLinear, input.Tex).rgb;
     // normal map이 없을 경우를 대비
-    if (dot(normalMapSample, normalMapSample) < 0.001f) // normal map sampling test  
+    if (!hasNormal)
     {
         normalMapSample = float3(0.5f, 0.5f, 1.0f); // flat normal (no perturbation)
     }
@@ -28,7 +36,7 @@ float4 main(PS_INPUT input) : SV_TARGET
 	
     float4 finalAmbient = matAmbient * LightAmbient;	
     
-    float diffuseFactor = dot(-(float3) LightDirection, norm);
+    float diffuseFactor = dot((float3) LightDirection, norm);
 	
     float4 finalDiffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 finalSpecular = float4(0.0f, 0.0f, 0.0f, 0.0f);

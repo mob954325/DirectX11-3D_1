@@ -17,9 +17,7 @@ cbuffer ConstantBuffer : register(b0)
     matrix Projection;
     
     float4 LightDirection;
-    float4 LightColor;    
-    
-    float4 outputColor;    
+    float4 LightColor;        
     
     float4 LightAmbient; // 환경광
     float4 LightDiffuse; // 난반사
@@ -36,6 +34,11 @@ cbuffer Material : register(b1)
     float4 matAmbient;
     float4 matDiffuse;
     float4 matSpecular;  
+    
+    bool hasDiffuse;
+    bool hasEmissive;
+    bool hasNormal;
+    bool hasSpecular;
 };
 
 
@@ -54,7 +57,7 @@ struct PS_INPUT
 {
     float4 Pos : SV_POSITION;   // 투영한 위치 좌표
     float3 Norm : NORMAL;       // 노멀 값
-    float2 Tex : TEXCOORD;     // 텍스처 UV좌표
+    float2 Tex : TEXCOORD;      // 텍스처 UV좌표
     float3 World : TEXCOORD2;   // 월드 좌표
     
     float3 Tangent : TANGENT;

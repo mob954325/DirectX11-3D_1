@@ -37,6 +37,18 @@ struct Texture
 	ComPtr<ID3D11ShaderResourceView> pTexture = nullptr;
 };
 
+struct Material
+{
+    Vector4 ambient;
+    Vector4 diffuse;
+    Vector4 specular;
+
+    BOOL hasDiffuse = false;
+    BOOL hasEmissive = false;
+    BOOL hasNormal = false;
+    BOOL hasSpecular = false;
+};
+
 class Mesh
 {
 public:
@@ -51,84 +63,24 @@ public:
 		textures(textures),
 		m_pDevice(dev),
 		m_pVertexBuffer(nullptr),
-		m_pIndexBuffer(nullptr) {
+		m_pIndexBuffer(nullptr)
+	{
 		this->setupMesh(this->m_pDevice);
 	}
 
-    void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext)
-    {
-        // ps ÃÊ±âÈ­ 
-        ID3D11ShaderResourceView* nullSRV[4] = { nullptr };
-        pDeviceContext->PSSetShaderResources(0, 4, nullSRV);
+    void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext);
 
-        UINT stride = sizeof(Vertex);
-        UINT offset = 0;
-
-        pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &stride, &offset);
-        pDeviceContext->IASetIndexBuffer(m_pIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-        int textureCount = textures.size();
-        for (int i = 0; i < textureCount; i++)
-        {
-            ProcessTextureByType(pDeviceContext, i);
-        }
-
-        pDeviceContext->DrawIndexed(static_cast<UINT>(indices.size()), 0, 0);
-    }
+	Material& GetMaterial();
 
 private:
-	ComPtr<ID3D11Buffer> m_pVertexBuffer;
-	ComPtr<ID3D11Buffer> m_pIndexBuffer;
+	Material material;
+
+	ComPtr<ID3D11Buffer> m_pVertexBuffer{};
+	ComPtr<ID3D11Buffer> m_pIndexBuffer{};
 
     // Functions
     // Initializes all the buffer objects/arrays
-    void setupMesh(ComPtr<ID3D11Device>& dev)
-    {
-        HRESULT hr;
+    void setupMesh(ComPtr<ID3D11Device>& dev);
 
-        D3D11_BUFFER_DESC vbd;
-        vbd.Usage = D3D11_USAGE_IMMUTABLE;
-        vbd.ByteWidth = static_cast<UINT>(sizeof(Vertex) * vertices.size());
-        vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-        vbd.CPUAccessFlags = 0;
-        vbd.MiscFlags = 0;
-
-        D3D11_SUBRESOURCE_DATA initData;
-        initData.pSysMem = &vertices[0];
-
-        HR_T(dev->CreateBuffer(&vbd, &initData, m_pVertexBuffer.GetAddressOf()));
-
-        D3D11_BUFFER_DESC ibd;
-        ibd.Usage = D3D11_USAGE_IMMUTABLE;
-        ibd.ByteWidth = static_cast<UINT>(sizeof(UINT) * indices.size());
-        ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-        ibd.CPUAccessFlags = 0;
-        ibd.MiscFlags = 0;
-
-        initData.pSysMem = &indices[0];
-
-        HR_T(dev->CreateBuffer(&ibd, &initData, m_pIndexBuffer.GetAddressOf()));
-    }
-
-    void ProcessTextureByType(ComPtr<ID3D11DeviceContext>& pDeviceContext, int index)
-    {
-        string typeName = textures[index].type;
-
-        if (typeName == TEXTURE_DIFFUSE)
-        {
-            pDeviceContext->PSSetShaderResources(0, 1, textures[index].pTexture.GetAddressOf());
-        }
-        else if (typeName == TEXTURE_EMISSIVE)
-        {
-            pDeviceContext->PSSetShaderResources(1, 1, textures[index].pTexture.GetAddressOf());
-        }
-        else if (typeName == TEXTURE_NORMAL)
-        {
-            pDeviceContext->PSSetShaderResources(2, 1, textures[index].pTexture.GetAddressOf());
-        }
-        else if (typeName == TEXTURE_SPECULAR)
-        {
-            pDeviceContext->PSSetShaderResources(3, 1, textures[index].pTexture.GetAddressOf());
-        }
-    }
+	void ProcessTextureByType(ComPtr<ID3D11DeviceContext>& pDeviceContext, int index);
 };

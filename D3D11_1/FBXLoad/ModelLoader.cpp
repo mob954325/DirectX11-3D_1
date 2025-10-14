@@ -30,11 +30,19 @@ bool ModelLoader::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11De
 	return true;
 }
 
-void ModelLoader::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext)
+void ModelLoader::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer)
 {
 	int size = meshes.size();
 	for (size_t i = 0; i < size; i++)
 	{
+		Material meshMaterial = meshes[i].GetMaterial();
+		meshMaterial.ambient = m_Ambient;
+		meshMaterial.diffuse = m_Diffuse;
+		meshMaterial.specular = m_Specular;
+
+		m_pDeviceContext->UpdateSubresource(pMatBuffer.Get(), 0, nullptr, &meshMaterial, 0, 0);
+		m_pDeviceContext->PSSetConstantBuffers(1, 1, pMatBuffer.GetAddressOf());
+
 		meshes[i].Draw(pDeviceContext);
 	}
 }
@@ -133,22 +141,32 @@ Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene)
 
 		// diffuseMap 불러오기
 		std::vector<Texture> diffuseMaps = this->loadMaterialTextures(material, aiTextureType_DIFFUSE, TEXTURE_DIFFUSE, scene);
-		textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+		if (!diffuseMaps.empty())
+		{
+			textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+		}
 
 		// emissiveMap 불러오기
 		std::vector<Texture> emissiveMaps = this->loadMaterialTextures(material, aiTextureType_EMISSIVE, TEXTURE_EMISSIVE, scene);
-		if(!emissiveMaps.empty()) textures.insert(textures.end(), emissiveMaps.begin(), emissiveMaps.end());
+		if (!emissiveMaps.empty())
+		{
+			textures.insert(textures.end(), emissiveMaps.begin(), emissiveMaps.end());
+		}
 
 		// normalMap 불러오기
 		std::vector<Texture> normalMaps = this->loadMaterialTextures(material, aiTextureType_NORMALS, TEXTURE_NORMAL, scene);
-		if (!normalMaps.empty()) textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+		if (!normalMaps.empty())
+		{
+			textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+		}
 
 		// specularMap 불러오기
 		std::vector<Texture> sepcualrMaps = this->loadMaterialTextures(material, aiTextureType_SPECULAR, TEXTURE_SPECULAR, scene);
-		if (!sepcualrMaps.empty()) textures.insert(textures.end(), sepcualrMaps.begin(), sepcualrMaps.end());
+		if (!sepcualrMaps.empty())
+		{
+			textures.insert(textures.end(), sepcualrMaps.begin(), sepcualrMaps.end());
+		}
 	}
-
-	int a = 0;
 
 	return Mesh(m_pDevice, vertices, indices, textures);
 }

@@ -47,7 +47,8 @@ public:
 	// 렌더링 파이프라인에 적용하는 객체와 정보
 	ComPtr<ID3D11InputLayout> m_pInputLayout = nullptr;			// 입력 레이아웃
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
-	ComPtr<ID3D11Buffer> m_pMaterialBuffer = nullptr;			// 임시 재질 버퍼
+	ComPtr<ID3D11Buffer> m_pMaterialBuffer{};					// 재질 버퍼
+
 
 	// 리소스 객체
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
@@ -76,18 +77,14 @@ public:
 	Vector3 m_TreeScale{ 100.0f, 100.0f, 100.0f };
 	Vector3 m_TreePositionInitial{ -200.0f, 0.0f, 0.0f };
 
-	Vector4 m_ModelAmbient{ 1.0f, 1.0f, 1.0f, 1.0f }; // 환경광 반사 계수
-	Vector4 m_ModelDiffuse{ 1.0f, 1.0f, 1.0f, 1.0f }; // 난반사 계수 -> Texture로 대체 가능?
-	Vector4 m_ModelSpecular{ 1.0f, 1.0f, 1.0f, 1.0f }; // 정반사 계수
-
 	// 카메라
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -20.0f };
 	Vector3 m_CameraRotation{};
 
 	// 빛
-	Vector4 m_LightDirectionInitial{ 0.5f, 0, 0.5f, 1.0f };
+	Vector4 m_LightDirectionInitial{ 0.0f, 0.0f, -1.0f, 1.0f };
 	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 0.1f }; // 환경광 반사 계수
-	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수 -> Texture로 대체 가능?
+	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
 	FLOAT m_Shininess = 40.0f; // 광택 지수
 	bool isBlinnPhong = false;

@@ -28,20 +28,11 @@ struct ConstantBuffer
 	Vector4 lightDirection;
 	Color lightColor;
 
-	Color outputColor;
-
 	Vector4 ambient;	// 환경광
 	Vector4 diffuse;	// 난반사
 	Vector4 specular;	// 정반사
 	FLOAT shininess;	// 광택지수
 	Vector3 CameraPos;
-};
-
-struct Material
-{
-	Vector4 ambient;
-	Vector4 diffuse;
-	Vector4 specular;
 };
 
 FBXLoadApp::FBXLoadApp(HINSTANCE hInstance)
@@ -123,7 +114,6 @@ void FBXLoadApp::OnRender()
 	cb.lightDirection = m_LightDirection;
 	cb.lightDirection.Normalize();
 	cb.lightColor = m_LightColor;
-	cb.outputColor = Vector4::Zero;
 
 	cb.ambient = m_LightAmbient;
 	cb.diffuse = m_LightDiffuse;
@@ -132,12 +122,6 @@ void FBXLoadApp::OnRender()
 	cb.shininess = m_Shininess;
 	cb.CameraPos = m_Camera.m_Position;
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	Material mat;
-	mat.ambient = m_ModelAmbient;
-	mat.diffuse = m_ModelDiffuse;
-	mat.specular = m_ModelSpecular;
-	m_pDeviceContext->UpdateSubresource(m_pMaterialBuffer.Get(), 0, nullptr, &mat, 0, 0);
 
 	// 텍스처 및 샘플링 설정 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -161,7 +145,7 @@ void FBXLoadApp::OnRender()
 	cb.world = XMMatrixTranspose(m_World);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	m_pZelda1->Draw(m_pDeviceContext);
+	m_pZelda1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	// character1 rendering
 	position = m_World.CreateTranslation(m_CharaPosition);
@@ -172,7 +156,7 @@ void FBXLoadApp::OnRender()
 	cb.world = XMMatrixTranspose(m_World);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	
-	m_pCharacter1->Draw(m_pDeviceContext);
+	m_pCharacter1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	
 	// tree redering
 	position = m_World.CreateTranslation(m_TreePosition);
@@ -183,7 +167,7 @@ void FBXLoadApp::OnRender()
 	cb.world = XMMatrixTranspose(m_World);	
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	
-	m_pTree1->Draw(m_pDeviceContext);
+	m_pTree1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	// Render ImGui
 	RenderImGUI();
@@ -327,9 +311,9 @@ void FBXLoadApp::RenderImGUI()
 	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
 
 	ImGui::Spacing();
-	ImGui::ColorEdit4("character Ambient", &m_ModelAmbient.x);
-	ImGui::ColorEdit4("character Diffuse", &m_ModelDiffuse.x);
-	ImGui::ColorEdit4("character Specular", &m_ModelSpecular.x);
+	ImGui::ColorEdit4("character Ambient", &m_pCharacter1->m_Ambient.x);
+	ImGui::ColorEdit4("character Diffuse", &m_pCharacter1->m_Diffuse.x);
+	ImGui::ColorEdit4("character Specular", &m_pCharacter1->m_Specular.x);
 
 	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
 
@@ -502,6 +486,14 @@ bool FBXLoadApp::InitD3D()
 
 	m_pDevice->CreateBlendState(&descBlend, m_pBlendState.GetAddressOf());
 
+	// material buffer
+	D3D11_BUFFER_DESC mbd = {};
+	mbd.Usage = D3D11_USAGE_DEFAULT;
+	mbd.ByteWidth = sizeof(Material);
+	mbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	mbd.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&mbd, nullptr, m_pMaterialBuffer.GetAddressOf()));
+
 	return true;
 }
 
@@ -543,14 +535,6 @@ bool FBXLoadApp::InitScene()
 	rasterizerState.FillMode = D3D11_FILL_SOLID;
 	rasterizerState.DepthClipEnable = true;
 	rasterizerState.FrontCounterClockwise = true;
-
-	// material buffer
-	bufferDesc = {};
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(Material);
-	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pMaterialBuffer.GetAddressOf()));
 
 	// 모델 생성
 	m_pZelda1 = make_unique<ModelLoader>();
