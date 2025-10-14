@@ -96,8 +96,8 @@ void FBXLoadApp::OnRender()
 	// 블랜드 상태 바인딩
 	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	UINT sampleMask = 0xffffffff;
-
-	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
+	
+	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), nullptr, sampleMask);
 
 	// 화면 칠하기.
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
@@ -131,10 +131,12 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
+	// m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), 0, 0);
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
 
 	// zelda1 rendering
 	Matrix position = m_World.CreateTranslation(m_ZeldaPosition);
@@ -158,6 +160,19 @@ void FBXLoadApp::OnRender()
 	
 	m_pCharacter1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	
+	// cube before tree
+	if (!RenderAfterTree)
+	{
+		position = m_World.CreateTranslation(m_TreePosition);
+		rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
+		scale = m_World.CreateScale(m_TreeScale);
+
+		m_World = scale * rotate * position;
+		cb.world = XMMatrixTranspose(m_World);
+		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+		m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	}
+
 	// tree redering
 	position = m_World.CreateTranslation(m_TreePosition);
 	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
@@ -168,6 +183,19 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	
 	m_pTree1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
+	// cube after tree
+	if (RenderAfterTree)
+	{
+		position = m_World.CreateTranslation(m_TreePosition);
+		rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
+		scale = m_World.CreateScale(m_TreeScale);
+
+		m_World = scale * rotate * position;
+		cb.world = XMMatrixTranspose(m_World);
+		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+		m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	}
 
 	// Render ImGui
 	RenderImGUI();
@@ -314,8 +342,9 @@ void FBXLoadApp::RenderImGUI()
 	ImGui::ColorEdit4("character Ambient", &m_pCharacter1->m_Ambient.x);
 	ImGui::ColorEdit4("character Diffuse", &m_pCharacter1->m_Diffuse.x);
 	ImGui::ColorEdit4("character Specular", &m_pCharacter1->m_Specular.x);
-
+	
 	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
+	ImGui::Checkbox("Render cube AfterTree", &RenderAfterTree);
 
 	ImGui::NewLine();
 
@@ -451,11 +480,9 @@ bool FBXLoadApp::InitD3D()
 
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
 	depthStencilDesc.DepthEnable = TRUE;                // 깊이 테스트 활성화
-	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; // 깊이 버퍼 업데이트 허용
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 깊이 버퍼 업데이트 허용
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
-
-	// m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilState.Get(), 1);
 
 	// create depthStencil texture
 	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
@@ -469,20 +496,21 @@ bool FBXLoadApp::InitD3D()
 	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
 
 	// create blending state https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ns-d3d11-d3d11_blend_desc
+	// Color = SrcAlpha * SrcColor + (1 - SrcAlpha) * DestColor 
+	// Alpha = SrcAlpha
 	D3D11_BLEND_DESC descBlend = {};
-	ZeroMemory(&descBlend, sizeof(D3D11_BLEND_DESC));
-	descBlend.RenderTarget[0].BlendEnable = true;
+	descBlend.RenderTarget[0].BlendEnable = true;						// blend 사용 여부
+	
+	descBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;			// D3D11_BLEND_SRC_ALPHA -> 픽셀 셰이더 결과 값의 알파 데이터 값
+	descBlend.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;	// D3D11_BLEND_INV_SRC_ALPHA -> D3D11_BLEND_SRC_ALPHA의 반전 값 ( 1 - 값 )
+	descBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;				// SrcBlend 및 DestBlend 작업을 결합하는 방법을 정의, D3D11_BLEND_OP_ADD -> Add source 1 and source 2
 
-	descBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;		
-	descBlend.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;	
 
-	descBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-	descBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	descBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;			// D3D11_BLEND_ONE -> (1,1,1,1)
+	descBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;		// D3D11_BLEND_ZERO -> (0,0,0,0)
+	descBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;		// 
 
-	descBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE; 
-	descBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-
-	descBlend.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL; 
+	descBlend.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;  // 모든 색 전부 사용
 
 	m_pDevice->CreateBlendState(&descBlend, m_pBlendState.GetAddressOf());
 
@@ -551,6 +579,12 @@ bool FBXLoadApp::InitScene()
 
 	m_pTree1 = make_unique<ModelLoader>();
 	if (!m_pTree1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Tree.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
+	m_pCube1 = make_unique<ModelLoader>();
+	if (!m_pCube1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Cube1.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}

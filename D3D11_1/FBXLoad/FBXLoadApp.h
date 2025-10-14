@@ -28,6 +28,7 @@ public:
 	unique_ptr<ModelLoader> m_pZelda1 = nullptr;
 	unique_ptr<ModelLoader> m_pCharacter1 = nullptr;
 	unique_ptr<ModelLoader> m_pTree1 = nullptr;
+	unique_ptr<ModelLoader> m_pCube1 = nullptr;
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	ComPtr<ID3D11VertexShader> m_pVertexShader = nullptr;			// 사용할 정점 셰이더
@@ -41,7 +42,7 @@ public:
 
 	// Phong Shader
 	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;				// Phong PS
-	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;				// Blinn-Phong PS
+	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;		// Blinn-Phong PS
 
 
 	// 렌더링 파이프라인에 적용하는 객체와 정보
@@ -75,7 +76,7 @@ public:
 	Vector3 m_TreePosition{};
 	Vector3 m_TreeRotation{};
 	Vector3 m_TreeScale{ 100.0f, 100.0f, 100.0f };
-	Vector3 m_TreePositionInitial{ -200.0f, 0.0f, 0.0f };
+	Vector3 m_TreePositionInitial{ 0.0f, 0.0f, 0.0f };
 
 	// 카메라
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -20.0f };
@@ -87,11 +88,13 @@ public:
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
 	FLOAT m_Shininess = 40.0f; // 광택 지수
-	bool isBlinnPhong = false;
+	bool isBlinnPhong = true;	
 
 	float m_Near = 0.01f;
 	float m_Far = 1000.0f;
 	float m_PovAngle = XM_PIDIV2;
+
+	bool RenderAfterTree = false;
 
 	// =============================================================
 	virtual bool OnInitialize();

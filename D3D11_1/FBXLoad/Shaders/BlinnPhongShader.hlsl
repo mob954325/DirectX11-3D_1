@@ -31,6 +31,9 @@ float4 main(PS_INPUT input) : SV_TARGET
     // texture Sampling 
     float4 finalTexture = txDiffuse.Sample(samLinear, input.Tex);
     
+    if (finalTexture.a < 0.5f) discard; // alpha test1 - use discard
+    // clip(finalTexture.a - 0.1f); // alpha test2 - use clip function
+    
     // lighting Calculate
     float3 norm = finalNorm; // normal
 	
@@ -53,7 +56,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     }
     
     float4 finalColor = finalAmbient + finalDiffuse + finalSpecular; // ÃÖÁ¾ »ö
-    finalColor.a = finalTexture.a;
+    finalColor.a = finalTexture.a;        
     
     return finalColor + textureEmission;
 }
