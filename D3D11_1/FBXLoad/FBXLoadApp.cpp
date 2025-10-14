@@ -327,9 +327,9 @@ void FBXLoadApp::RenderImGUI()
 	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
 
 	ImGui::Spacing();
-	ImGui::ColorEdit4("Cube Ambient", &m_ModelAmbient.x);
-	ImGui::ColorEdit4("Cube Diffuse", &m_ModelDiffuse.x);
-	ImGui::ColorEdit4("Cube Specular", &m_ModelSpecular.x);
+	ImGui::ColorEdit4("character Ambient", &m_ModelAmbient.x);
+	ImGui::ColorEdit4("character Diffuse", &m_ModelDiffuse.x);
+	ImGui::ColorEdit4("character Specular", &m_ModelSpecular.x);
 
 	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
 
