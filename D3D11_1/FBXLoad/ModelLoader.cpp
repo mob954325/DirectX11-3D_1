@@ -80,14 +80,53 @@ Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene)
 		vertices.push_back(vertex);
 	}
 
-	for (UINT i = 0; i < mesh->mNumFaces; i++) 
+	for (UINT i = 0; i < mesh->mNumFaces; i++)
 	{
 		aiFace face = mesh->mFaces[i];
+		if (face.mNumIndices != 3) continue; // 삼각형만
+
+		vector<int> currIndices;
+		vector<Vector3> pos;
+		vector<Vector2> uvs;
 
 		for (UINT j = 0; j < face.mNumIndices; j++)
-			indices.push_back(face.mIndices[j]);
+		{
+			int currIndex = face.mIndices[j];
+			indices.push_back(currIndex);
+
+			currIndices.push_back(currIndex);
+			pos.push_back(vertices[currIndex].position);
+			uvs.push_back(vertices[currIndex].texture);
+		}
+
+		Vector3 edge1 = pos[1] - pos[0];
+		Vector3 edge2 = pos[2] - pos[0];
+		Vector2 deltaUV1 = uvs[1] - uvs[0];
+		Vector2 deltaUV2 = uvs[2] - uvs[0];
+
+		float det = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
+		if (fabs(det) < 1e-6f) continue;
+		float f = 1.0f / det;
+
+		Vector3 tangent = f * (deltaUV2.y * edge1 - deltaUV1.y * edge2);
+		Vector3 bitangent = f * (-deltaUV2.x * edge1 + deltaUV1.x * edge2);
+
+		for (int k = 0; k < currIndices.size(); k++)
+		{
+			int currIndex = currIndices[k];
+			vertices[currIndex].tangent += tangent;
+			vertices[currIndex].bitangent += bitangent;
+		}
 	}
 
+	// 마지막에 정규화
+	for (auto& v : vertices)
+	{
+		v.tangent.Normalize();
+		v.bitangent.Normalize();
+	}
+
+	// 머터리얼 불러오기
 	if (mesh->mMaterialIndex >= 0) 
 	{
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
