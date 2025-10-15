@@ -163,17 +163,16 @@ void FBXLoadApp::OnRender()
 	m_pCharacter1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	
 	// cube before tree
-	if (!RenderAfterTree)
-	{
-		position = m_World.CreateTranslation(m_TreePosition);
-		rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
-		scale = m_World.CreateScale(m_TreeScale);
-
-		m_World = scale * rotate * position;
-		cb.world = XMMatrixTranspose(m_World);
-		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-		m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	}
+	//{
+	//	position = m_World.CreateTranslation(m_TreePosition);
+	//	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
+	//	scale = m_World.CreateScale(m_TreeScale);
+	//
+	//	m_World = scale * rotate * position;
+	//	cb.world = XMMatrixTranspose(m_World);
+	//	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	//	m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	//}
 
 	// tree redering
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
@@ -189,17 +188,16 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 
 	// cube after tree
-	if (RenderAfterTree)
-	{
-		position = m_World.CreateTranslation(m_TreePosition);
-		rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
-		scale = m_World.CreateScale(m_TreeScale);
-
-		m_World = scale * rotate * position;
-		cb.world = XMMatrixTranspose(m_World);
-		m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-		m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	}
+	//{
+	//	position = m_World.CreateTranslation(m_TreePosition);
+	//	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
+	//	scale = m_World.CreateScale(m_TreeScale);
+	//
+	//	m_World = scale * rotate * position;
+	//	cb.world = XMMatrixTranspose(m_World);
+	//	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	//	m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	//}
 
 	// Render ImGui
 	RenderImGUI();
@@ -348,7 +346,6 @@ void FBXLoadApp::RenderImGUI()
 	ImGui::ColorEdit4("character Specular", &m_pCharacter1->m_Specular.x);
 	
 	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
-	ImGui::Checkbox("Render cube AfterTree", &RenderAfterTree);
 
 	ImGui::NewLine();
 

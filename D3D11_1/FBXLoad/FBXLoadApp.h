@@ -96,8 +96,6 @@ public:
 	float m_Far = 1000.0f;
 	float m_PovAngle = XM_PIDIV2;
 
-	bool RenderAfterTree = false;
-
 	// =============================================================
 	virtual bool OnInitialize();
 	virtual void OnUpdate();
