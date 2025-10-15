@@ -35,18 +35,18 @@ struct ConstantBuffer
 	Vector3 CameraPos;
 };
 
-FBXLoadApp::FBXLoadApp(HINSTANCE hInstance)
+TranslucentRenderApp::TranslucentRenderApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
 
 }
 
-FBXLoadApp::~FBXLoadApp()
+TranslucentRenderApp::~TranslucentRenderApp()
 {
 	UninitImGUI();
 }
 
-bool FBXLoadApp::OnInitialize()
+bool TranslucentRenderApp::OnInitialize()
 {
 	if (!InitD3D())
 		return false;
@@ -65,7 +65,7 @@ bool FBXLoadApp::OnInitialize()
 	return true;
 }
 
-void FBXLoadApp::OnUpdate()
+void TranslucentRenderApp::OnUpdate()
 {
 	float delta = GameTimer::m_Instance->DeltaTime();
 
@@ -86,7 +86,7 @@ void FBXLoadApp::OnUpdate()
 	m_Camera.GetCameraViewMatrix(m_View);
 }
 
-void FBXLoadApp::OnRender()
+void TranslucentRenderApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
@@ -98,7 +98,7 @@ void FBXLoadApp::OnRender()
 	// 블랜드 상태 바인딩
 	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	UINT sampleMask = 0xffffffff;
-	
+
 	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), nullptr, sampleMask);
 
 	// 화면 칠하기.
@@ -149,11 +149,11 @@ void FBXLoadApp::OnRender()
 	position = m_World.CreateTranslation(m_TreePosition);
 	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
 	scale = m_World.CreateScale(m_TreeScale);
-	
+
 	m_World = scale * rotate * position;
-	cb.world = XMMatrixTranspose(m_World);	
+	cb.world = XMMatrixTranspose(m_World);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	
+
 	m_pTree1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 
@@ -164,7 +164,7 @@ void FBXLoadApp::OnRender()
 	m_pSwapChain->Present(0, 0);
 }
 
-bool FBXLoadApp::InitImGUI()
+bool TranslucentRenderApp::InitImGUI()
 {
 	bool isSetupSuccess = false;
 
@@ -188,7 +188,7 @@ bool FBXLoadApp::InitImGUI()
 	return true;
 }
 
-void FBXLoadApp::RenderImGUI()
+void TranslucentRenderApp::RenderImGUI()
 {
 	// Start the Dear ImGui frame
 	ImGui_ImplDX11_NewFrame();
@@ -199,46 +199,6 @@ void FBXLoadApp::RenderImGUI()
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
 	ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
 	ImGui::Begin("World Controller");
-
-	// zelda config
-	{
-		// zelda1 위치 조절 
-		ImGui::DragFloat3("Zelda Position", &m_ZeldaPosition.x);
-
-		// zelda1 회전
-		Vector3 zeldaRotation;
-		zeldaRotation.x = XMConvertToDegrees(m_ZeldaRotation.x);
-		zeldaRotation.y = XMConvertToDegrees(m_ZeldaRotation.y);
-		zeldaRotation.z = XMConvertToDegrees(m_ZeldaRotation.z);
-		ImGui::DragFloat3("Zelda Rotation", &zeldaRotation.x);
-		m_ZeldaRotation.x = XMConvertToRadians(zeldaRotation.x);
-		m_ZeldaRotation.y = XMConvertToRadians(zeldaRotation.y);
-		m_ZeldaRotation.z = XMConvertToRadians(zeldaRotation.z);
-
-
-		// zelda1 크기
-		ImGui::DragFloat("Zelda Scale", &m_ZeldaScale.x, 0.05f);
-		m_ZeldaScale.y = m_ZeldaScale.x;
-		m_ZeldaScale.z = m_ZeldaScale.x;
-	}
-
-	// character config
-	{
-		ImGui::DragFloat3("Character Position", &m_CharaPosition.x);
-
-		Vector3 charaRotation;
-		charaRotation.x = XMConvertToDegrees(m_CharaRotation.x);
-		charaRotation.y = XMConvertToDegrees(m_CharaRotation.y);
-		charaRotation.z = XMConvertToDegrees(m_CharaRotation.z);
-		ImGui::DragFloat3("Character Rotation", &charaRotation.x);
-		m_CharaRotation.x = XMConvertToRadians(charaRotation.x);
-		m_CharaRotation.y = XMConvertToRadians(charaRotation.y);
-		m_CharaRotation.z = XMConvertToRadians(charaRotation.z);
-
-		ImGui::DragFloat("Character Scale", &m_CharaScale.x, 0.05f);
-		m_CharaScale.y = m_CharaScale.x;
-		m_CharaScale.z = m_CharaScale.x;
-	}
 
 	// tree config
 	{
@@ -302,7 +262,7 @@ void FBXLoadApp::RenderImGUI()
 	ImGui::ColorEdit4("character Ambient", &m_pCharacter1->m_Ambient.x);
 	ImGui::ColorEdit4("character Diffuse", &m_pCharacter1->m_Diffuse.x);
 	ImGui::ColorEdit4("character Specular", &m_pCharacter1->m_Specular.x);
-	
+
 	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
 
 	ImGui::NewLine();
@@ -320,7 +280,7 @@ void FBXLoadApp::RenderImGUI()
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-void FBXLoadApp::UninitImGUI()
+void TranslucentRenderApp::UninitImGUI()
 {
 	// Cleanup
 	ImGui_ImplDX11_Shutdown();
@@ -328,7 +288,7 @@ void FBXLoadApp::UninitImGUI()
 	ImGui::DestroyContext();
 }
 
-bool FBXLoadApp::InitD3D()
+bool TranslucentRenderApp::InitD3D()
 {
 	HRESULT hr = S_OK;
 
@@ -470,11 +430,12 @@ bool FBXLoadApp::InitD3D()
 	// Alpha = SrcAlpha
 	D3D11_BLEND_DESC descBlend = {};
 	descBlend.RenderTarget[0].BlendEnable = true;						// blend 사용 여부
-	
+
+	// SrcBlend -> 소스 텍스처의 색상
+	// DestBlend -> 이미 해당 자리에 그려져있는 색상
 	descBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;			// D3D11_BLEND_SRC_ALPHA -> 픽셀 셰이더 결과 값의 알파 데이터 값
 	descBlend.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;	// D3D11_BLEND_INV_SRC_ALPHA -> D3D11_BLEND_SRC_ALPHA의 반전 값 ( 1 - 값 )
 	descBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;				// SrcBlend 및 DestBlend 작업을 결합하는 방법을 정의, D3D11_BLEND_OP_ADD -> Add source 1 and source 2
-
 
 	descBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;			// D3D11_BLEND_ONE -> (1,1,1,1)
 	descBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;		// D3D11_BLEND_ZERO -> (0,0,0,0)
@@ -495,7 +456,7 @@ bool FBXLoadApp::InitD3D()
 	return true;
 }
 
-bool FBXLoadApp::InitScene()
+bool TranslucentRenderApp::InitScene()
 {
 	HRESULT hr = S_OK;
 
@@ -562,7 +523,7 @@ bool FBXLoadApp::InitScene()
 	return true;
 }
 
-bool FBXLoadApp::InitEffect()
+bool TranslucentRenderApp::InitEffect()
 {
 	// 2. 파이프라인에 바인딩할 InputLayout 생성
 	D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -597,7 +558,7 @@ bool FBXLoadApp::InitEffect()
 	return true;
 }
 
-void FBXLoadApp::ResetValues()
+void TranslucentRenderApp::ResetValues()
 {
 	m_ZeldaPosition = m_ZeldaPositionInitial;
 	m_CharaPosition = m_CharaPositionInitial;
@@ -619,7 +580,7 @@ void FBXLoadApp::ResetValues()
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-LRESULT FBXLoadApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT TranslucentRenderApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;

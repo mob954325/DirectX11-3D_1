@@ -18,11 +18,11 @@
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
 
-class FBXLoadApp : public GameApp
+class TranslucentRenderApp : public GameApp
 {
 public:
-	FBXLoadApp(HINSTANCE hInstance);
-	~FBXLoadApp();
+	TranslucentRenderApp(HINSTANCE hInstance);
+	~TranslucentRenderApp();
 
 	// Model
 	unique_ptr<ModelLoader> m_pZelda1 = nullptr;
