@@ -33,6 +33,9 @@
     <FxCompile Include="Shaders\SolidPixelShader.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\TranslucentPixelShader.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TranslucentRenderApp.cpp">

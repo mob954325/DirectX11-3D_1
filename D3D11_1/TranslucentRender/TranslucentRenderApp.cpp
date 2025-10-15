@@ -73,15 +73,6 @@ void TranslucentRenderApp::OnUpdate()
 	Matrix rotate = Matrix::Identity;
 	Matrix position = Matrix::Identity;
 
-	// Cube Position
-	position = m_World.CreateTranslation(m_ZeldaPosition);
-	rotate = m_World.CreateFromYawPitchRoll(m_ZeldaRotation);
-	scale = m_World.CreateScale(m_ZeldaScale);
-
-	m_World = scale * rotate * position;
-
-	// Directional Light Position
-
 	// Camera
 	m_Camera.GetCameraViewMatrix(m_View);
 }
@@ -92,15 +83,6 @@ void TranslucentRenderApp::OnRender()
 	// Flip 모드에서는 매프레임 설정해야한다.
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
 #endif	
-
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
-
-	// 블랜드 상태 바인딩
-	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	UINT sampleMask = 0xffffffff;
-
-	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), nullptr, sampleMask);
-
 	// 화면 칠하기.
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
@@ -132,30 +114,82 @@ void TranslucentRenderApp::OnRender()
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), 0, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
-	// m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), 0, 0);
+	// m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
 
 	// local values
 	Matrix position;
 	Matrix rotate;
 	Matrix scale;
 
-	// tree redering
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
-	position = m_World.CreateTranslation(m_TreePosition);
-	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
-	scale = m_World.CreateScale(m_TreeScale);
+	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
+
+	// 투명한 오브젝트 랜더링 =========================================================
+	// BlendState 켜기, DepthWrite 끄기, CullMode는 None,
+	// 블랜드 상태 바인딩
+	// float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	// UINT sampleMask = 0xffffffff;
+	// m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
+	// 
+	// // m_pDeviceContext->RSSetState(m_pTransparentRasterizerState.Get());
+	// m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
+	// // cube1 redering
+	// m_pDeviceContext->PSSetShader(m_pTranslucentPixelShader.Get(), 0, 0);
+	// 
+	// position = m_World.CreateTranslation(m_Cube1Position);
+	// rotate = m_World.CreateFromYawPitchRoll(m_Cube1Rotation);
+	// scale = m_World.CreateScale(m_Cube1Scale);
+	// 
+	// m_World = scale * rotate * position;
+	// cb.world = XMMatrixTranspose(m_World);
+	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	// 
+	// m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
+	// 불투명한 오브젝트 랜더링 =========================================================
+	// BlendState 끄기, DepthWrite 켜기, CullMode는 Front,
+	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
+
+	// cube2 rendering
+	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), 0, 0);
+	//m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
+	position = m_World.CreateTranslation(m_Cube2Position);
+	rotate = m_World.CreateFromYawPitchRoll(m_Cube2Rotation);
+	scale = m_World.CreateScale(m_Cube2Scale);
 
 	m_World = scale * rotate * position;
 	cb.world = XMMatrixTranspose(m_World);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	m_pTree1->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
+	m_pCube2->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
+	// 투명한 오브젝트 랜더링 =========================================================
+	// BlendState 켜기, DepthWrite 끄기, CullMode는 None,
+	// 블랜드 상태 바인딩
+	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	UINT sampleMask = 0xffffffff;
+	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
+	
+	m_pDeviceContext->RSSetState(m_pTransparentRasterizerState.Get());
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
+	// cube1 redering
+	m_pDeviceContext->PSSetShader(m_pTranslucentPixelShader.Get(), 0, 0);
+	
+	position = m_World.CreateTranslation(m_Cube1Position);
+	rotate = m_World.CreateFromYawPitchRoll(m_Cube1Rotation);
+	scale = m_World.CreateScale(m_Cube1Scale);
+	
+	m_World = scale * rotate * position;
+	cb.world = XMMatrixTranspose(m_World);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	
+	m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	// Render ImGui
 	RenderImGUI();
@@ -199,6 +233,40 @@ void TranslucentRenderApp::RenderImGUI()
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
 	ImGui::SetNextWindowSize(ImVec2(350, 500), ImGuiCond_Once);		// 처음 실행될 때 창 크기 초기화
 	ImGui::Begin("World Controller");
+
+	{
+		ImGui::DragFloat3("Cube1 Position", &m_Cube1Position.x);
+
+		Vector3 cube1Rotation;
+		cube1Rotation.x = XMConvertToDegrees(m_Cube1Rotation.x);
+		cube1Rotation.y = XMConvertToDegrees(m_Cube1Rotation.y);
+		cube1Rotation.z = XMConvertToDegrees(m_Cube1Rotation.z);
+		ImGui::DragFloat3("Cube1 Rotation", &cube1Rotation.x);
+		m_Cube1Rotation.x = XMConvertToRadians(cube1Rotation.x);
+		m_Cube1Rotation.y = XMConvertToRadians(cube1Rotation.y);
+		m_Cube1Rotation.z = XMConvertToRadians(cube1Rotation.z);
+
+		ImGui::DragFloat("Cube1 Scale", &m_Cube1Scale.x, 0.05f);
+		m_Cube1Scale.y = m_Cube1Scale.x;
+		m_Cube1Scale.z = m_Cube1Scale.x;
+	}
+
+	{
+		ImGui::DragFloat3("Cube2 Position", &m_Cube2Position.x);
+
+		Vector3 cube2Rotation;
+		cube2Rotation.x = XMConvertToDegrees(m_Cube2Rotation.x);
+		cube2Rotation.y = XMConvertToDegrees(m_Cube2Rotation.y);
+		cube2Rotation.z = XMConvertToDegrees(m_Cube2Rotation.z);
+		ImGui::DragFloat3("cube2 Rotation", &cube2Rotation.x);
+		m_Cube2Rotation.x = XMConvertToRadians(cube2Rotation.x);
+		m_Cube2Rotation.y = XMConvertToRadians(cube2Rotation.y);
+		m_Cube2Rotation.z = XMConvertToRadians(cube2Rotation.z);
+
+		ImGui::DragFloat("Cube2 Scale", &m_Cube2Scale.x, 0.05f);
+		m_Cube2Scale.y = m_Cube2Scale.x;
+		m_Cube2Scale.z = m_Cube2Scale.x;
+	}
 
 	// tree config
 	{
@@ -246,22 +314,6 @@ void TranslucentRenderApp::RenderImGUI()
 	if (m_Far <= 0.0f) m_Far = 0.2f;
 
 	ImGui::NewLine();
-
-	// Lighting 설정
-	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
-
-	ImGui::ColorEdit4("Light Color", &m_LightColor.x);
-	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
-
-	ImGui::ColorEdit4("Light Ambient", &m_LightAmbient.x);
-	ImGui::ColorEdit4("Light Diffuse", &m_LightDiffuse.x);
-	ImGui::ColorEdit4("Light Specular", &m_LightSpecular.x);
-	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
-
-	ImGui::Spacing();
-	ImGui::ColorEdit4("character Ambient", &m_pCharacter1->m_Ambient.x);
-	ImGui::ColorEdit4("character Diffuse", &m_pCharacter1->m_Diffuse.x);
-	ImGui::ColorEdit4("character Specular", &m_pCharacter1->m_Specular.x);
 
 	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
 
@@ -489,25 +541,23 @@ bool TranslucentRenderApp::InitScene()
 	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
 
 	// 래스터라이저
-	D3D11_RASTERIZER_DESC rasterizerState = {};
-	rasterizerState.CullMode = D3D11_CULL_FRONT;
-	rasterizerState.FillMode = D3D11_FILL_SOLID;
-	rasterizerState.DepthClipEnable = true;
-	rasterizerState.FrontCounterClockwise = true;
+	D3D11_RASTERIZER_DESC rasterizerDesc = {};
+	rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	rasterizerDesc.DepthClipEnable = true;
+	rasterizerDesc.FrontCounterClockwise = true;
+
+	m_pDevice->CreateRasterizerState(&rasterizerDesc, &m_pRasterizerState);
+
+	rasterizerDesc = {};
+	rasterizerDesc.CullMode = D3D11_CULL_FRONT;
+	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	rasterizerDesc.DepthClipEnable = true;
+	rasterizerDesc.FrontCounterClockwise = true;
+
+	m_pDevice->CreateRasterizerState(&rasterizerDesc, &m_pTransparentRasterizerState);
 
 	// 모델 생성
-	m_pZelda1 = make_unique<ModelLoader>();
-	if (!m_pZelda1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\zeldaPosed001.fbx"))
-	{
-		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	}
-
-	m_pCharacter1 = make_unique<ModelLoader>();
-	if (!m_pCharacter1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Character.fbx"))
-	{
-		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	}
-
 	m_pTree1 = make_unique<ModelLoader>();
 	if (!m_pTree1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Tree.fbx"))
 	{
@@ -515,7 +565,13 @@ bool TranslucentRenderApp::InitScene()
 	}
 
 	m_pCube1 = make_unique<ModelLoader>();
-	if (!m_pCube1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\Cube1.fbx"))
+	if (!m_pCube1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\fire.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
+	m_pCube2 = make_unique<ModelLoader>();
+	if (!m_pCube2->Load(m_hWnd, m_pDevice, m_pDeviceContext, "Resource\\cube2.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
@@ -555,13 +611,17 @@ bool TranslucentRenderApp::InitEffect()
 	HR_T(CompileShaderFromFile(L"Shaders\\BlinnPhongShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
 
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\TranslucentPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pTranslucentPixelShader.GetAddressOf()));
+
 	return true;
 }
 
 void TranslucentRenderApp::ResetValues()
 {
-	m_ZeldaPosition = m_ZeldaPositionInitial;
-	m_CharaPosition = m_CharaPositionInitial;
+	m_Cube1Position = m_Cube1PositionInitial;
+	m_Cube2Position = m_Cube2PositionInitial;
 	m_TreePosition = m_TreePositionInitial;
 
 	m_Near = 0.01f;

@@ -25,26 +25,28 @@ public:
 	~TranslucentRenderApp();
 
 	// Model
-	unique_ptr<ModelLoader> m_pZelda1 = nullptr;
-	unique_ptr<ModelLoader> m_pCharacter1 = nullptr;
-	unique_ptr<ModelLoader> m_pTree1 = nullptr;
-	unique_ptr<ModelLoader> m_pCube1 = nullptr;
+	unique_ptr<ModelLoader> m_pTree1 = nullptr;		// 
+	unique_ptr<ModelLoader> m_pCube1 = nullptr;		// 반투명
+	unique_ptr<ModelLoader> m_pCube2 = nullptr;		// 불투명
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
-	ComPtr<ID3D11VertexShader> m_pVertexShader = nullptr;			// 사용할 정점 셰이더
-	ComPtr<ID3D11PixelShader> m_pPixelShader = nullptr;				// 사용할 픽셀 셰이더
-	ComPtr<ID3D11Device> m_pDevice = nullptr;						// 디바이스
-	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;			// 디바이스 컨텍스트
-	ComPtr<IDXGISwapChain1> m_pSwapChain = nullptr;					// 스왑체인 
-	ComPtr<ID3D11RenderTargetView> m_pRenderTargetView = nullptr;	// 랜더 타겟
-	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView = nullptr;	// 깊이 값 처리를 위한 뎊스스텐실 뷰
-	ComPtr<ID3D11BlendState> m_pBlendState = nullptr;				// 혼합 상태 객체 
+	ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더
+	ComPtr<ID3D11PixelShader>		m_pPixelShader = nullptr;				// 사용할 픽셀 셰이더
+	ComPtr<ID3D11Device>			m_pDevice = nullptr;						// 디바이스
+	ComPtr<ID3D11DeviceContext>		m_pDeviceContext = nullptr;			// 디바이스 컨텍스트
+	ComPtr<IDXGISwapChain1>			m_pSwapChain = nullptr;					// 스왑체인 
+	ComPtr<ID3D11RenderTargetView>	m_pRenderTargetView = nullptr;	// 랜더 타겟
+	ComPtr<ID3D11DepthStencilView>	m_pDepthStencilView = nullptr;	// 깊이 값 처리를 위한 뎊스스텐실 뷰
+	ComPtr<ID3D11BlendState>		m_pBlendState = nullptr;				// 혼합 상태 객체 
 	ComPtr<ID3D11DepthStencilState> m_pDepthStencilStateAllMask = nullptr;
 	ComPtr<ID3D11DepthStencilState> m_pDepthStencilStateZeroMask = nullptr;
+	ComPtr<ID3D11RasterizerState>	m_pRasterizerState = nullptr;
+	ComPtr<ID3D11RasterizerState>	m_pTransparentRasterizerState = nullptr;
 
 	// Phong Shader
 	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;				// Phong PS
 	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;		// Blinn-Phong PS
+	ComPtr<ID3D11PixelShader> m_pTranslucentPixelShader = nullptr;	// 반투명으로 만드는 픽셀 세이더
 
 
 	// 렌더링 파이프라인에 적용하는 객체와 정보
@@ -65,20 +67,20 @@ public:
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
 
 	// imgui 컨트롤 변수
-	Vector3 m_ZeldaPosition{};
-	Vector3 m_ZeldaRotation{};
-	Vector3 m_ZeldaScale{ 1.0f,1.0f,1.0f };
-	Vector3 m_ZeldaPositionInitial{ 0.0f, 0.0f, 0.0f };
+	Vector3 m_Cube1Position{};
+	Vector3 m_Cube1Rotation{};
+	Vector3 m_Cube1Scale{ 10.0f,10.0f,10.0f };
+	Vector3 m_Cube1PositionInitial{ 0.0f, 0.0f, 10.0f };
 
-	Vector3 m_CharaPosition{};
-	Vector3 m_CharaRotation{};
-	Vector3 m_CharaScale{ 1.0f,1.0f,1.0f };
-	Vector3 m_CharaPositionInitial{ 100.0f, 0.0f, 0.0f };
+	Vector3 m_Cube2Position{};
+	Vector3 m_Cube2Rotation{};
+	Vector3 m_Cube2Scale{ 50.0f,50.0f,50.0f };
+	Vector3 m_Cube2PositionInitial{ 0.0f, 0.0f, 130.0f };
 
 	Vector3 m_TreePosition{};
 	Vector3 m_TreeRotation{};
 	Vector3 m_TreeScale{ 100.0f, 100.0f, 100.0f };
-	Vector3 m_TreePositionInitial{ 0.0f, 0.0f, 0.0f };
+	Vector3 m_TreePositionInitial{ 0.0f, -50.0f, 0.0f };
 
 	// 카메라
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -20.0f };
