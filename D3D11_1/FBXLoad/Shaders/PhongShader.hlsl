@@ -30,6 +30,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     // texture sampling
     float4 finalTexture = txDiffuse.Sample(samLinear, input.Tex);  
     
+    if (finalTexture.a < 0.5f) discard; // alpha test1 - use discard    
     // if (finalTexture.a < 0.5f) return float4(0.1f, 0.2f, 0.3f, 1.0f); // 투명하면 배경 색상으로 출력
     
     // lighting Calculate
