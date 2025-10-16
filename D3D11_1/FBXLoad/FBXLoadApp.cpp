@@ -175,7 +175,6 @@ void FBXLoadApp::OnRender()
 	//}
 
 	// tree redering
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
 	position = m_World.CreateTranslation(m_TreePosition);
 	rotate = m_World.CreateFromYawPitchRoll(m_TreeRotation);
 	scale = m_World.CreateScale(m_TreeScale);
@@ -185,7 +184,6 @@ void FBXLoadApp::OnRender()
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	
 	m_pTree1->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 
 	// cube after tree
 	//{

@@ -132,24 +132,24 @@ void TranslucentRenderApp::OnRender()
 	// 투명한 오브젝트 랜더링 =========================================================
 	// BlendState 켜기, DepthWrite 끄기, CullMode는 None,
 	// 블랜드 상태 바인딩
-	// float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	// UINT sampleMask = 0xffffffff;
-	// m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
-	// 
-	// // m_pDeviceContext->RSSetState(m_pTransparentRasterizerState.Get());
+	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	UINT sampleMask = 0xffffffff;
+	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
+	
+	// m_pDeviceContext->RSSetState(m_pTransparentRasterizerState.Get());
 	// m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
-	// // cube1 redering
-	// m_pDeviceContext->PSSetShader(m_pTranslucentPixelShader.Get(), 0, 0);
-	// 
-	// position = m_World.CreateTranslation(m_Cube1Position);
-	// rotate = m_World.CreateFromYawPitchRoll(m_Cube1Rotation);
-	// scale = m_World.CreateScale(m_Cube1Scale);
-	// 
-	// m_World = scale * rotate * position;
-	// cb.world = XMMatrixTranspose(m_World);
-	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	// 
-	// m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	// cube1 redering
+	m_pDeviceContext->PSSetShader(m_pTranslucentPixelShader.Get(), 0, 0);
+	
+	position = m_World.CreateTranslation(m_Cube1Position);
+	rotate = m_World.CreateFromYawPitchRoll(m_Cube1Rotation);
+	scale = m_World.CreateScale(m_Cube1Scale);
+	
+	m_World = scale * rotate * position;
+	cb.world = XMMatrixTranspose(m_World);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	
+	m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	// 불투명한 오브젝트 랜더링 =========================================================
 	// BlendState 끄기, DepthWrite 켜기, CullMode는 Front,
@@ -172,24 +172,24 @@ void TranslucentRenderApp::OnRender()
 	// 투명한 오브젝트 랜더링 =========================================================
 	// BlendState 켜기, DepthWrite 끄기, CullMode는 None,
 	// 블랜드 상태 바인딩
-	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	UINT sampleMask = 0xffffffff;
-	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
-	
-	m_pDeviceContext->RSSetState(m_pTransparentRasterizerState.Get());
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
-	// cube1 redering
-	m_pDeviceContext->PSSetShader(m_pTranslucentPixelShader.Get(), 0, 0);
-	
-	position = m_World.CreateTranslation(m_Cube1Position);
-	rotate = m_World.CreateFromYawPitchRoll(m_Cube1Rotation);
-	scale = m_World.CreateScale(m_Cube1Scale);
-	
-	m_World = scale * rotate * position;
-	cb.world = XMMatrixTranspose(m_World);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	
-	m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	// float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	// UINT sampleMask = 0xffffffff;
+	// m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
+	// 
+	// m_pDeviceContext->RSSetState(m_pTransparentRasterizerState.Get());
+	// // m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
+	// // cube1 redering
+	// m_pDeviceContext->PSSetShader(m_pTranslucentPixelShader.Get(), 0, 0);
+	// 
+	// position = m_World.CreateTranslation(m_Cube1Position);
+	// rotate = m_World.CreateFromYawPitchRoll(m_Cube1Rotation);
+	// scale = m_World.CreateScale(m_Cube1Scale);
+	// 
+	// m_World = scale * rotate * position;
+	// cb.world = XMMatrixTranspose(m_World);
+	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	// 
+	// m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	// Render ImGui
 	RenderImGUI();
