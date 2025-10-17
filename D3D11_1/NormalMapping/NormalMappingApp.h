@@ -17,11 +17,11 @@
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
 
-class NormalMappingApp : public GameApp
+class FBXLoadApp : public GameApp
 {
 public:
-	NormalMappingApp(HINSTANCE hInstance);
-	~NormalMappingApp();
+	FBXLoadApp(HINSTANCE hInstance);
+	~FBXLoadApp();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	ComPtr<ID3D11Device> m_pDevice = nullptr;						// 디바이스
@@ -49,7 +49,7 @@ public:
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
 
 	// 좌표계 변환을 위한 행렬 모음
-	Matrix m_Cube;				// 월드 좌표계 공간으로 변환을 위한 행렬, origin 위치에 있는 큐브 행렬
+	Matrix m_World;				// 월드 좌표계 공간으로 변환을 위한 행렬, origin 위치에 있는 큐브 행렬
 	Matrix m_View;				// 뷰 좌표계 공간으로 변환을 위한 행렬.
 	Matrix m_Projection;		// 단위 장치 좌표계 ( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
