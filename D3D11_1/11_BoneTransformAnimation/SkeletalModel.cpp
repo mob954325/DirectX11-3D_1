@@ -1,19 +1,19 @@
-#include "ModelLoader.h"
+#include "SkeletalModel.h"
 
-ModelLoader::ModelLoader()
+SkeletalModel::SkeletalModel()
 {
 }
 
-ModelLoader::~ModelLoader()
+SkeletalModel::~SkeletalModel()
 {
 }
 
-bool ModelLoader::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string filename)
+bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string filename)
 {
 	Assimp::Importer importer;
 
 	const aiScene* pScene = importer.ReadFile(filename,
-		aiProcess_Triangulate |
+		aiProcess_Triangulate |			
 		aiProcess_ConvertToLeftHanded);
 
 	if (pScene == nullptr)
@@ -30,7 +30,7 @@ bool ModelLoader::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11De
 	return true;
 }
 
-void ModelLoader::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer)
+void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer)
 {
 	int size = meshes.size();
 	for (size_t i = 0; i < size; i++)
@@ -47,12 +47,38 @@ void ModelLoader::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D1
 	}
 }
 
-void ModelLoader::Close()
+void SkeletalModel::Close()
 {
 }
 
-void ModelLoader::processNode(aiNode* node, const aiScene* scene)
+void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 {
+	// Bone 정보
+	aiNode* parentNode = node->mParent;
+	int parentIndex = bones.size() - 1;
+	int currentIndex = bones.size();
+
+	Matrix modelMat = Matrix(node->mTransformation.a1, node->mTransformation.a2, node->mTransformation.a3, node->mTransformation.a4,
+							 node->mTransformation.b1, node->mTransformation.b2, node->mTransformation.b3, node->mTransformation.b4,
+							 node->mTransformation.c1, node->mTransformation.c2, node->mTransformation.c3, node->mTransformation.c4,
+							 node->mTransformation.d1, node->mTransformation.d2, node->mTransformation.d3, node->mTransformation.d4);
+
+	Matrix localMat{};
+	if (parentNode != nullptr)
+	{
+		localMat = bones[parentIndex].m_localTransform + modelMat;
+	}
+	else // root
+	{
+		localMat = modelMat;
+	}
+
+
+	Bone bone;
+	bone.CreateBone(node->mName.C_Str(), parentIndex, currentIndex, localMat, modelMat); //...
+	bones.push_back(bone);
+
+	// node 추적
 	for (UINT i = 0; i < node->mNumMeshes; i++) 
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
@@ -65,7 +91,7 @@ void ModelLoader::processNode(aiNode* node, const aiScene* scene)
 	}
 }
 
-Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene)
+Mesh SkeletalModel::processMesh(aiMesh* mesh, const aiScene* scene)
 {
 	// Data to fill
 	std::vector<Vertex> vertices;
@@ -171,7 +197,7 @@ Mesh ModelLoader::processMesh(aiMesh* mesh, const aiScene* scene)
 	return Mesh(m_pDevice, vertices, indices, textures);
 }
 
-std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene)
+std::vector<Texture> SkeletalModel::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene)
 {
 	std::vector<Texture> textures;
 	for (UINT i = 0; i < mat->GetTextureCount(type); i++) 
@@ -217,7 +243,7 @@ std::vector<Texture> ModelLoader::loadMaterialTextures(aiMaterial* mat, aiTextur
 	return textures;
 }
 
-void ModelLoader::loadEmbeddedTexture(const aiTexture* embeddedTexture, ComPtr<ID3D11ShaderResourceView>& outTexture)
+void SkeletalModel::loadEmbeddedTexture(const aiTexture* embeddedTexture, ComPtr<ID3D11ShaderResourceView>& outTexture)
 {
 	if (embeddedTexture->mHeight != 0) 
 	{

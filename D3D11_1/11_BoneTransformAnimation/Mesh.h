@@ -55,7 +55,10 @@ public:
 	vector<Vertex> vertices;
 	vector<UINT> indices;
 	vector<Texture> textures;
+
 	ComPtr<ID3D11Device> m_pDevice;
+	UINT m_parent = -1; // 부모가 없으면 -1, 있으면 ModelLoader에서 저장된 인덱스 값 
+	Matrix m_localTransform{};
 
 	Mesh(ComPtr<ID3D11Device>& dev, const std::vector<Vertex>& vertices, const std::vector<UINT>& indices, const std::vector<Texture>& textures) :
 		vertices(vertices),

@@ -1,5 +1,5 @@
 #pragma once
-#include "ModelLoader.h"
+#include "SkeletalModel.h"
 
 // DirectX11 
 #include <d3d11.h>
@@ -25,9 +25,7 @@ public:
 	~BoneTransformAnimationApp();
 
 	// Model
-	unique_ptr<ModelLoader> m_pTree1 = nullptr;		// 
-	unique_ptr<ModelLoader> m_pCube1 = nullptr;		// 반투명
-	unique_ptr<ModelLoader> m_pCube2 = nullptr;		// 불투명
+	unique_ptr<SkeletalModel> m_pBoxHuman1 = nullptr;		// 
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더
@@ -67,20 +65,10 @@ public:
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
 
 	// imgui 컨트롤 변수
-	Vector3 m_Cube1Position{};
-	Vector3 m_Cube1Rotation{};
-	Vector3 m_Cube1Scale{ 10.0f,10.0f,10.0f };
-	Vector3 m_Cube1PositionInitial{ 0.0f, 0.0f, 10.0f };
-
-	Vector3 m_Cube2Position{};
-	Vector3 m_Cube2Rotation{};
-	Vector3 m_Cube2Scale{ 50.0f,50.0f,50.0f };
-	Vector3 m_Cube2PositionInitial{ 0.0f, 0.0f, 130.0f };
-
-	Vector3 m_TreePosition{};
-	Vector3 m_TreeRotation{};
-	Vector3 m_TreeScale{ 100.0f, 100.0f, 100.0f };
-	Vector3 m_TreePositionInitial{ 0.0f, -50.0f, 0.0f };
+	Vector3 m_pBoxHuman1Position{};
+	Vector3 m_pBoxHuman1Rotation{};
+	Vector3 m_pBoxHuman1Scale{ 10.0f,10.0f,10.0f };
+	Vector3 m_pBoxHuman1PositionInitial{ 0.0f, 0.0f, 10.0f };
 
 	// 카메라
 	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -20.0f };

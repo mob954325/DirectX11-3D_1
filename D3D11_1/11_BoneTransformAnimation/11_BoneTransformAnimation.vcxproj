@@ -127,16 +127,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Bone.cpp" />
     <ClCompile Include="BoneTransformAnimationApp.cpp" />
     <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="ModelLoader.cpp" />
+    <ClCompile Include="SkeletalModel.cpp" />
     <ClCompile Include="TextureLoader.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bone.h" />
     <ClInclude Include="BoneTransformAnimationApp.h" />
     <ClInclude Include="Mesh.h" />
-    <ClInclude Include="ModelLoader.h" />
+    <ClInclude Include="SkeletalModel.h" />
     <ClInclude Include="TextureLoader.h" />
   </ItemGroup>
   <ItemGroup>

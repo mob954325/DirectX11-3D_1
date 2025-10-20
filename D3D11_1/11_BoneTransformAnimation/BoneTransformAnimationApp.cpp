@@ -114,7 +114,7 @@ void BoneTransformAnimationApp::OnRender()
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), 0, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	// m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
+	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
 
@@ -129,67 +129,15 @@ void BoneTransformAnimationApp::OnRender()
 	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 
-	// 투명한 오브젝트 랜더링 =========================================================
-	// BlendState 켜기, DepthWrite 끄기, CullMode는 None,
-	// 블랜드 상태 바인딩
-	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	UINT sampleMask = 0xffffffff;
-	m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
-
-	// m_pDeviceContext->RSSetState(m_pTransparentRasterizerState.Get());
-	// m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
-	// cube1 redering
-	m_pDeviceContext->PSSetShader(m_pTranslucentPixelShader.Get(), 0, 0);
-
-	position = m_World.CreateTranslation(m_Cube1Position);
-	rotate = m_World.CreateFromYawPitchRoll(m_Cube1Rotation);
-	scale = m_World.CreateScale(m_Cube1Scale);
+	position = m_World.CreateTranslation(m_pBoxHuman1Position);
+	rotate = m_World.CreateFromYawPitchRoll(m_pBoxHuman1Rotation);
+	scale = m_World.CreateScale(m_pBoxHuman1Scale);
 
 	m_World = scale * rotate * position;
 	cb.world = XMMatrixTranspose(m_World);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
-	// 불투명한 오브젝트 랜더링 =========================================================
-	// BlendState 끄기, DepthWrite 켜기, CullMode는 Front,
-	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
-
-	// cube2 rendering
-	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), 0, 0);
-	//m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
-	position = m_World.CreateTranslation(m_Cube2Position);
-	rotate = m_World.CreateFromYawPitchRoll(m_Cube2Rotation);
-	scale = m_World.CreateScale(m_Cube2Scale);
-
-	m_World = scale * rotate * position;
-	cb.world = XMMatrixTranspose(m_World);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	m_pCube2->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
-	// 투명한 오브젝트 랜더링 =========================================================
-	// BlendState 켜기, DepthWrite 끄기, CullMode는 None,
-	// 블랜드 상태 바인딩
-	// float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	// UINT sampleMask = 0xffffffff;
-	// m_pDeviceContext->OMSetBlendState(m_pBlendState.Get(), blendFactor, sampleMask);
-	// 
-	// m_pDeviceContext->RSSetState(m_pTransparentRasterizerState.Get());
-	// // m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateZeroMask.Get(), 1);
-	// // cube1 redering
-	// m_pDeviceContext->PSSetShader(m_pTranslucentPixelShader.Get(), 0, 0);
-	// 
-	// position = m_World.CreateTranslation(m_Cube1Position);
-	// rotate = m_World.CreateFromYawPitchRoll(m_Cube1Rotation);
-	// scale = m_World.CreateScale(m_Cube1Scale);
-	// 
-	// m_World = scale * rotate * position;
-	// cb.world = XMMatrixTranspose(m_World);
-	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	// 
-	// m_pCube1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pBoxHuman1->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	// Render ImGui
 	RenderImGUI();
@@ -235,55 +183,20 @@ void BoneTransformAnimationApp::RenderImGUI()
 	ImGui::Begin("World Controller");
 
 	{
-		ImGui::DragFloat3("Cube1 Position", &m_Cube1Position.x);
+		ImGui::DragFloat3("Cube1 Position", &m_pBoxHuman1Position.x);
 
 		Vector3 cube1Rotation;
-		cube1Rotation.x = XMConvertToDegrees(m_Cube1Rotation.x);
-		cube1Rotation.y = XMConvertToDegrees(m_Cube1Rotation.y);
-		cube1Rotation.z = XMConvertToDegrees(m_Cube1Rotation.z);
+		cube1Rotation.x = XMConvertToDegrees(m_pBoxHuman1Rotation.x);
+		cube1Rotation.y = XMConvertToDegrees(m_pBoxHuman1Rotation.y);
+		cube1Rotation.z = XMConvertToDegrees(m_pBoxHuman1Rotation.z);
 		ImGui::DragFloat3("Cube1 Rotation", &cube1Rotation.x);
-		m_Cube1Rotation.x = XMConvertToRadians(cube1Rotation.x);
-		m_Cube1Rotation.y = XMConvertToRadians(cube1Rotation.y);
-		m_Cube1Rotation.z = XMConvertToRadians(cube1Rotation.z);
+		m_pBoxHuman1Rotation.x = XMConvertToRadians(cube1Rotation.x);
+		m_pBoxHuman1Rotation.y = XMConvertToRadians(cube1Rotation.y);
+		m_pBoxHuman1Rotation.z = XMConvertToRadians(cube1Rotation.z);
 
-		ImGui::DragFloat("Cube1 Scale", &m_Cube1Scale.x, 0.05f);
-		m_Cube1Scale.y = m_Cube1Scale.x;
-		m_Cube1Scale.z = m_Cube1Scale.x;
-	}
-
-	{
-		ImGui::DragFloat3("Cube2 Position", &m_Cube2Position.x);
-
-		Vector3 cube2Rotation;
-		cube2Rotation.x = XMConvertToDegrees(m_Cube2Rotation.x);
-		cube2Rotation.y = XMConvertToDegrees(m_Cube2Rotation.y);
-		cube2Rotation.z = XMConvertToDegrees(m_Cube2Rotation.z);
-		ImGui::DragFloat3("cube2 Rotation", &cube2Rotation.x);
-		m_Cube2Rotation.x = XMConvertToRadians(cube2Rotation.x);
-		m_Cube2Rotation.y = XMConvertToRadians(cube2Rotation.y);
-		m_Cube2Rotation.z = XMConvertToRadians(cube2Rotation.z);
-
-		ImGui::DragFloat("Cube2 Scale", &m_Cube2Scale.x, 0.05f);
-		m_Cube2Scale.y = m_Cube2Scale.x;
-		m_Cube2Scale.z = m_Cube2Scale.x;
-	}
-
-	// tree config
-	{
-		ImGui::DragFloat3("Tree Position", &m_TreePosition.x);
-
-		Vector3 treeRotation;
-		treeRotation.x = XMConvertToDegrees(m_TreeRotation.x);
-		treeRotation.y = XMConvertToDegrees(m_TreeRotation.y);
-		treeRotation.z = XMConvertToDegrees(m_TreeRotation.z);
-		ImGui::DragFloat3("tree Rotation", &treeRotation.x);
-		m_TreeRotation.x = XMConvertToRadians(treeRotation.x);
-		m_TreeRotation.y = XMConvertToRadians(treeRotation.y);
-		m_TreeRotation.z = XMConvertToRadians(treeRotation.z);
-
-		ImGui::DragFloat("tree Scale", &m_TreeScale.x, 0.05f);
-		m_TreeScale.y = m_TreeScale.x;
-		m_TreeScale.z = m_TreeScale.x;
+		ImGui::DragFloat("Cube1 Scale", &m_pBoxHuman1Scale.x, 0.05f);
+		m_pBoxHuman1Scale.y = m_pBoxHuman1Scale.x;
+		m_pBoxHuman1Scale.z = m_pBoxHuman1Scale.x;
 	}
 
 	ImGui::NewLine();
@@ -558,20 +471,8 @@ bool BoneTransformAnimationApp::InitScene()
 	m_pDevice->CreateRasterizerState(&rasterizerDesc, &m_pTransparentRasterizerState);
 
 	// 모델 생성
-	m_pTree1 = make_unique<ModelLoader>();
-	if (!m_pTree1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Tree.fbx"))
-	{
-		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	}
-
-	m_pCube1 = make_unique<ModelLoader>();
-	if (!m_pCube1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\fire.fbx"))
-	{
-		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	}
-
-	m_pCube2 = make_unique<ModelLoader>();
-	if (!m_pCube2->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\cube2.fbx"))
+	m_pBoxHuman1 = make_unique<SkeletalModel>();
+	if (!m_pBoxHuman1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\BoxHuman.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
@@ -620,9 +521,7 @@ bool BoneTransformAnimationApp::InitEffect()
 
 void BoneTransformAnimationApp::ResetValues()
 {
-	m_Cube1Position = m_Cube1PositionInitial;
-	m_Cube2Position = m_Cube2PositionInitial;
-	m_TreePosition = m_TreePositionInitial;
+	m_pBoxHuman1Position = m_pBoxHuman1PositionInitial;
 
 	m_Near = 0.01f;
 	m_Far = 1000.0f;
