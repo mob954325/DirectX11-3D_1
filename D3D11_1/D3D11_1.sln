@@ -4,27 +4,27 @@ VisualStudioVersion = 17.13.35825.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "Common\Common.vcxproj", "{7DB874A9-D4CA-457E-B8BC-3A1A56020163}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02_DrawTriangle", "DrawTriangle\DrawTriangle.vcxproj", "{73940E81-FD5D-4634-A975-C1895BE91BF2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02_DrawTriangle", "02_DrawTriangle\DrawTriangle.vcxproj", "{73940E81-FD5D-4634-A975-C1895BE91BF2}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "01_ClearScreen", "ClearScreen\ClearScreen.vcxproj", "{7F680B85-8133-47DC-AFAD-98980F6D9185}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "01_ClearScreen", "01_ClearScreen\ClearScreen.vcxproj", "{7F680B85-8133-47DC-AFAD-98980F6D9185}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02_DrawRectangle", "DrawRectangle\DrawRectangle.vcxproj", "{72234623-185F-4128-95EE-B88D7749F12B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02_DrawRectangle", "02_DrawRectangle\DrawRectangle.vcxproj", "{72234623-185F-4128-95EE-B88D7749F12B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "03_DrawMesh", "DrawMesh\DrawMesh.vcxproj", "{358274BF-9F61-4175-8287-9D8FAAF34060}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "03_DrawMesh", "03_DrawMesh\DrawMesh.vcxproj", "{358274BF-9F61-4175-8287-9D8FAAF34060}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "05_Lighting", "Lighting\Lighting.vcxproj", "{11B39EB9-21A7-4B90-A74D-868165B723F4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "05_Lighting", "05_Lighting\Lighting.vcxproj", "{11B39EB9-21A7-4B90-A74D-868165B723F4}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04_RenderTexture", "RenderTexture\RenderTexture.vcxproj", "{CD991A5C-5E4A-4345-86D7-9BC8DF6F5952}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "04_RenderTexture", "04_RenderTexture\RenderTexture.vcxproj", "{CD991A5C-5E4A-4345-86D7-9BC8DF6F5952}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "06_DrawTextureAndSkybox", "DrawTextureAndSkybox\DrawTextureAndSkybox.vcxproj", "{845412A7-FA87-457D-B2CC-759E00917559}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "06_DrawTextureAndSkybox", "06_DrawTextureAndSkybox\DrawTextureAndSkybox.vcxproj", "{845412A7-FA87-457D-B2CC-759E00917559}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "07_PhongShading", "PhongShading\PhongShading.vcxproj", "{33EA7D90-F00D-4495-96FA-5E739BABEA3D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "07_PhongShading", "07_PhongShading\PhongShading.vcxproj", "{33EA7D90-F00D-4495-96FA-5E739BABEA3D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "08_NormalMapping", "NormalMapping\NormalMapping.vcxproj", "{26919AA7-B68D-4CAE-A724-880CBB1BD562}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "08_NormalMapping", "08_NormalMapping\NormalMapping.vcxproj", "{26919AA7-B68D-4CAE-A724-880CBB1BD562}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "09_FBXLoad", "FBXLoad\FBXLoad.vcxproj", "{5EDA7A6B-4E04-41B7-BE49-F121BB9D153D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "09_FBXLoad", "09_FBXLoad\FBXLoad.vcxproj", "{5EDA7A6B-4E04-41B7-BE49-F121BB9D153D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "10_TranslucentRender", "TranslucentRender\TranslucentRender.vcxproj", "{1183D7CF-F744-44A2-844A-61ED0918F05B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "10_TranslucentRender", "10_TranslucentRender\TranslucentRender.vcxproj", "{1183D7CF-F744-44A2-844A-61ED0918F05B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

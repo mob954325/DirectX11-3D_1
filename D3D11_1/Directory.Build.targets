@@ -13,23 +13,19 @@
 
 	<!-- 아이템 그룹 정의-->
 	<ItemGroup>
-		<ResourceFiles Include="Resource\**\*.*" />
+		<ResourceFiles Include="..\Resource\**\*.*" />
 		<HlslFiles Include="Shaders\**\*.*">
 			<ExcludedFromBuild>true</ExcludedFromBuild>
 		</HlslFiles>
-		<TextureFiles Include="Textures\**\*.*" />
+		<TextureFiles Include="..\Textures\**\*.*" />
 	</ItemGroup>
 	
 	<!-- 리소스 복제-->
 	<Target Name="CopyResources" AfterTargets="Build">
-		<!-- Resource 폴더 생성 -->
-		<MakeDir Directories="$(CommonBinDir)Resource" />
-
 		<!-- Resource 안의 모든 파일 복사 -->
-		<Copy
-			SourceFiles="@(ResourceFiles)"
-			DestinationFolder="$(CommonBinDir)Resource\%(RecursiveDir)"
-			SkipUnchangedFiles="true" />		
+		<Copy SourceFiles="@(ResourceFiles)"
+			  DestinationFolder="$(CommonBinDir)..\Resource\%(RecursiveDir)"
+			  SkipUnchangedFiles="true" />		
 	</Target>
 	
 	<!-- 셰이더 파일들 복제-->
@@ -41,7 +37,7 @@
 
 	<Target Name="CopyTexture" AfterTargets="Build">
 		<Copy SourceFiles="@(TextureFiles)"
-			  DestinationFolder="$(CommonBinDir)Textures\%(RecursiveDir)"
+			  DestinationFolder="$(CommonBinDir)..\Textures\%(RecursiveDir)"
 			  SkipUnchangedFiles="true" />
 	</Target>
 
