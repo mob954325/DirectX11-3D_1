@@ -21,7 +21,6 @@ using Microsoft::WRL::ComPtr;
 // 상수 버퍼
 struct ConstantBuffer
 {
-	Matrix world;
 	Matrix view;
 	Matrix projection;
 
@@ -92,7 +91,6 @@ void BoneTransformAnimationApp::OnRender()
 
 	// Update Constant Values
 	ConstantBuffer cb;
-	cb.world = XMMatrixTranspose(m_World);
 	cb.view = XMMatrixTranspose(m_View);
 	cb.projection = XMMatrixTranspose(m_Projection);
 	cb.lightDirection = m_LightDirection;
@@ -105,7 +103,6 @@ void BoneTransformAnimationApp::OnRender()
 
 	cb.shininess = m_Shininess;
 	cb.CameraPos = m_Camera.m_Position;
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	// 텍스처 및 샘플링 설정 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -115,11 +112,11 @@ void BoneTransformAnimationApp::OnRender()
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
+	// m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), 0, 0);
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-
 
 	// local values
 	Matrix position;
@@ -128,13 +125,6 @@ void BoneTransformAnimationApp::OnRender()
 
 	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
-
-	position = m_World.CreateTranslation(m_pBoxHuman1Position);
-	rotate = m_World.CreateFromYawPitchRoll(m_pBoxHuman1Rotation);
-	scale = m_World.CreateScale(m_pBoxHuman1Scale);
-
-	m_World = scale * rotate * position;
-	cb.world = XMMatrixTranspose(m_World);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	m_pBoxHuman1->Draw(m_pDeviceContext, m_pMaterialBuffer);
@@ -231,6 +221,19 @@ void BoneTransformAnimationApp::RenderImGUI()
 	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
 
 	ImGui::NewLine();
+
+	// Lighting 설정
+	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
+
+	ImGui::ColorEdit4("Light Color", &m_LightColor.x);
+	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
+
+	ImGui::ColorEdit4("Light Ambient", &m_LightAmbient.x);
+	ImGui::ColorEdit4("Light Diffuse", &m_LightDiffuse.x);
+	ImGui::ColorEdit4("Light Specular", &m_LightSpecular.x);
+	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
+
+	ImGui::Spacing();
 
 	// 리셋 버튼
 	if (ImGui::Button("Reset", { 50, 20 }))

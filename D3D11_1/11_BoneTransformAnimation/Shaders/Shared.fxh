@@ -10,9 +10,8 @@ Texture2D txNormal : register(t2);      // 노멀맵 텍스처
 Texture2D txSpec : register(t3);        // 스펙큘러맵 텍스처
 // TextureCube txCubemap : register(t1); // skybox용 큐브맵 텍스처
 
-cbuffer ConstantBuffer : register(b0)
+cbuffer ConstantBuffer : register(b0) // PerFrame
 {
-    matrix World;
     matrix View;
     matrix Projection;
     
@@ -24,12 +23,10 @@ cbuffer ConstantBuffer : register(b0)
     float4 LightSpecular; // 정반사
     
     float Shininess; // 광택지수
-    float3 CameraPos; // 카메라 위치
+    float3 CameraPos; // 카메라 위치        
 }
 
-
-//
-cbuffer Material : register(b1)
+cbuffer Material : register(b1) // PerMaterial
 {
     float4 matAmbient;
     float4 matDiffuse;
@@ -40,6 +37,21 @@ cbuffer Material : register(b1)
     bool hasNormal;
     bool hasSpecular;
 };
+
+cbuffer ModelTransform : register(b2)
+{
+    matrix World;        
+    
+    int isRigid; // 1 : rigid, 0 : skinned
+    int refBoneIndex; // 리지드일 때 참조하는 본 인덱스
+    float pad1;
+    float pad2;
+}
+
+cbuffer ModelMatrix : register(b3) // Skinning
+{
+    matrix modelMatricies[32]; // model space matricies
+}
 
 
 // Basic Shader Struct =============================================================

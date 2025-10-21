@@ -1,4 +1,23 @@
 #include "SkeletalModel.h"
+#include "../Common/Helper.h"
+
+/// <summary>
+/// 모델에서 사용할 트랜스폼 상수 버퍼 구조체
+/// </summary>
+struct TransformBuffer
+{
+	Matrix world;
+
+	UINT isRigid;		// 1 : rigid, 0 : skinned
+	UINT refBoneIndex;	// 리지드일 때 참조하는 본 인덱스
+	FLOAT pad1;
+	FLOAT pad2;
+};
+
+struct ModelMatrixBuffer
+{
+	Matrix modelMatricies[32];
+};
 
 SkeletalModel::SkeletalModel()
 {
@@ -25,6 +44,23 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 	this->m_pDeviceContext = pDeviceContext;
 	this->hwnd = hwnd;
 
+	// 트랜스폼 상수 버퍼 만들기
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(TransformBuffer);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pTransformBuffer.GetAddressOf()));
+
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(ModelMatrixBuffer);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pModelMetriciesBuffer.GetAddressOf()));
+
+
+	// 노드 
 	processNode(pScene->mRootNode, pScene);
 
 	return true;
@@ -32,6 +68,27 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 
 void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer)
 {
+	// bone Matrix update
+	ModelMatrixBuffer mmb{};
+
+	int boneIndex = 0;
+	for (auto& bone : bones)
+	{
+		Matrix mat = bone.m_worldTransform; // 행 우선임
+		mmb.modelMatricies[boneIndex] = mat;
+		boneIndex++;
+	}
+	m_pDeviceContext->UpdateSubresource(m_pModelMetriciesBuffer.Get(), 0, nullptr, &mmb, 0, 0);
+	m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pModelMetriciesBuffer.GetAddressOf());
+
+	TransformBuffer tb = {};
+	tb.isRigid = isRigid;
+
+	m_world = m_world.CreateScale(m_Scale) *
+			  m_world.CreateFromYawPitchRoll(m_Rotation) *
+			  m_world.CreateTranslation(m_Position);
+	tb.world = XMMatrixTranspose(m_world);
+
 	int size = meshes.size();
 	for (size_t i = 0; i < size; i++)
 	{
@@ -39,8 +96,12 @@ void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3
 		meshMaterial.ambient = m_Ambient;
 		meshMaterial.diffuse = m_Diffuse;
 		meshMaterial.specular = m_Specular;
+		m_pDeviceContext->UpdateSubresource(pMatBuffer.Get(), 0, nullptr, &meshMaterial, 0, 0);		
 
-		m_pDeviceContext->UpdateSubresource(pMatBuffer.Get(), 0, nullptr, &meshMaterial, 0, 0);
+		tb.refBoneIndex = meshes[i].refBoneIndex;
+		
+		m_pDeviceContext->UpdateSubresource(m_pTransformBuffer.Get(), 0, nullptr, &tb, 0, 0);
+		m_pDeviceContext->VSSetConstantBuffers(2, 1, m_pTransformBuffer.GetAddressOf());
 		m_pDeviceContext->PSSetConstantBuffers(1, 1, pMatBuffer.GetAddressOf());
 
 		meshes[i].Draw(pDeviceContext);
@@ -53,36 +114,42 @@ void SkeletalModel::Close()
 
 void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 {
-	// Bone 정보
+	// Bone 정보 -> 나중에 분리
 	aiNode* parentNode = node->mParent;
-	int parentIndex = bones.size() - 1;
-	int currentIndex = bones.size();
+	string parentBoneName = parentNode != nullptr ? parentNode->mName.C_Str() : "";
+	string currentBoneName = node->mName.C_Str();
 
-	Matrix modelMat = Matrix(node->mTransformation.a1, node->mTransformation.a2, node->mTransformation.a3, node->mTransformation.a4,
+	auto it = bonesByIndex.find(parentBoneName);
+	int parentBoneIndex = it != bonesByIndex.end() ? it->second : -1;
+	int currentBoneIndex = bones.size();
+
+	Matrix localMat = Matrix(node->mTransformation.a1, node->mTransformation.a2, node->mTransformation.a3, node->mTransformation.a4,
 							 node->mTransformation.b1, node->mTransformation.b2, node->mTransformation.b3, node->mTransformation.b4,
 							 node->mTransformation.c1, node->mTransformation.c2, node->mTransformation.c3, node->mTransformation.c4,
 							 node->mTransformation.d1, node->mTransformation.d2, node->mTransformation.d3, node->mTransformation.d4);
 
-	Matrix localMat{};
+	Matrix worldMat{};
 	if (parentNode != nullptr)
 	{
-		localMat = bones[parentIndex].m_localTransform + modelMat;
+		worldMat = bones[parentBoneIndex].m_worldTransform * localMat;
 	}
 	else // root
 	{
-		localMat = modelMat;
+		worldMat = localMat;
 	}
 
-
 	Bone bone;
-	bone.CreateBone(node->mName.C_Str(), parentIndex, currentIndex, localMat, modelMat); //...
+	bone.CreateBone(currentBoneName, parentBoneIndex, currentBoneIndex, worldMat, localMat); //...
 	bones.push_back(bone);
+	bonesByIndex.insert({ currentBoneName, currentBoneIndex });
 
 	// node 추적
 	for (UINT i = 0; i < node->mNumMeshes; i++) 
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		meshes.push_back(this->processMesh(mesh, scene));
+		meshes.back().refBoneIndex = currentBoneIndex;
+
 	}
 
 	for (UINT i = 0; i < node->mNumChildren; i++) 

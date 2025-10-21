@@ -8,12 +8,12 @@ using namespace DirectX::SimpleMath;
 class Bone
 {
 public:
-	void CreateBone(string objName, int parentIndex, int boneIndex, Matrix localMat, Matrix modelMat);
+	void CreateBone(string objName, int parentIndex, int boneIndex, Matrix worldMat, Matrix localMat);
 
 
 // private: -> 편의를 위해 public 설정
+	Matrix m_worldTransform;
 	Matrix m_localTransform;
-	Matrix m_ModelTransform;
 
 	string name = "";		// 해당 bone의 이름
 

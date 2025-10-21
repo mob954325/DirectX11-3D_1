@@ -19,6 +19,11 @@ public:
 	SkeletalModel();
 	~SkeletalModel();
 
+	Matrix m_world{};
+	Vector3 m_Position{ 0.0f, 0.0f, 10.0f };
+	Vector3 m_Rotation{};
+	Vector3 m_Scale{ 1.0f, 1.0f, 1.0f };
+
 	Vector4 m_Ambient{ 1.0f, 1.0f, 1.0f, 1.0f }; // 환경광 반사 계수
 	Vector4 m_Diffuse{ 1.0f, 1.0f, 1.0f, 1.0f }; // 난반사 계수
 	Vector4 m_Specular{ 1.0f, 1.0f, 1.0f, 1.0f }; // 정반사 계수
@@ -32,11 +37,16 @@ private:
 	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;
 	HWND hwnd{};
 
+	ComPtr<ID3D11Buffer> m_pTransformBuffer{};
+	ComPtr<ID3D11Buffer> m_pModelMetriciesBuffer{};
+
 	std::string directory{};				// 로드한 파일이 위차한 폴더명
 	std::vector<Mesh> meshes{};				// 로드한 매쉬
 	std::vector<Texture> texturesLoaded{};	// 로드된 텍스처 모음
 	std::vector<Bone> bones{};				// 로드된 모델의 본 모음 -> 계층 구조에 있는 오브젝트들
 	std::map<string, int> bonesByIndex{};	// 본 이름으로 인덱스로 가져오기 위한 map
+
+	bool isRigid = false;
 
 	void processNode(aiNode* node, const aiScene* scene);
 	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
