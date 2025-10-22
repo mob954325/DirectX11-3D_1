@@ -131,6 +131,7 @@
     <ClCompile Include="BoneTransformAnimationApp.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="SkeletalModel.cpp" />
+    <ClCompile Include="SkeletonInfo.cpp" />
     <ClCompile Include="TextureLoader.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
@@ -139,6 +140,7 @@
     <ClInclude Include="BoneTransformAnimationApp.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="SkeletalModel.h" />
+    <ClInclude Include="SkeletonInfo.h" />
     <ClInclude Include="TextureLoader.h" />
   </ItemGroup>
   <ItemGroup>

@@ -60,6 +60,9 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pModelMetriciesBuffer.GetAddressOf()));
 
 
+	// skeletonInfo 저장
+	m_skeletonInfo.CreateFromAiScene(pScene);
+
 	// 노드 
 	processNode(pScene->mRootNode, pScene);
 
@@ -74,7 +77,7 @@ void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3
 	int boneIndex = 0;
 	for (auto& bone : bones)
 	{
-		Matrix mat = bone.m_worldTransform; // 행 우선임
+		Matrix mat = bone.m_worldTransform; // 열 우선임
 		mmb.modelMatricies[boneIndex] = mat;
 		boneIndex++;
 	}
@@ -114,41 +117,39 @@ void SkeletalModel::Close()
 
 void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 {
-	// Bone 정보 -> 나중에 분리
-	aiNode* parentNode = node->mParent;
-	string parentBoneName = parentNode != nullptr ? parentNode->mName.C_Str() : "";
-	string currentBoneName = node->mName.C_Str();
-
-	auto it = bonesByIndex.find(parentBoneName);
-	int parentBoneIndex = it != bonesByIndex.end() ? it->second : -1;
-	int currentBoneIndex = bones.size();
-
-	Matrix localMat = Matrix(node->mTransformation.a1, node->mTransformation.a2, node->mTransformation.a3, node->mTransformation.a4,
-							 node->mTransformation.b1, node->mTransformation.b2, node->mTransformation.b3, node->mTransformation.b4,
-							 node->mTransformation.c1, node->mTransformation.c2, node->mTransformation.c3, node->mTransformation.c4,
-							 node->mTransformation.d1, node->mTransformation.d2, node->mTransformation.d3, node->mTransformation.d4);
-
-	Matrix worldMat{};
-	if (parentNode != nullptr)
-	{
-		worldMat = bones[parentBoneIndex].m_worldTransform * localMat;
-	}
-	else // root
-	{
-		worldMat = localMat;
-	}
-
-	Bone bone;
-	bone.CreateBone(currentBoneName, parentBoneIndex, currentBoneIndex, worldMat, localMat); //...
-	bones.push_back(bone);
-	bonesByIndex.insert({ currentBoneName, currentBoneIndex });
+	// aiNode* parentNode = node->mParent;
+	// string parentBoneName = parentNode != nullptr ? parentNode->mName.C_Str() : "";
+	// string currentBoneName = node->mName.C_Str();
+	// 
+	// auto it = bonesByIndex.find(parentBoneName);
+	// int parentBoneIndex = it != bonesByIndex.end() ? it->second : -1;
+	// int currentBoneIndex = bones.size();
+	// 
+	// Matrix localMat = Matrix(node->mTransformation.a1, node->mTransformation.a2, node->mTransformation.a3, node->mTransformation.a4,
+	// 						 node->mTransformation.b1, node->mTransformation.b2, node->mTransformation.b3, node->mTransformation.b4,
+	// 						 node->mTransformation.c1, node->mTransformation.c2, node->mTransformation.c3, node->mTransformation.c4,
+	// 						 node->mTransformation.d1, node->mTransformation.d2, node->mTransformation.d3, node->mTransformation.d4);
+	// 
+	// Matrix worldMat{};
+	// if (parentNode != nullptr)
+	// {
+	// 	worldMat = bones[parentBoneIndex].m_worldTransform * localMat;
+	// }
+	// else // root
+	// {
+	// 	worldMat = localMat;
+	// }
+	// 
+	// Bone bone;
+	// bone.CreateBone(currentBoneName, parentBoneIndex, currentBoneIndex, worldMat, localMat); //...
+	// bones.push_back(bone);
 
 	// node 추적
 	for (UINT i = 0; i < node->mNumMeshes; i++) 
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		meshes.push_back(this->processMesh(mesh, scene));
-		meshes.back().refBoneIndex = currentBoneIndex;
+		// meshes.back().refBoneIndex = currentBoneIndex;
 
 	}
 

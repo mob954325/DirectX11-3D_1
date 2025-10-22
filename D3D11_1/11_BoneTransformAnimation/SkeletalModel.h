@@ -12,6 +12,19 @@
 #include "Mesh.h"
 #include "TextureLoader.h"
 #include "Bone.h"
+#include "SkeletonInfo.h"
+
+// skeletalInfo
+// animations
+
+// ____ Resource ____
+// vector<SkeletalMeshSection
+// vector<Material>
+// vector<Animation>
+// SkeletonInfo
+//	|
+//	ㄴ 본 정보?
+// ___ instance data ___
 
 class SkeletalModel
 {
@@ -44,8 +57,8 @@ private:
 	std::vector<Mesh> meshes{};				// 로드한 매쉬
 	std::vector<Texture> texturesLoaded{};	// 로드된 텍스처 모음
 	std::vector<Bone> bones{};				// 로드된 모델의 본 모음 -> 계층 구조에 있는 오브젝트들
-	std::map<string, int> bonesByIndex{};	// 본 이름으로 인덱스로 가져오기 위한 map
 
+	SkeletonInfo m_skeletonInfo{};			// 모델에 사용할 본 정보 
 	bool isRigid = false;
 
 	void processNode(aiNode* node, const aiScene* scene);
