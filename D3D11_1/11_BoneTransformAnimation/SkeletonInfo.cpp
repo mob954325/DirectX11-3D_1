@@ -18,6 +18,15 @@ BoneInfo SkeletonInfo::GetBoneInfoByName(const string& boneName)
     return m_bones[mappedInfo->second];
 }
 
+int SkeletonInfo::GetBoneIndexByName(const string& boneName)
+{
+	auto mappedInfo = m_boneMappingTable.find(boneName);
+	if (mappedInfo == m_boneMappingTable.end())
+		throw std::out_of_range("Bone name not Found " + boneName);
+
+	return mappedInfo->second;
+}
+
 bool SkeletonInfo::CreateFromAiScene(const aiScene* pAiScene)
 {
 	if (pAiScene == nullptr) return false;

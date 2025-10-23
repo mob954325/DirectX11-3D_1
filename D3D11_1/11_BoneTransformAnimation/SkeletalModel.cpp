@@ -117,40 +117,33 @@ void SkeletalModel::Close()
 
 void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 {
-	// aiNode* parentNode = node->mParent;
-	// string parentBoneName = parentNode != nullptr ? parentNode->mName.C_Str() : "";
-	// string currentBoneName = node->mName.C_Str();
-	// 
-	// auto it = bonesByIndex.find(parentBoneName);
-	// int parentBoneIndex = it != bonesByIndex.end() ? it->second : -1;
-	// int currentBoneIndex = bones.size();
-	// 
-	// Matrix localMat = Matrix(node->mTransformation.a1, node->mTransformation.a2, node->mTransformation.a3, node->mTransformation.a4,
-	// 						 node->mTransformation.b1, node->mTransformation.b2, node->mTransformation.b3, node->mTransformation.b4,
-	// 						 node->mTransformation.c1, node->mTransformation.c2, node->mTransformation.c3, node->mTransformation.c4,
-	// 						 node->mTransformation.d1, node->mTransformation.d2, node->mTransformation.d3, node->mTransformation.d4);
-	// 
-	// Matrix worldMat{};
-	// if (parentNode != nullptr)
-	// {
-	// 	worldMat = bones[parentBoneIndex].m_worldTransform * localMat;
-	// }
-	// else // root
-	// {
-	// 	worldMat = localMat;
-	// }
-	// 
-	// Bone bone;
-	// bone.CreateBone(currentBoneName, parentBoneIndex, currentBoneIndex, worldMat, localMat); //...
-	// bones.push_back(bone);
+	Bone bone;
+
+	string boneName = node->mName.C_Str();
+	BoneInfo boneInfo = m_skeletonInfo.GetBoneInfoByName(boneName);
+	int boneIndex = m_skeletonInfo.GetBoneIndexByName(boneName);
+
+	string parentBoneName = boneInfo.parentBoneName;
+	BoneInfo parentBoneInfo;
+	int parentBoneIndex = -1;
+	if (parentBoneName != "")
+	{
+		parentBoneInfo = m_skeletonInfo.GetBoneInfoByName(parentBoneName);
+		parentBoneIndex = m_skeletonInfo.GetBoneIndexByName(parentBoneName);
+	}
+
+	Matrix localMat = boneInfo.relativeTransform;
+	Matrix worldMat = parentBoneIndex > 0 ? bones[parentBoneIndex].m_worldTransform * localMat : localMat;
+
+	bone.CreateBone(boneName, parentBoneIndex, boneIndex, worldMat, localMat); //...
+	bones.push_back(bone);
 
 	// node ÃßÀû
 	for (UINT i = 0; i < node->mNumMeshes; i++) 
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		meshes.push_back(this->processMesh(mesh, scene));
-		// meshes.back().refBoneIndex = currentBoneIndex;
-
+		meshes.back().refBoneIndex = boneIndex;
 	}
 
 	for (UINT i = 0; i < node->mNumChildren; i++) 

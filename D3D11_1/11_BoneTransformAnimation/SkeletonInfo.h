@@ -35,5 +35,6 @@ private:
 public:
 	BoneInfo GetBoneInfoByIndex(int index);
 	BoneInfo GetBoneInfoByName(const string& boneName);
+	int GetBoneIndexByName(const string& boneName);
 	bool CreateFromAiScene(const aiScene* pAiScene);
 };
