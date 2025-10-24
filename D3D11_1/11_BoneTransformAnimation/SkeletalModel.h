@@ -13,6 +13,7 @@
 #include "TextureLoader.h"
 #include "Bone.h"
 #include "SkeletonInfo.h"
+#include "Animation.h"
 
 // skeletalInfo
 // animations
@@ -43,8 +44,15 @@ public:
 
 	bool Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string filename);
 	void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer);
+	void Update();
 
 	void Close();
+
+	// 애니메이션 관련 내용 - 디버그를 위해 public으로 옮김
+	vector<Animation> m_animations;			// 해당 모델이 사용할 애니메이션들
+	int m_animationIndex = 0;				// 실행 중인 애니메이션 인덱스
+	float m_progressAnimationTime = 0.0f;		// 현재 애니메이션 시간 
+
 private:
 	ComPtr<ID3D11Device> m_pDevice = nullptr;
 	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;

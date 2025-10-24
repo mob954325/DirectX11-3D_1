@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <directxtk/SimpleMath.h>
+#include "BoneAnimation.h"
 
 using namespace std;
 using namespace DirectX::SimpleMath;
@@ -10,6 +11,7 @@ class Bone
 public:
 	void CreateBone(string objName, int parentIndex, int boneIndex, Matrix worldMat, Matrix localMat);
 
+	BoneAnimation m_boneAnimation;	// 
 
 // private: -> 편의를 위해 public 설정
 	Matrix m_worldTransform;

@@ -1,5 +1,6 @@
 #include "SkeletalModel.h"
 #include "../Common/Helper.h"
+#include "../Common/TimeSystem.h"
 
 /// <summary>
 /// 모델에서 사용할 트랜스폼 상수 버퍼 구조체
@@ -59,9 +60,18 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 	bufferDesc.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pModelMetriciesBuffer.GetAddressOf()));
 
-
 	// skeletonInfo 저장
 	m_skeletonInfo.CreateFromAiScene(pScene);
+
+	// animations -> mchannels -> mxxxKeys
+
+	int animationsNum = pScene->mNumAnimations;
+	for (int i = 0; i < animationsNum; i++)
+	{
+		Animation anim;
+		anim.CreateBoneAnimation(pScene->mAnimations[i]);
+		m_animations.push_back(anim);
+	}
 
 	// 노드 
 	processNode(pScene->mRootNode, pScene);
@@ -71,19 +81,6 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 
 void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer)
 {
-	// bone Matrix update
-	ModelMatrixBuffer mmb{};
-
-	int boneIndex = 0;
-	for (auto& bone : bones)
-	{
-		Matrix mat = bone.m_worldTransform; // 열 우선임
-		mmb.modelMatricies[boneIndex] = mat;
-		boneIndex++;
-	}
-	m_pDeviceContext->UpdateSubresource(m_pModelMetriciesBuffer.Get(), 0, nullptr, &mmb, 0, 0);
-	m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pModelMetriciesBuffer.GetAddressOf());
-
 	TransformBuffer tb = {};
 	tb.isRigid = isRigid;
 
@@ -111,12 +108,53 @@ void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3
 	}
 }
 
+void SkeletalModel::Update()
+{
+	if (!m_animations.empty())
+	{
+		m_progressAnimationTime += GameTimer::m_Instance->DeltaTime() * 40;
+		m_progressAnimationTime = fmod(m_progressAnimationTime, m_animations[m_animationIndex].m_duration);	
+	}
+
+	ModelMatrixBuffer mmb{};
+	// 본 갱신
+	for (auto& bone : bones)
+	{
+		if (bone.m_boneAnimation.m_boneName != "")
+		{
+			Vector3 positionVec, scaleVec;
+			Quaternion rotationQuat;
+			bone.m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec);
+
+			// 계산만 맞추면됨 ;
+			Matrix mat = Matrix::CreateScale(scaleVec) * Matrix::CreateFromQuaternion(rotationQuat) * Matrix::CreateTranslation(positionVec);
+			bone.m_localTransform = mat.Transpose();
+		}
+
+		// 위치 갱신
+		if (bone.m_parentIndex != -1)
+		{
+			bone.m_worldTransform = bones[bone.m_parentIndex].m_worldTransform * bone.m_localTransform;
+		}
+		else
+		{
+			bone.m_worldTransform = bone.m_localTransform;
+		}
+
+		mmb.modelMatricies[bone.m_index] = bone.m_worldTransform;
+	}	
+
+	m_pDeviceContext->UpdateSubresource(m_pModelMetriciesBuffer.Get(), 0, nullptr, &mmb, 0, 0);
+	m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pModelMetriciesBuffer.GetAddressOf());
+}
+
 void SkeletalModel::Close()
 {
 }
 
 void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 {
+	// Bone 정보 생성
 	Bone bone;
 
 	string boneName = node->mName.C_Str();
@@ -135,7 +173,15 @@ void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 	Matrix localMat = boneInfo.relativeTransform;
 	Matrix worldMat = parentBoneIndex > 0 ? bones[parentBoneIndex].m_worldTransform * localMat : localMat;
 
-	bone.CreateBone(boneName, parentBoneIndex, boneIndex, worldMat, localMat); //...
+	bone.CreateBone(boneName, parentBoneIndex, boneIndex, worldMat, localMat);	//...
+
+	BoneAnimation boneAnim;
+	bool hasAnim = m_animations[0].GetBoneAnimationByName(boneName, boneAnim);
+	if(parentBoneIndex != -1 && hasAnim)
+	{
+		bone.m_boneAnimation = boneAnim;	// 임시 -> 0번째 애니메이션 받기
+	}
+
 	bones.push_back(bone);
 
 	// node 추적

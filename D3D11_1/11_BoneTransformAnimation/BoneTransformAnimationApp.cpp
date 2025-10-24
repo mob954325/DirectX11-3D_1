@@ -74,6 +74,8 @@ void BoneTransformAnimationApp::OnUpdate()
 
 	// Camera
 	m_Camera.GetCameraViewMatrix(m_View);
+
+	m_pBoxHuman1->Update();
 }
 
 void BoneTransformAnimationApp::OnRender()
@@ -166,6 +168,13 @@ void BoneTransformAnimationApp::RenderImGUI()
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+
+	ImGui::Begin("Animation info");
+	{
+		ImGui::Text(std::to_string(m_pBoxHuman1->m_progressAnimationTime).c_str());
+	}
+
+	ImGui::End();
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
