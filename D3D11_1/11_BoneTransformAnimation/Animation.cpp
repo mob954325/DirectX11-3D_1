@@ -4,7 +4,8 @@
 void Animation::CreateBoneAnimation(aiAnimation* pAiAnimation)
 {
 	m_name = pAiAnimation->mName.C_Str();
-	m_duration = pAiAnimation->mDuration;
+	m_tick = pAiAnimation->mTicksPerSecond;
+	m_duration = pAiAnimation->mDuration / m_tick;
 
 	// 본에 대한 키 애니메이션 저장
 	for (int i = 0; i < pAiAnimation->mNumChannels; i++)

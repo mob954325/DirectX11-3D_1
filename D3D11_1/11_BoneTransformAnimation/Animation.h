@@ -11,8 +11,9 @@ class Animation
 public:
 	map<string, int> m_mappingBoneAnimations; 
 	vector<BoneAnimation> m_boneAnimations;		// 키 프레임에 등록된 본 위치와 시간 정보들
-	float m_duration;							// 최종 시간
+	float m_duration;							// 최종 시간 ( 초 단위 )
 	string m_name;								// 애니메이션 이름
+	float m_tick;								// 애니메이션 틱
 
 	void CreateBoneAnimation(aiAnimation* pAiAnimation);
 	bool GetBoneAnimationByName(string boneName, BoneAnimation& out);

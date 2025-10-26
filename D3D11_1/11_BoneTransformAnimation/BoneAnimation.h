@@ -54,14 +54,14 @@ public:
 		return (value < min) ? min : (value > max) ? max : value;
 	}
 
-	void Evaluate(float time, Vector3& position, Quaternion& rotation, Vector3& scale)
+	void Evaluate(float time, Vector3& position, Quaternion& rotation, Vector3& scale, float perTick)
 	{
 		if (m_keys.size() < 2)
 			return;
 
 		// Å°ÇÁ·¹ÀÓ ½Ö Å½»ö
 		size_t index = 0;
-		while (index + 1 < m_keys.size() && time >= m_keys[index + 1].m_time)
+		while (index + 1 < m_keys.size() && time >= m_keys[index + 1].m_time / perTick)
 		{
 			index++;
 		}
@@ -77,7 +77,7 @@ public:
 		float duration = keyB.m_time - keyA.m_time;
 		if (duration <= 0.0f) return;
 
-		float t = (time - keyA.m_time) / duration;
+		float t = (time - keyA.m_time) / duration / perTick;
 		t = Clamp(t, 0.0f, 1.0f);
 
 		position = Vector3::Lerp(keyA.m_position, keyB.m_position, t);

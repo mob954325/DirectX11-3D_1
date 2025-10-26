@@ -70,7 +70,7 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 	{
 		Animation anim;
 		anim.CreateBoneAnimation(pScene->mAnimations[i]);
-		m_animations.push_back(anim);
+		m_animations.push_back(anim);		
 	}
 
 	// 노드 
@@ -112,7 +112,7 @@ void SkeletalModel::Update()
 {
 	if (!m_animations.empty())
 	{
-		m_progressAnimationTime += GameTimer::m_Instance->DeltaTime() * 40;
+		m_progressAnimationTime += GameTimer::m_Instance->DeltaTime();
 		m_progressAnimationTime = fmod(m_progressAnimationTime, m_animations[m_animationIndex].m_duration);	
 	}
 
@@ -124,7 +124,7 @@ void SkeletalModel::Update()
 		{
 			Vector3 positionVec, scaleVec;
 			Quaternion rotationQuat;
-			bone.m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec);
+			bone.m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec, m_animations[0].m_tick); // m_animations[0].m_tick
 
 			// 계산만 맞추면됨 ;
 			Matrix mat = Matrix::CreateScale(scaleVec) * Matrix::CreateFromQuaternion(rotationQuat) * Matrix::CreateTranslation(positionVec);
