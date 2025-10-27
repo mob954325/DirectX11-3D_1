@@ -501,11 +501,13 @@ bool SkinnedAnimationApp::InitEffect()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_SINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "BLENDWEIGHTS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\BasicVertexShader.hlsl", "main", "vs_4_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\BasicVertexShader.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
 	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
@@ -513,15 +515,15 @@ bool SkinnedAnimationApp::InitEffect()
 
 	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\BasicPixelShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\BasicPixelShader.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PhongShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\PhongShader.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPhongShader.GetAddressOf()));
 
 	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\BlinnPhongShader.hlsl", "main", "ps_4_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\BlinnPhongShader.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
 
 	return true;

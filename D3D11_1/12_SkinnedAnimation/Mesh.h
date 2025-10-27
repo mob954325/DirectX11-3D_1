@@ -20,13 +20,15 @@ const string TEXTURE_EMISSIVE = "texture_emissive";
 const string TEXTURE_NORMAL = "texture_normal";
 const string TEXTURE_SPECULAR = "texture_specular";
 
-struct Vertex
+struct BoneWeightVertex
 {
     Vector3 position;
     Vector2 texture;
     Vector3 tangent;
     Vector3 bitangent;
     Vector3 normal;
+	int BlendIndeces[4] = {};	// 참조하는 본 인덱스들
+	float BlendWeight[4] = {};	// 가중치의 총 합은 1이여야한다.
 };
 
 struct Texture
@@ -52,14 +54,14 @@ struct Material
 class Mesh
 {
 public:
-	vector<Vertex> vertices;
+	vector<BoneWeightVertex> vertices;
 	vector<UINT> indices;
 	vector<Texture> textures;
 
 	ComPtr<ID3D11Device> m_pDevice;
 	int refBoneIndex = -1;
 
-	Mesh(ComPtr<ID3D11Device>& dev, const std::vector<Vertex>& vertices, const std::vector<UINT>& indices, const std::vector<Texture>& textures) :
+	Mesh(ComPtr<ID3D11Device>& dev, const std::vector<BoneWeightVertex>& vertices, const std::vector<UINT>& indices, const std::vector<Texture>& textures) :
 		vertices(vertices),
 		indices(indices),
 		textures(textures),

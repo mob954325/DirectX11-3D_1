@@ -15,9 +15,14 @@ struct TransformBuffer
 	FLOAT pad2;
 };
 
-struct ModelMatrixBuffer
+struct BonePoseBuffer
 {
 	Matrix modelMatricies[128];
+};
+
+struct BoneOffsetBuffer
+{
+	Matrix boneOffset[128];
 };
 
 SkeletalModel::SkeletalModel()
@@ -32,9 +37,16 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 {
 	Assimp::Importer importer;
 
-	const aiScene* pScene = importer.ReadFile(filename,
-		aiProcess_Triangulate |			
-		aiProcess_ConvertToLeftHanded);
+	unsigned int importFlag = aiProcess_Triangulate |	// 삼각형 변환
+		aiProcess_GenNormals |				// 노말 생성
+		aiProcess_GenUVCoords |				// UV 생성
+		aiProcess_CalcTangentSpace |		// 탄젠트 생성
+		aiProcess_LimitBoneWeights |		// 본의 영향을 받는 정점의 최대 개수 4개로 제한
+		aiProcess_ConvertToLeftHanded;		// 왼손 좌표계로 변환
+
+	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, 0);
+	
+	const aiScene* pScene = importer.ReadFile(filename, importFlag);
 
 	if (pScene == nullptr)
 		return false;
@@ -55,7 +67,7 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 
 	bufferDesc = {};
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(ModelMatrixBuffer);
+	bufferDesc.ByteWidth = sizeof(BonePoseBuffer);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pModelMetriciesBuffer.GetAddressOf()));
@@ -75,6 +87,8 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 
 	// 노드 
 	processNode(pScene->mRootNode, pScene);
+
+	int a = 0;
 
 	return true;
 }
@@ -116,7 +130,7 @@ void SkeletalModel::Update()
 		m_progressAnimationTime = fmod(m_progressAnimationTime, m_animations[m_animationIndex].m_duration);	
 	}
 
-	ModelMatrixBuffer mmb{};
+	BonePoseBuffer mmb{};
 	// 본 갱신
 	for (auto& bone : bones)
 	{
@@ -176,7 +190,7 @@ void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 	bone.CreateBone(boneName, parentBoneIndex, boneIndex, worldMat, localMat);	//...
 
 	BoneAnimation boneAnim;
-	bool hasAnim = m_animations[0].GetBoneAnimationByName(boneName, boneAnim);
+	bool hasAnim = m_animations[m_animationIndex].GetBoneAnimationByName(boneName, boneAnim);
 	if(parentBoneIndex != -1 && hasAnim)
 	{
 		bone.m_boneAnimation = boneAnim;	// 임시 -> 0번째 애니메이션 받기
@@ -201,17 +215,19 @@ void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 Mesh SkeletalModel::processMesh(aiMesh* mesh, const aiScene* scene)
 {
 	// Data to fill
-	std::vector<Vertex> vertices;
+	std::vector<BoneWeightVertex> vertices;
 	std::vector<UINT> indices;
 	std::vector<Texture> textures;
 
 	// Walk through each of the mesh's vertices
-	for (UINT i = 0; i < mesh->mNumVertices; i++) 
+	for (UINT i = 0; i < mesh->mNumVertices; i++)
 	{
-		Vertex vertex;
+		BoneWeightVertex vertex{};
 
 		vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y,  mesh->mVertices[i].z };
-		vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z};
+		vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+		vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+		vertex.bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
 
 		if (mesh->mTextureCoords[0]) {
 			vertex.texture.x = (float)mesh->mTextureCoords[0][i].x;
@@ -226,45 +242,11 @@ Mesh SkeletalModel::processMesh(aiMesh* mesh, const aiScene* scene)
 		aiFace face = mesh->mFaces[i];
 		if (face.mNumIndices != 3) continue; // 삼각형만
 
-		vector<int> currIndices;
-		vector<Vector3> pos;
-		vector<Vector2> uvs;
-
 		for (UINT j = 0; j < face.mNumIndices; j++)
 		{
 			int currIndex = face.mIndices[j];
 			indices.push_back(currIndex);
-
-			currIndices.push_back(currIndex);
-			pos.push_back(vertices[currIndex].position);
-			uvs.push_back(vertices[currIndex].texture);
 		}
-
-		Vector3 edge1 = pos[1] - pos[0];
-		Vector3 edge2 = pos[2] - pos[0];
-		Vector2 deltaUV1 = uvs[1] - uvs[0];
-		Vector2 deltaUV2 = uvs[2] - uvs[0];
-
-		float det = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
-		if (fabs(det) < 1e-6f) continue;
-		float f = 1.0f / det;
-
-		Vector3 tangent = f * (deltaUV2.y * edge1 - deltaUV1.y * edge2);
-		Vector3 bitangent = f * (-deltaUV2.x * edge1 + deltaUV1.x * edge2);
-
-		for (int k = 0; k < currIndices.size(); k++)
-		{
-			int currIndex = currIndices[k];
-			vertices[currIndex].tangent += tangent;
-			vertices[currIndex].bitangent += bitangent;
-		}
-	}
-
-	// 마지막에 정규화
-	for (auto& v : vertices)
-	{
-		v.tangent.Normalize();
-		v.bitangent.Normalize();
 	}
 
 	// 머터리얼 불러오기

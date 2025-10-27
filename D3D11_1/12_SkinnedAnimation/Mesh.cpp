@@ -7,7 +7,7 @@ void Mesh::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext)
         ID3D11ShaderResourceView* nullSRV[4] = { nullptr };
         pDeviceContext->PSSetShaderResources(0, 4, nullSRV);
 
-        UINT stride = sizeof(Vertex);
+        UINT stride = sizeof(BoneWeightVertex);
         UINT offset = 0;
 
         pDeviceContext->IASetVertexBuffers(0, 1, m_pVertexBuffer.GetAddressOf(), &stride, &offset);
@@ -30,7 +30,7 @@ void Mesh::setupMesh(ComPtr<ID3D11Device>& dev)
     // vertex buffer
     D3D11_BUFFER_DESC vbd = {};
     vbd.Usage = D3D11_USAGE_IMMUTABLE;
-    vbd.ByteWidth = static_cast<UINT>(sizeof(Vertex) * vertices.size());
+    vbd.ByteWidth = static_cast<UINT>(sizeof(BoneWeightVertex) * vertices.size());
     vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     vbd.CPUAccessFlags = 0;
     vbd.MiscFlags = 0;

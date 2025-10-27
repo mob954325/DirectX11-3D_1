@@ -5,8 +5,7 @@ PS_INPUT main(VS_INPUT input)
     PS_INPUT output = (PS_INPUT) 0;
     
     // pos 구하기
-    Matrix finalWorld = mul(modelMatricies[refBoneIndex], World);
-    // Matrix finalWorld = modelMatricies[refBoneIndex];
+    Matrix finalWorld = mul(bonePose[refBoneIndex], World);
     output.Pos = mul(input.Pos, finalWorld);
     output.World = output.Pos;    
     output.Pos = mul(output.Pos, View);

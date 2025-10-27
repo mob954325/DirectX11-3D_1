@@ -28,8 +28,7 @@ class SkeletonInfo
 private:
 	vector<BoneInfo> m_bones;
 	map<string, int> m_boneMappingTable;
-	map<string, string> m_meshMappingTable;
-	vector<Matrix> m_boneOffesetMatrix;	// mapping된 index별로 저장된 각 본의 매트릭스
+	map<string, string> m_meshMappingTable; // -> 이거 사용 안하고 있음
 
 	void CreateBoneInfoFromNode(const aiNode* pAiNode);
 public:

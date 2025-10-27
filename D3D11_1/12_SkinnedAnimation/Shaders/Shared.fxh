@@ -48,21 +48,27 @@ cbuffer ModelTransform : register(b2)
     float pad2;
 }
 
-cbuffer ModelMatrix : register(b3) // Skinning
+cbuffer BonePoseMatrix : register(b3) 
 {
-    matrix modelMatricies[128]; // model space matricies
+    matrix bonePose[128];   // skeleton pose matrix -> animation updated matrix
 }
 
+cbuffer BoneOffsetMatrix : register(b4)
+{
+    matrix boneOffset[128]; // model transform
+}
 
 // Basic Shader Struct =============================================================
 
 struct VS_INPUT
 {
-    float4 Pos : POSITION0;
+    float4 Pos : POSITION;
     float2 Tex : TEXCOORD;    
     float3 Tangent : TANGENT;
     float3 Bitangent : BINORMAL;    
     float3 Norm : NORMAL;
+    int4 BlendIndices : BLENDINDICES;
+    float4 BlendWeights : BLENDWEIGHTS;
 };
 
 struct PS_INPUT
