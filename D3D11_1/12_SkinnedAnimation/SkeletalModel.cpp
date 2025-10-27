@@ -70,7 +70,14 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 	bufferDesc.ByteWidth = sizeof(BonePoseBuffer);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pModelMetriciesBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBonePoseBuffer.GetAddressOf()));
+
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(BoneOffsetBuffer);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
 
 	// skeletonInfo 저장
 	m_skeletonInfo.CreateFromAiScene(pScene);
@@ -131,7 +138,7 @@ void SkeletalModel::Update()
 	}
 
 	BonePoseBuffer mmb{};
-	// 본 갱신
+	// pose 본 갱신
 	for (auto& bone : bones)
 	{
 		if (bone.m_boneAnimation.m_boneName != "")
@@ -156,10 +163,10 @@ void SkeletalModel::Update()
 		}
 
 		mmb.modelMatricies[bone.m_index] = bone.m_worldTransform;
-	}	
+	}		
 
-	m_pDeviceContext->UpdateSubresource(m_pModelMetriciesBuffer.Get(), 0, nullptr, &mmb, 0, 0);
-	m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pModelMetriciesBuffer.GetAddressOf());
+	m_pDeviceContext->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &mmb, 0, 0);
+	m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pBonePoseBuffer.GetAddressOf());
 }
 
 void SkeletalModel::Close()

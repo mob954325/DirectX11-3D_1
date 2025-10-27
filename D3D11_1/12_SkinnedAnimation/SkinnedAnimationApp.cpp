@@ -484,7 +484,7 @@ bool SkinnedAnimationApp::InitScene()
 
 	// 모델 생성
 	m_pBoxHuman1 = make_unique<SkeletalModel>();
-	if (!m_pBoxHuman1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\BoxHuman.fbx"))
+	if (!m_pBoxHuman1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}

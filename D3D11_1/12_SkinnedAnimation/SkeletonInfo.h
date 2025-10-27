@@ -29,6 +29,7 @@ private:
 	vector<BoneInfo> m_bones;
 	map<string, int> m_boneMappingTable;
 	map<string, string> m_meshMappingTable; // -> 이거 사용 안하고 있음
+	vector<Matrix> m_bonesOffset;
 
 	void CreateBoneInfoFromNode(const aiNode* pAiNode);
 public:

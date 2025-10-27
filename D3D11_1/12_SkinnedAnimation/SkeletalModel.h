@@ -59,7 +59,8 @@ private:
 	HWND hwnd{};
 
 	ComPtr<ID3D11Buffer> m_pTransformBuffer{};
-	ComPtr<ID3D11Buffer> m_pModelMetriciesBuffer{};
+	ComPtr<ID3D11Buffer> m_pBonePoseBuffer{};
+	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer{};
 
 	std::string directory{};				// 로드한 파일이 위차한 폴더명
 	std::vector<Mesh> meshes{};				// 로드한 매쉬
