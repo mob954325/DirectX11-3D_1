@@ -124,7 +124,7 @@ void SkeletalModel::Update()
 		{
 			Vector3 positionVec, scaleVec;
 			Quaternion rotationQuat;
-			bone.m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec, m_animations[0].m_tick); // m_animations[0].m_tick
+			bone.m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec); // m_animations[0].m_tick
 
 			// 계산만 맞추면됨 ;
 			Matrix mat = Matrix::CreateScale(scaleVec) * Matrix::CreateFromQuaternion(rotationQuat) * Matrix::CreateTranslation(positionVec);

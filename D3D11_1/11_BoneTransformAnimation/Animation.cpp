@@ -14,7 +14,7 @@ void Animation::CreateBoneAnimation(aiAnimation* pAiAnimation)
 
 		BoneAnimation boneAnim;
 		boneAnim.m_boneName = pAiNodeAnim->mNodeName.C_Str();
-		boneAnim.CreateKeys(pAiNodeAnim);
+		boneAnim.CreateKeys(pAiNodeAnim, m_tick);
 		m_boneAnimations.push_back(boneAnim);
 		m_mappingBoneAnimations.insert({ boneAnim.m_boneName, i });
 	}
