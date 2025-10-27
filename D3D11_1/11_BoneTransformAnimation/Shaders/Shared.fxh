@@ -50,7 +50,7 @@ cbuffer ModelTransform : register(b2)
 
 cbuffer ModelMatrix : register(b3) // Skinning
 {
-    matrix modelMatricies[32]; // model space matricies
+    matrix modelMatricies[128]; // model space matricies
 }
 
 

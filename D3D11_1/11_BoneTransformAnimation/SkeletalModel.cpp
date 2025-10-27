@@ -17,7 +17,7 @@ struct TransformBuffer
 
 struct ModelMatrixBuffer
 {
-	Matrix modelMatricies[32];
+	Matrix modelMatricies[128];
 };
 
 SkeletalModel::SkeletalModel()
