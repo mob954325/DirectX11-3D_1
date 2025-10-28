@@ -49,10 +49,9 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 	const aiScene* pScene = importer.ReadFile(filename, importFlag);
 
 	if (pScene == nullptr)
-		return false;
+		return false;	
 
 	this->directory = filename.substr(0, filename.find_last_of("/\\"));
-
 	this->m_pDevice = pDevice;
 	this->m_pDeviceContext = pDeviceContext;
 	this->hwnd = hwnd;
@@ -83,7 +82,6 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 	m_skeletonInfo.CreateFromAiScene(pScene);
 
 	// animations -> mchannels -> mxxxKeys
-
 	int animationsNum = pScene->mNumAnimations;
 	for (int i = 0; i < animationsNum; i++)
 	{
@@ -92,10 +90,15 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 		m_animations.push_back(anim);		
 	}
 
-	// 노드 
+	// 노드 별로 모델 갱신
 	processNode(pScene->mRootNode, pScene);
 
-	int a = 0;
+	// 정점 버퍼, 인덱스 버퍼 생성
+	for (auto& mesh : meshes)
+	{
+		mesh.CreateVertexBuffer(pDevice);
+		mesh.CreateIndexBuffer(pDevice);
+	}
 
 	return true;
 }
@@ -114,9 +117,6 @@ void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3
 	for (size_t i = 0; i < size; i++)
 	{
 		Material meshMaterial = meshes[i].GetMaterial();
-		meshMaterial.ambient = m_Ambient;
-		meshMaterial.diffuse = m_Diffuse;
-		meshMaterial.specular = m_Specular;
 		m_pDeviceContext->UpdateSubresource(pMatBuffer.Get(), 0, nullptr, &meshMaterial, 0, 0);		
 
 		tb.refBoneIndex = meshes[i].refBoneIndex;
@@ -137,36 +137,48 @@ void SkeletalModel::Update()
 		m_progressAnimationTime = fmod(m_progressAnimationTime, m_animations[m_animationIndex].m_duration);	
 	}
 
-	BonePoseBuffer mmb{};
 	// pose 본 갱신
-	for (auto& bone : bones)
+	BonePoseBuffer mmb{};
+	BoneOffsetBuffer bob{};
+	for (int i = 0; i < bones.size(); i++)
 	{
-		if (bone.m_boneAnimation.m_boneName != "")
+		// 애니메이션 업데이트
+		if (bones[i].m_boneAnimation.m_boneName != "")
 		{
 			Vector3 positionVec, scaleVec;
 			Quaternion rotationQuat;
-			bone.m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec); // m_animations[0].m_tick
+			bones[i].m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec);
 
-			// 계산만 맞추면됨 ;
 			Matrix mat = Matrix::CreateScale(scaleVec) * Matrix::CreateFromQuaternion(rotationQuat) * Matrix::CreateTranslation(positionVec);
-			bone.m_localTransform = mat.Transpose();
+			bones[i].m_localTransform = mat.Transpose();
 		}
 
 		// 위치 갱신
-		if (bone.m_parentIndex != -1)
+		if (bones[i].m_parentIndex != -1)
 		{
-			bone.m_worldTransform = bones[bone.m_parentIndex].m_worldTransform * bone.m_localTransform;
+			bones[i].m_worldTransform = bones[bones[i].m_parentIndex].m_worldTransform * bones[i].m_localTransform;
 		}
 		else
 		{
-			bone.m_worldTransform = bone.m_localTransform;
+			bones[i].m_worldTransform = bones[i].m_localTransform;
 		}
 
-		mmb.modelMatricies[bone.m_index] = bone.m_worldTransform;
+		mmb.modelMatricies[bones[i].m_index] = bones[i].m_worldTransform;
+	
+		// update offsetMatrix
+		Matrix offsetMat = Matrix::Identity;
+		if (i > 0)
+		{
+			offsetMat = m_skeletonInfo.GetBoneOffsetByName(bones[i].name);
+		}
+		bob.boneOffset[bones[i].m_index] = offsetMat;
 	}		
 
-	m_pDeviceContext->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &mmb, 0, 0);
+	m_pDeviceContext->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &mmb, 0, 0);	
+	m_pDeviceContext->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &bob, 0, 0);	
+
 	m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pBonePoseBuffer.GetAddressOf());
+	m_pDeviceContext->VSSetConstantBuffers(4, 1, m_pBoneOffsetBuffer.GetAddressOf());
 }
 
 void SkeletalModel::Close()
@@ -211,6 +223,24 @@ void SkeletalModel::processNode(aiNode* node, const aiScene* scene)
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		meshes.push_back(this->processMesh(mesh, scene));
 		meshes.back().refBoneIndex = boneIndex;
+		
+		meshes.back().SetMaterial(scene->mMaterials[mesh->mMaterialIndex]);
+
+		// weight 저장
+		UINT meshBoneCount = mesh->mNumBones;
+		for (UINT i = 0; i < meshBoneCount; i++)
+		{
+			aiBone* pAiBone = mesh->mBones[i];
+			UINT boneIndex = m_skeletonInfo.GetBoneIndexByName(pAiBone->mName.C_Str());
+			BoneInfo bone = m_skeletonInfo.GetBoneInfoByIndex(boneIndex);
+
+			for (UINT j = 0; j < pAiBone->mNumWeights; j++)
+			{
+				UINT vertexId = pAiBone->mWeights[j].mVertexId;
+				float weight = pAiBone->mWeights[j].mWeight;
+				meshes.back().vertices[vertexId].AddBoneData(boneIndex, weight);
+			}
+		}
 	}
 
 	for (UINT i = 0; i < node->mNumChildren; i++) 
@@ -244,6 +274,7 @@ Mesh SkeletalModel::processMesh(aiMesh* mesh, const aiScene* scene)
 		vertices.push_back(vertex);
 	}
 
+	// face 인덱스 저장
 	for (UINT i = 0; i < mesh->mNumFaces; i++)
 	{
 		aiFace face = mesh->mFaces[i];

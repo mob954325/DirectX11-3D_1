@@ -15,18 +15,6 @@
 #include "SkeletonInfo.h"
 #include "Animation.h"
 
-// skeletalInfo
-// animations
-
-// ____ Resource ____
-// vector<SkeletalMeshSection
-// vector<Material>
-// vector<Animation>
-// SkeletonInfo
-//	|
-//	¤¤ º» Á¤º¸?
-// ___ instance data ___
-
 class SkeletalModel
 {
 public:

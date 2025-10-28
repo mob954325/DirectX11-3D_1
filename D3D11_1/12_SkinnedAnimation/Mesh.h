@@ -9,6 +9,7 @@
 #include <d3d11_1.h>
 #include <directxtk/SimpleMath.h> // directXmath 대신 사용
 #include "../Common/Helper.h"
+#include "assimp/material.h"
 
 using namespace std;
 using namespace DirectX::SimpleMath;
@@ -28,7 +29,25 @@ struct BoneWeightVertex
     Vector3 bitangent;
     Vector3 normal;
 	int BlendIndeces[4] = {};	// 참조하는 본 인덱스들
-	float BlendWeight[4] = {};	// 가중치의 총 합은 1이여야한다.
+	float BlendWeights[4] = {};	// 가중치의 총 합은 1이여야한다.
+
+	void AddBoneData(int boneIndex, float weight)
+	{
+		assert(BlendWeights[0] == 0.0f ||
+			BlendWeights[1] == 0.0f ||
+			BlendWeights[2] == 0.0f ||
+			BlendWeights[3] == 0.0f);
+
+		for (int i = 0; i < 4; i++)
+		{
+			if (BlendWeights[i] == 0.0f)
+			{
+				BlendIndeces[i] = boneIndex;
+				BlendWeights[i] = weight;
+				return;
+			}
+		}
+	}
 };
 
 struct Texture
@@ -41,9 +60,9 @@ struct Texture
 
 struct Material
 {
-    Vector4 ambient;
-    Vector4 diffuse;
-    Vector4 specular;
+	Vector4 ambient = { 1.0f, 1.0f, 1.0f, 1.0f };
+    Vector4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+    Vector4 specular = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     BOOL hasDiffuse = false;
     BOOL hasEmissive = false;
@@ -73,11 +92,13 @@ public:
 	}
 
     void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext);
-
+	void SetMaterial(aiMaterial* pAiMaterial);
 	Material& GetMaterial();
+	void CreateVertexBuffer(ComPtr<ID3D11Device>& dev);
+	void CreateIndexBuffer(ComPtr<ID3D11Device>& dev);
 
 private:
-	Material material;
+	Material material{};
 
 	ComPtr<ID3D11Buffer> m_pVertexBuffer{};
 	ComPtr<ID3D11Buffer> m_pIndexBuffer{};

@@ -30,6 +30,10 @@ float4 main(PS_INPUT input) : SV_TARGET
     
     // texture Sampling 
     float4 finalTexture = txDiffuse.Sample(samLinear, input.Tex);
+    if (!hasDiffuse)
+    {
+        finalTexture = float4(1.0f, 1.0f, 1.0f, 1.0f); // flat normal (no perturbation)
+    }
     
     // lighting Calculate
     float3 norm = finalNorm; // normal

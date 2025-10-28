@@ -27,13 +27,41 @@ int SkeletonInfo::GetBoneIndexByName(const string& boneName)
 	return mappedInfo->second;
 }
 
+Matrix SkeletonInfo::GetBoneOffsetByName(const string& boneName)
+{
+	auto mappedInfo = m_bonesOffset.find(boneName);
+	if (mappedInfo == m_bonesOffset.end())
+		return Matrix::Identity;
+
+	return mappedInfo->second;
+}
+
 bool SkeletonInfo::CreateFromAiScene(const aiScene* pAiScene)
 {
 	if (pAiScene == nullptr) return false;
 
-	aiNode* rootNode = pAiScene->mRootNode;
+	aiNode* pRootNode = pAiScene->mRootNode;
 
-	CreateBoneInfoFromNode(rootNode);
+	CreateBoneInfoFromNode(pRootNode);	
+
+	UINT meshNum = pAiScene->mNumMeshes;
+	for (int i = 0; i < meshNum; i++)
+	{
+		aiMesh* pMesh = pAiScene->mMeshes[i];
+		UINT boneNum = pMesh->mNumBones;
+
+		for (int j = 0; j < boneNum; j++)
+		{
+			aiBone* pBone = pMesh->mBones[j];
+			string name = pBone->mName.C_Str();
+			Matrix offsetMat = { pBone->mOffsetMatrix.a1, pBone->mOffsetMatrix.a2, pBone->mOffsetMatrix.a3, pBone->mOffsetMatrix.a4,
+								 pBone->mOffsetMatrix.b1, pBone->mOffsetMatrix.b2, pBone->mOffsetMatrix.b3, pBone->mOffsetMatrix.b4,
+								 pBone->mOffsetMatrix.c1, pBone->mOffsetMatrix.c2, pBone->mOffsetMatrix.c3, pBone->mOffsetMatrix.c4,
+								 pBone->mOffsetMatrix.d1, pBone->mOffsetMatrix.d2, pBone->mOffsetMatrix.d3, pBone->mOffsetMatrix.d4 };
+
+			m_bonesOffset.insert({ name, offsetMat });
+		}
+	}
 
     return true;
 }
@@ -63,7 +91,6 @@ void SkeletonInfo::CreateBoneInfoFromNode(const aiNode* pAiNode)
 
 	m_bones.push_back(currInfo);
 	m_boneMappingTable.insert({ currentBoneName, m_bones.size() - 1 });
-	// m_meshMappingTable.insert({ currentBoneName, pAiNode->mesh}) // -> ???
 
 	int currentBoneIndex = m_bones.size();
 	int childCount = pAiNode->mNumChildren;
