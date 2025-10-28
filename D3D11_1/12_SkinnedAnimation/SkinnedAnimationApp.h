@@ -25,10 +25,12 @@ public:
 	~SkinnedAnimationApp();
 
 	// Model
-	unique_ptr<SkeletalModel> m_pBoxHuman1 = nullptr;		// 
+	unique_ptr<SkeletalModel> m_pSillyDance = nullptr;		// 
+	unique_ptr<SkeletalModel> m_pSkinnedTest = nullptr;		// 
+	unique_ptr<SkeletalModel> m_pRunCharactor = nullptr;		// 
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
-	ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더
+	// ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더
 	ComPtr<ID3D11PixelShader>		m_pPixelShader = nullptr;				// 사용할 픽셀 셰이더
 	ComPtr<ID3D11Device>			m_pDevice = nullptr;						// 디바이스
 	ComPtr<ID3D11DeviceContext>		m_pDeviceContext = nullptr;			// 디바이스 컨텍스트
@@ -45,12 +47,15 @@ public:
 	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;				// Phong PS
 	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;		// Blinn-Phong PS
 
+	// vertex shaderes
+	ComPtr<ID3D11VertexShader> m_pRigidMeshVertexShader = nullptr;			// 
+	ComPtr<ID3D11VertexShader> m_pSkinnedMeshVertexShader = nullptr;			// 
+
 
 	// 렌더링 파이프라인에 적용하는 객체와 정보
 	ComPtr<ID3D11InputLayout> m_pInputLayout = nullptr;			// 입력 레이아웃
 	ComPtr<ID3D11Buffer> m_pConstantBuffer = nullptr;			// 상수 버퍼
 	ComPtr<ID3D11Buffer> m_pMaterialBuffer{};					// 재질 버퍼
-
 
 	// 리소스 객체
 	ComPtr<ID3D11SamplerState> m_pSamplerLinear;	// 샘플링 객체
@@ -64,13 +69,12 @@ public:
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
 
 	// imgui 컨트롤 변수
-	Vector3 m_pBoxHuman1Position{};
-	Vector3 m_pBoxHuman1Rotation{};
-	Vector3 m_pBoxHuman1Scale{ 10.0f,10.0f,10.0f };
-	Vector3 m_pBoxHuman1PositionInitial{ 0.0f, 0.0f, 10.0f };
+	Vector3 m_sillyDancePosition{};
+	Vector3 m_sillyDanceRotation{};
+	Vector3 m_sillyDanceScale{ 1.0f,1.0f,1.0f };
 
 	// 카메라
-	Vector3 m_CameraPositionInitial{ 0.0f, 0.0f, -20.0f };
+	Vector3 m_CameraPositionInitial{ 0.0f, 100.0f, -200.0f };
 	Vector3 m_CameraRotation{};
 
 	// 빛

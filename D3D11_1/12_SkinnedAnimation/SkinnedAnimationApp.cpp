@@ -75,7 +75,9 @@ void SkinnedAnimationApp::OnUpdate()
 	// Camera
 	m_Camera.GetCameraViewMatrix(m_View);
 
-	m_pBoxHuman1->Update();
+	m_pSillyDance->Update();
+	m_pSkinnedTest->Update();
+	m_pRunCharactor->Update();
 }
 
 void SkinnedAnimationApp::OnRender()
@@ -110,26 +112,49 @@ void SkinnedAnimationApp::OnRender()
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 
-	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), 0, 0);
+	if (m_pSillyDance->isRigid)
+	{
+		m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
+	}
+	else // isRigid == false
+	{
+		m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
+	}
+
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
-	// m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), 0, 0);
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
-	// local values
-	Matrix position;
-	Matrix rotate;
-	Matrix scale;
-
 	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
-	m_pBoxHuman1->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	// Draw 
+	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
+	if (m_pSkinnedTest->isRigid)
+	{
+		m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
+	}
+	else // isRigid == false
+	{
+		m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
+	}
+	m_pSkinnedTest->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
+	if (m_pRunCharactor->isRigid)
+	{
+		m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
+	}
+	else // isRigid == false
+	{
+		m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
+	}
+	m_pRunCharactor->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	// Render ImGui
 	RenderImGUI();
@@ -169,9 +194,13 @@ void SkinnedAnimationApp::RenderImGUI()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::Begin("Animation info");
+	ImGui::SetNextWindowPos(ImVec2(800, 10), ImGuiCond_Once);
+	ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_Once);	
+	ImGui::Begin("Middle Model Animation info");
 	{
-		ImGui::Text(std::to_string(m_pBoxHuman1->m_progressAnimationTime).c_str());
+		ImGui::Text(std::to_string(m_pSillyDance->m_progressAnimationTime).c_str());
+		ImGui::Checkbox("isPlay", &m_pSillyDance->isAnimPlay);
+		ImGui::SliderFloat("Animation Duration", &m_pSillyDance->m_progressAnimationTime, 0.0f, m_pSillyDance->m_animations[m_pSillyDance->m_animationIndex].m_duration);
 	}
 
 	ImGui::End();
@@ -182,20 +211,24 @@ void SkinnedAnimationApp::RenderImGUI()
 	ImGui::Begin("World Controller");
 
 	{
-		ImGui::DragFloat3("Cube1 Position", &m_pBoxHuman1Position.x);
+		ImGui::DragFloat3("Middle Object Position", &m_sillyDancePosition.x);
 
 		Vector3 cube1Rotation;
-		cube1Rotation.x = XMConvertToDegrees(m_pBoxHuman1Rotation.x);
-		cube1Rotation.y = XMConvertToDegrees(m_pBoxHuman1Rotation.y);
-		cube1Rotation.z = XMConvertToDegrees(m_pBoxHuman1Rotation.z);
-		ImGui::DragFloat3("Cube1 Rotation", &cube1Rotation.x);
-		m_pBoxHuman1Rotation.x = XMConvertToRadians(cube1Rotation.x);
-		m_pBoxHuman1Rotation.y = XMConvertToRadians(cube1Rotation.y);
-		m_pBoxHuman1Rotation.z = XMConvertToRadians(cube1Rotation.z);
+		cube1Rotation.x = XMConvertToDegrees(m_sillyDanceRotation.x);
+		cube1Rotation.y = XMConvertToDegrees(m_sillyDanceRotation.y);
+		cube1Rotation.z = XMConvertToDegrees(m_sillyDanceRotation.z);
+		ImGui::DragFloat3("Middle Object Rotation", &cube1Rotation.x);
+		m_sillyDanceRotation.x = XMConvertToRadians(cube1Rotation.x);
+		m_sillyDanceRotation.y = XMConvertToRadians(cube1Rotation.y);
+		m_sillyDanceRotation.z = XMConvertToRadians(cube1Rotation.z);
 
-		ImGui::DragFloat("Cube1 Scale", &m_pBoxHuman1Scale.x, 0.05f);
-		m_pBoxHuman1Scale.y = m_pBoxHuman1Scale.x;
-		m_pBoxHuman1Scale.z = m_pBoxHuman1Scale.x;
+		ImGui::DragFloat("Middle Object Scale", &m_sillyDanceScale.x, 0.05f);
+		m_sillyDanceScale.y = m_sillyDanceScale.x;
+		m_sillyDanceScale.z = m_sillyDanceScale.x;
+
+		m_pSillyDance->m_Position = m_sillyDancePosition;
+		m_pSillyDance->m_Rotation = m_sillyDanceRotation;
+		m_pSillyDance->m_Scale = m_sillyDanceScale;
 	}
 
 	ImGui::NewLine();
@@ -483,11 +516,25 @@ bool SkinnedAnimationApp::InitScene()
 	m_pDevice->CreateRasterizerState(&rasterizerDesc, &m_pTransparentRasterizerState);
 
 	// 모델 생성
-	m_pBoxHuman1 = make_unique<SkeletalModel>();
-	if (!m_pBoxHuman1->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SkinningTest.fbx"))
+	m_pSillyDance = make_unique<SkeletalModel>();
+	if (!m_pSillyDance->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
+
+	m_pSkinnedTest = make_unique<SkeletalModel>();
+	if (!m_pSkinnedTest->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SkinningTest.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+	m_pSkinnedTest->m_Position = { -100, 0, 0 };
+
+	m_pRunCharactor = make_unique<SkeletalModel>();
+	if (!m_pRunCharactor->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Zombie_Run.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+	m_pRunCharactor->m_Position = { 100, 0, 0 };
 
 	return true;
 }
@@ -507,23 +554,27 @@ bool SkinnedAnimationApp::InitEffect()
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\BasicVertexShader.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_SkinnedMesh.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
 	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pVertexShader.GetAddressOf()));
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pSkinnedMeshVertexShader.GetAddressOf()));
+
+	vertexShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_RigidMesh.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pRigidMeshVertexShader.GetAddressOf()));
 
 	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\BasicPixelShader.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_Basic.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
 
 	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PhongShader.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_Phong.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPhongShader.GetAddressOf()));
 
 	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\BlinnPhongShader.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_BlinnPhong.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
 
 	return true;
@@ -531,8 +582,6 @@ bool SkinnedAnimationApp::InitEffect()
 
 void SkinnedAnimationApp::ResetValues()
 {
-	m_pBoxHuman1Position = m_pBoxHuman1PositionInitial;
-
 	m_Near = 0.01f;
 	m_Far = 1000.0f;
 	m_PovAngle = XM_PIDIV2;

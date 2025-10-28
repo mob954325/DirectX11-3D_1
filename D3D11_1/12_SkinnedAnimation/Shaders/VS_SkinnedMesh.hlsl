@@ -17,12 +17,10 @@ PS_INPUT main(VS_INPUT input)
     WeightOffsetPose = mul(input.BlendWeights.x, OffsetPose[0]);
     WeightOffsetPose += mul(input.BlendWeights.y, OffsetPose[1]);
     WeightOffsetPose += mul(input.BlendWeights.z, OffsetPose[2]);
-    WeightOffsetPose += mul(input.BlendWeights.w, OffsetPose[3]);
-    
-    // pos 구하기
-    Matrix ModelToWorld = mul(WeightOffsetPose, World);
+    WeightOffsetPose += mul(input.BlendWeights.w, OffsetPose[3]);    
     
     // model -> world space 
+    Matrix ModelToWorld = mul(WeightOffsetPose, World);    
     output.Pos = mul(input.Pos, ModelToWorld);
     output.World = output.Pos;    
     output.Pos = mul(output.Pos, View);

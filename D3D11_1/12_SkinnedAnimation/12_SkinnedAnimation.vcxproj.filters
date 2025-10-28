@@ -18,19 +18,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\BasicPixelShader.hlsl">
+    <FxCompile Include="Shaders\PS_Basic.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\BasicVertexShader.hlsl">
+    <FxCompile Include="Shaders\VS_SkinnedMesh.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\BlinnPhongShader.hlsl">
+    <FxCompile Include="Shaders\PS_BlinnPhong.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\PhongShader.hlsl">
+    <FxCompile Include="Shaders\PS_Phong.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\SolidPixelShader.hlsl">
+    <FxCompile Include="Shaders\PS_Solid.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\VS_RigidMesh.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>
