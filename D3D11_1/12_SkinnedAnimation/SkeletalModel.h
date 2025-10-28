@@ -1,0 +1,82 @@
+#pragma once
+
+#include <vector>
+#include <d3d11_1.h>
+#include <DirectXMath.h>
+#include <map>
+
+#include <assimp\Importer.hpp>
+#include <assimp\scene.h>
+#include <assimp\postprocess.h>
+
+#include "Mesh.h"
+#include "TextureLoader.h"
+#include "Bone.h"
+#include "SkeletonInfo.h"
+#include "Animation.h"
+
+struct BonePoseBuffer
+{
+	Matrix modelMatricies[128];
+};
+
+struct BoneOffsetBuffer
+{
+	Matrix boneOffset[128];
+};
+
+class SkeletalModel
+{
+public:
+	SkeletalModel();
+	~SkeletalModel();
+
+	Matrix m_world{};
+	Vector3 m_Position{ 0.0f, 0.0f, 10.0f };
+	Vector3 m_Rotation{};
+	Vector3 m_Scale{ 1.0f, 1.0f, 1.0f };
+
+	bool Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string filename);
+	void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer);
+	void Update();
+
+	void Close();
+
+	// 애니메이션 관련 내용 - 디버그를 위해 public으로 옮김
+	vector<Animation> m_animations;			// 해당 모델이 사용할 애니메이션들
+	int m_animationIndex = 0;				// 실행 중인 애니메이션 인덱스
+	float m_progressAnimationTime = 0.0f;		// 현재 애니메이션 시간 
+
+	bool isAnimPlay = true;
+	bool isRigid = true;
+private:
+	ComPtr<ID3D11Device> m_pDevice = nullptr;
+	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;
+	HWND hwnd{};
+
+	// 리소스 데이터
+	std::shared_ptr<SkeletonInfo> m_pSkeletonInfo{};	// 모델에 사용할 본 정보 
+	std::vector<Mesh> m_meshes{};						// 로드한 매쉬
+	std::vector<Texture> texturesLoaded{};				// 로드된 텍스처 모음
+
+	// 인스턴스 데이터
+	std::string directory{};				// 로드한 파일이 위차한 폴더명
+	std::vector<Bone> m_bones{};				// 로드된 모델의 본 모음 -> 계층 구조에 있는 오브젝트들
+
+	// 해당 모델의 상수 버퍼 내용
+	BonePoseBuffer m_BonePoses{};
+	BoneOffsetBuffer m_BoneOffsets{};
+
+	// 버퍼들
+	ComPtr<ID3D11Buffer> m_pTransformBuffer{};
+	ComPtr<ID3D11Buffer> m_pBonePoseBuffer{};
+	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer{};
+
+	// 기능 함수
+	void ProcessNode(aiNode* pNode, const aiScene* pScene);
+	Mesh ProcessMesh(aiMesh* pMesh, const aiScene* pScene);
+	void ProcessBoneWeight(aiMesh* pMesh);
+	std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene);
+	void loadEmbeddedTexture(const aiTexture* embeddedTexture, ComPtr<ID3D11ShaderResourceView>& outTexture);
+};
+

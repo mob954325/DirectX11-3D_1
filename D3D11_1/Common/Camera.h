@@ -14,7 +14,7 @@ public:
 	Matrix m_World{};
 
 	Vector3 m_InputVec{};
-	float m_MoveSpeed = 20.0f;
+	float m_MoveSpeed = 100.0f;
 	float m_RotationSpeed = 0.004f;
 
 	void Reset();
