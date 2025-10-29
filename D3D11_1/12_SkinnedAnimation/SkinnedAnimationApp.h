@@ -44,12 +44,13 @@ public:
 	ComPtr<ID3D11RasterizerState>	m_pTransparentRasterizerState = nullptr;
 
 	// Phong Shader
-	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;				// Phong PS
-	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;		// Blinn-Phong PS
+	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;		
+	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;
+	ComPtr<ID3D11PixelShader> m_pToonShader = nullptr;
 
 	// vertex shaderes
-	ComPtr<ID3D11VertexShader> m_pRigidMeshVertexShader = nullptr;			// 
-	ComPtr<ID3D11VertexShader> m_pSkinnedMeshVertexShader = nullptr;			// 
+	ComPtr<ID3D11VertexShader> m_pRigidMeshVertexShader = nullptr;	
+	ComPtr<ID3D11VertexShader> m_pSkinnedMeshVertexShader = nullptr;	
 
 
 	// 렌더링 파이프라인에 적용하는 객체와 정보
@@ -83,11 +84,12 @@ public:
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
 	FLOAT m_Shininess = 40.0f; // 광택 지수
-	bool isBlinnPhong = true;	
 
 	float m_Near = 0.01f;
 	float m_Far = 1000.0f;
 	float m_PovAngle = XM_PIDIV2;
+
+	int psIndex = 0; // 픽셀 셰이더 구별용 // 0. blinn-phong, 1. phong, 2. toon 
 
 	// =============================================================
 	virtual bool OnInitialize();

@@ -36,6 +36,7 @@
     <FxCompile Include="Shaders\VS_RigidMesh.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\PS_Toon.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Animation.cpp">

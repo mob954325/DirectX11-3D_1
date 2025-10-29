@@ -50,12 +50,12 @@ cbuffer ModelTransform : register(b2)
 
 cbuffer BonePoseMatrix : register(b3) 
 {
-    matrix bonePose[128];   // skeleton pose matrix -> animation updated matrix
+    matrix bonePose[256]; // skeleton pose matrix -> animation updated matrix
 }
 
 cbuffer BoneOffsetMatrix : register(b4)
 {
-    matrix boneOffset[128]; // model transform
+    matrix boneOffset[256]; // model transform
 }
 
 // Basic Shader Struct =============================================================

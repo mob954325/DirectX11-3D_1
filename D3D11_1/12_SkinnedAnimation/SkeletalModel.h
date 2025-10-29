@@ -17,12 +17,12 @@
 
 struct BonePoseBuffer
 {
-	Matrix modelMatricies[128];
+	Matrix modelMatricies[256];
 };
 
 struct BoneOffsetBuffer
 {
-	Matrix boneOffset[128];
+	Matrix boneOffset[256];
 };
 
 class SkeletalModel

@@ -123,7 +123,19 @@ void SkinnedAnimationApp::OnRender()
 
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	m_pDeviceContext->PSSetShader(isBlinnPhong ? m_pBlinnPhongShader.Get() : m_pPhongShader.Get(), 0, 0);
+	switch (psIndex)
+	{
+	case 0:
+		m_pDeviceContext->PSSetShader(m_pBlinnPhongShader.Get(), 0, 0);
+		break;
+	case 1:
+		m_pDeviceContext->PSSetShader(m_pPhongShader.Get(), 0, 0);
+		break;
+	case 2:
+		m_pDeviceContext->PSSetShader(m_pToonShader.Get(), 0, 0);
+		break;
+	}
+
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
 
@@ -196,14 +208,18 @@ void SkinnedAnimationApp::RenderImGUI()
 
 	ImGui::SetNextWindowPos(ImVec2(800, 10), ImGuiCond_Once);
 	ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_Once);	
-	ImGui::Begin("Middle Model Animation info");
-	{
-		ImGui::Text(std::to_string(m_pSillyDance->m_progressAnimationTime).c_str());
-		ImGui::Checkbox("isPlay", &m_pSillyDance->isAnimPlay);
-		ImGui::SliderFloat("Animation Duration", &m_pSillyDance->m_progressAnimationTime, 0.0f, m_pSillyDance->m_animations[m_pSillyDance->m_animationIndex].m_duration);
-	}
 
-	ImGui::End();
+	if (m_pSillyDance->m_animations.size() > 0)
+	{
+		ImGui::Begin("Middle Model Animation info");
+		{
+			ImGui::Text(std::to_string(m_pSillyDance->m_progressAnimationTime).c_str());
+			ImGui::Checkbox("isPlay", &m_pSillyDance->isAnimPlay);
+			ImGui::SliderFloat("Animation Duration", &m_pSillyDance->m_progressAnimationTime, 0.0f, m_pSillyDance->m_animations[m_pSillyDance->m_animationIndex].m_duration);
+		}
+		ImGui::End();
+	}	
+
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
@@ -260,7 +276,10 @@ void SkinnedAnimationApp::RenderImGUI()
 
 	ImGui::NewLine();
 
-	ImGui::Checkbox("Use Blinn-Phong", &isBlinnPhong);
+	ImGui::Text("PixelShader:");
+	ImGui::RadioButton("Blinn-Phong", psIndex == 0); if (ImGui::IsItemClicked()) psIndex = 0;
+	ImGui::RadioButton("Phong", psIndex == 1); if (ImGui::IsItemClicked()) psIndex = 1;
+	ImGui::RadioButton("Toon", psIndex == 2); if (ImGui::IsItemClicked()) psIndex = 2;
 
 	ImGui::NewLine();
 
@@ -576,6 +595,10 @@ bool SkinnedAnimationApp::InitEffect()
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_BlinnPhong.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_Toon.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pToonShader.GetAddressOf()));
 
 	return true;
 }
