@@ -30,6 +30,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "11_BoneTransformAnimation",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "12_SkinnedAnimation", "12_SkinnedAnimation\12_SkinnedAnimation.vcxproj", "{F5B96F59-6D2A-452E-82B3-B454F40CDD3B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "13_ShadowMapping", "13_ShadowMapping\13_ShadowMapping.vcxproj", "{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -150,6 +152,14 @@ Global
 		{F5B96F59-6D2A-452E-82B3-B454F40CDD3B}.Release|x64.Build.0 = Release|x64
 		{F5B96F59-6D2A-452E-82B3-B454F40CDD3B}.Release|x86.ActiveCfg = Release|Win32
 		{F5B96F59-6D2A-452E-82B3-B454F40CDD3B}.Release|x86.Build.0 = Release|Win32
+		{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}.Debug|x64.ActiveCfg = Debug|x64
+		{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}.Debug|x64.Build.0 = Debug|x64
+		{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}.Debug|x86.ActiveCfg = Debug|Win32
+		{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}.Debug|x86.Build.0 = Debug|Win32
+		{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}.Release|x64.ActiveCfg = Release|x64
+		{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}.Release|x64.Build.0 = Release|x64
+		{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}.Release|x86.ActiveCfg = Release|Win32
+		{F836FC39-77B8-4E35-BBAB-C8F4C8B3951D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
