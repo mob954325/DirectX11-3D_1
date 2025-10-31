@@ -76,8 +76,7 @@ void ShadowMappingApp::OnUpdate()
 	m_Camera.GetCameraViewMatrix(m_View);
 
 	m_pSillyDance->Update();
-	m_pSkinnedTest->Update();
-	m_pRunCharactor->Update();
+	m_pGround->Update();
 }
 
 void ShadowMappingApp::OnRender()
@@ -147,26 +146,9 @@ void ShadowMappingApp::OnRender()
 
 	// Draw 
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
-	if (m_pSkinnedTest->isRigid)
-	{
-		m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
-	}
-	else // isRigid == false
-	{
-		m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
-	}
-	m_pSkinnedTest->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
-	if (m_pRunCharactor->isRigid)
-	{
-		m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
-	}
-	else // isRigid == false
-	{
-		m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
-	}
-	m_pRunCharactor->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	
+	m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
+	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	// Render ImGui
 	RenderImGUI();
@@ -541,19 +523,14 @@ bool ShadowMappingApp::InitScene()
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
 
-	m_pSkinnedTest = make_unique<SkeletalModel>();
-	if (!m_pSkinnedTest->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SkinningTest.fbx"))
+	m_pGround = make_unique<SkeletalModel>();
+	if (!m_pGround->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Cube1.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-	m_pSkinnedTest->m_Position = { -100, 0, 0 };
 
-	m_pRunCharactor = make_unique<SkeletalModel>();
-	if (!m_pRunCharactor->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Zombie_Run.fbx"))
-	{
-		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-	}
-	m_pRunCharactor->m_Position = { 100, 0, 0 };
+	m_pGround->m_Position = { 0, -100, 0 };
+	m_pGround->m_Scale = { 3, 1, 3 };
 
 	return true;
 }

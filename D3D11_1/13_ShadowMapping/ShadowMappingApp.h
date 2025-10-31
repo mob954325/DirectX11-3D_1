@@ -26,8 +26,7 @@ public:
 
 	// Model
 	unique_ptr<SkeletalModel> m_pSillyDance = nullptr;		// 
-	unique_ptr<SkeletalModel> m_pSkinnedTest = nullptr;		// 
-	unique_ptr<SkeletalModel> m_pRunCharactor = nullptr;		// 
+	unique_ptr<SkeletalModel> m_pGround = nullptr;		// 
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	// ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더

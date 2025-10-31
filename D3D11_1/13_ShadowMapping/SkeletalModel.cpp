@@ -207,9 +207,10 @@ void SkeletalModel::ProcessNode(aiNode* node, const aiScene* scene)
 	bone.CreateBone(boneName, parentBoneIndex, boneIndex, worldMat, localMat);	//...
 
 	BoneAnimation boneAnim;
-	bool hasAnim = m_animations[m_animationIndex].GetBoneAnimationByName(boneName, boneAnim);
-	if(parentBoneIndex != -1 && hasAnim)
+	bool hasAnim = scene->mNumAnimations > 0;
+	if (parentBoneIndex != -1 && hasAnim)
 	{
+		m_animations[m_animationIndex].GetBoneAnimationByName(boneName, boneAnim);
 		bone.m_boneAnimation = boneAnim;	// 임시 -> 0번째 애니메이션 받기
 	}
 
