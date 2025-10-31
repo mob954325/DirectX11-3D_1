@@ -81,7 +81,6 @@ void SkinnedAnimationApp::RenderTextureInit()
 	HR_T(m_pDevice->CreateShaderResourceView(m_pRenderTargetTexture.Get(), &shaderResourceViewDesc, m_pShaderResourceView_RTT.GetAddressOf()));
 
 	// 임시 정점 버퍼 생성
-
 }
 
 bool SkinnedAnimationApp::OnInitialize()

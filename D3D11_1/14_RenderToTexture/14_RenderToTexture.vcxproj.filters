@@ -94,12 +94,8 @@
     <FxCompile Include="Shaders\VS_SkinnedMesh.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="VS_MiniTex.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="PS_MinTex.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
+    <FxCompile Include="Shaders\PS_MiniTex.hlsl" />
+    <FxCompile Include="Shaders\VS_MinTex.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Shared.fxh">
