@@ -39,7 +39,10 @@
     <FxCompile Include="Shaders\VS_SkinnedMesh.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\VS_DepthOnlyPass.hlsl" />
+    <FxCompile Include="Shaders\VS_DepthOnlyPass.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\PS_ShadowDebug.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Animation.cpp">

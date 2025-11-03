@@ -114,6 +114,7 @@ void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3
 
 	TransformBuffer tb = {};
 
+	tb.isRigid = isRigid;
 	m_world = m_world.CreateScale(m_Scale) *
 			  m_world.CreateFromYawPitchRoll(m_Rotation) *
 			  m_world.CreateTranslation(m_Position);

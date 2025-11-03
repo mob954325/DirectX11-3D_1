@@ -78,7 +78,7 @@ public:
 	Vector3 m_CameraRotation{};
 
 	// 빛
-	Vector4 m_LightDirectionInitial{ 0.0f, 0.0f, -1.0f, 1.0f };
+	Vector4 m_LightDirectionInitial{ 0.0f, 1.0f, 0.0f, 1.0f };
 	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 0.1f }; // 환경광 반사 계수
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
@@ -92,6 +92,8 @@ public:
 
 	// 그림자
 	ComPtr<ID3D11VertexShader> m_pShadowMapVS;
+	ComPtr<ID3D11PixelShader> m_pShadowDebugPS;
+
 	ComPtr<ID3D11Texture2D> m_pShadowMap;
 	ComPtr<ID3D11DepthStencilView> m_pShadowMapDSV;
 	ComPtr<ID3D11ShaderResourceView> m_pShadowMapSRV;
@@ -101,7 +103,9 @@ public:
 	Vector3 m_shadowLookAt{};
 	Vector3 m_shadowPos{};
 
-	Viewport m_shadowViewport = { 0, 0, 8192, 8192, 0.0f, 1.0f }; // x, y, width, height, min, max
+	Viewport m_shadowViewport = { 0, 0, 1024, 1024, 0.0f, 1.0f }; // x, y, width, height, min, max
+	D3D11_VIEWPORT m_RenderViewport = {};
+	float m_shadowForwardDistFromCamera = 1000.0f;
 
 	void InitShdowMap();
 

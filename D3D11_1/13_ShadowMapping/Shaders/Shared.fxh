@@ -82,6 +82,8 @@ struct PS_INPUT
     
     float3 Tangent : TANGENT;
     float3 Bitangent : BINORMAL;
+    
+    float2 ShadowUV : TEXCOORD3;
 }; 
 
 // Functions =======================================================================
