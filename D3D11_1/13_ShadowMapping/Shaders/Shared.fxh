@@ -16,12 +16,14 @@ cbuffer ConstantBuffer : register(b0) // PerFrame
     matrix Projection;
     
     float4 LightDirection;
+    matrix LightView;
+    matrix LightProjection;
+    
     float4 LightColor;        
     
     float4 LightAmbient; // 환경광
     float4 LightDiffuse; // 난반사
-    float4 LightSpecular; // 정반사
-    
+    float4 LightSpecular; // 정반사    
     float Shininess; // 광택지수
     float3 CameraPos; // 카메라 위치        
 }

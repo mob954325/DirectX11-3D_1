@@ -90,10 +90,28 @@ public:
 
 	int psIndex = 0; // 픽셀 셰이더 구별용 // 0. blinn-phong, 1. phong, 2. toon 
 
+	// 그림자
+	ComPtr<ID3D11VertexShader> m_pShadowMapVS;
+	ComPtr<ID3D11Texture2D> m_pShadowMap;
+	ComPtr<ID3D11DepthStencilView> m_pShadowMapDSV;
+	ComPtr<ID3D11ShaderResourceView> m_pShadowMapSRV;
+
+	Matrix m_ligthView{};
+	Matrix m_lightProj{};
+	Vector3 m_shadowLookAt{};
+	Vector3 m_shadowPos{};
+
+	Viewport m_shadowViewport = { 0, 0, 8192, 8192, 0.0f, 1.0f }; // x, y, width, height, min, max
+
+	void InitShdowMap();
+
 	// =============================================================
 	virtual bool OnInitialize();
 	virtual void OnUpdate();
 	virtual void OnRender();
+
+	void DepthOnlyPass();
+	void RenderPass();
 
 	bool InitImGUI();
 	void RenderImGUI();

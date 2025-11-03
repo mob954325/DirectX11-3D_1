@@ -28,8 +28,9 @@ public:
 	virtual void OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker,
 		const Mouse::State& MouseState, const Mouse::ButtonStateTracker& MouseTracker);
 
-protected:
 	Vector3 GetForward();
+
+protected:
 	Vector3 GetRight();
 	void AddPitch(float value);
 	void AddYaw(float value);

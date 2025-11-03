@@ -21,10 +21,13 @@ using Microsoft::WRL::ComPtr;
 // 상수 버퍼
 struct ConstantBuffer
 {
-	Matrix view;
-	Matrix projection;
+	Matrix cameraView;
+	Matrix cameraProjection;
 
 	Vector4 lightDirection;
+	Matrix lightView;
+	Matrix lightProjection;
+
 	Color lightColor;
 
 	Vector4 ambient;	// 환경광
@@ -45,6 +48,35 @@ ShadowMappingApp::~ShadowMappingApp()
 	UninitImGUI();
 }
 
+void ShadowMappingApp::InitShdowMap()
+{
+	// create shadow map texure desc
+	D3D11_TEXTURE2D_DESC texDesc = {}; // https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ns-d3d11-d3d11_texture2d_desc
+	texDesc.Width = (UINT)m_shadowViewport.width;
+	texDesc.Height = (UINT)m_shadowViewport.height;
+	texDesc.MipLevels = 1;
+	texDesc.ArraySize = 1;
+	texDesc.Usage = D3D11_USAGE_DEFAULT;
+	texDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.SampleDesc.Quality = 0;
+	HR_T(m_pDevice->CreateTexture2D(&texDesc, NULL, m_pShadowMap.GetAddressOf()));
+
+	// DSV
+	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+	descDSV.Format = DXGI_FORMAT_D32_FLOAT;
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	HR_T(m_pDevice->CreateDepthStencilView(m_pShadowMap.Get(), &descDSV, m_pShadowMapDSV.GetAddressOf()));
+
+	// SRV
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+	HR_T(m_pDevice->CreateShaderResourceView(m_pShadowMap.Get(), &srvDesc, m_pShadowMapSRV.GetAddressOf()));
+}
+
 bool ShadowMappingApp::OnInitialize()
 {
 	if (!InitD3D())
@@ -59,6 +91,7 @@ bool ShadowMappingApp::OnInitialize()
 	if (!InitEffect())
 		return false;
 
+	InitShdowMap();
 	ResetValues();
 
 	return true;
@@ -81,6 +114,8 @@ void ShadowMappingApp::OnUpdate()
 
 void ShadowMappingApp::OnRender()
 {
+	DepthOnlyPass();
+
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
@@ -90,12 +125,61 @@ void ShadowMappingApp::OnRender()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
-	// 오브젝트 렌더링 ==================================================================================================================================
+	RenderPass();
 
+	// Render ImGui
+	RenderImGUI();
+
+	// 스왑체인 교체
+	m_pSwapChain->Present(0, 0);
+}
+
+void ShadowMappingApp::DepthOnlyPass()
+{
+	FLOAT m_shadowForwardDistFromCamera = 1000.0f;
+	m_lightProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_shadowViewport.width / m_shadowViewport.height, 0.01f, m_shadowForwardDistFromCamera);
+
+	Vector3 m_shadowLootAt = m_Camera.m_Position + m_Camera.GetForward() * m_shadowForwardDistFromCamera;
+	float m_shadowUpDistFromLootAt = Vector3::Distance((Vector3)m_LightDirection * m_shadowForwardDistFromCamera, m_shadowLootAt);
+	m_shadowPos = m_shadowLootAt + (-m_LightDirection * m_shadowUpDistFromLootAt);
+	m_ligthView = XMMatrixLookAtLH(m_shadowPos, m_shadowLootAt, Vector3(0.0f, 1.0f, 0.0f));
+
+	ConstantBuffer cb;
+	cb.cameraView = XMMatrixTranspose(m_View);
+	cb.cameraProjection = XMMatrixTranspose(m_Projection);
+	cb.lightDirection = m_LightDirection;
+	cb.lightDirection.Normalize();
+	cb.lightView = m_ligthView;
+	cb.lightProjection = m_lightProj;
+	cb.lightColor = m_LightColor;
+
+	cb.ambient = m_LightAmbient;
+	cb.diffuse = m_LightDiffuse;
+	cb.specular = m_LightSpecular;
+
+	cb.shininess = m_Shininess;
+	cb.CameraPos = m_Camera.m_Position;
+
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_pDeviceContext->OMSetRenderTargets(0, NULL, m_pShadowMapDSV.Get());
+
+	D3D11_VIEWPORT viewport{ m_shadowViewport.x, m_shadowViewport.y,
+		m_shadowViewport.width, m_shadowViewport.height, 
+		m_shadowViewport.minDepth, m_shadowViewport.maxDepth };
+	// m_pDeviceContext->RSSetViewports(1, &viewport);
+	m_pDeviceContext->PSSetShader(nullptr, nullptr, 0);
+	m_pDeviceContext->VSSetShader(m_pShadowMapVS.Get(), 0, 0);
+
+}
+
+void ShadowMappingApp::RenderPass()
+{
 	// Update Constant Values
 	ConstantBuffer cb;
-	cb.view = XMMatrixTranspose(m_View);
-	cb.projection = XMMatrixTranspose(m_Projection);
+	cb.cameraView = XMMatrixTranspose(m_View);
+	cb.cameraProjection = XMMatrixTranspose(m_Projection);
 	cb.lightDirection = m_LightDirection;
 	cb.lightDirection.Normalize();
 	cb.lightColor = m_LightColor;
@@ -141,20 +225,15 @@ void ShadowMappingApp::OnRender()
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
+	// m_pDeviceContext->OMSetRenderTargets(0, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	// Draw 
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	
+
 	m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
-	// Render ImGui
-	RenderImGUI();
-
-	// 스왑체인 교체
-	m_pSwapChain->Present(0, 0);
 }
 
 bool ShadowMappingApp::InitImGUI()
@@ -202,6 +281,13 @@ void ShadowMappingApp::RenderImGUI()
 		ImGui::End();
 	}
 
+	ImGui::Begin("ShadowMap");
+	{
+		ImTextureID img = (ImTextureID)(intptr_t)(m_pShadowMapSRV.Get());
+		ImGui::Image(img, ImVec2(256, 256));
+	}
+	
+	ImGui::End();
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
@@ -559,6 +645,10 @@ bool ShadowMappingApp::InitEffect()
 	vertexShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\VS_RigidMesh.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pRigidMeshVertexShader.GetAddressOf()));
+
+	vertexShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_DepthOnlyPass.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pShadowMapVS.GetAddressOf()));
 
 	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
