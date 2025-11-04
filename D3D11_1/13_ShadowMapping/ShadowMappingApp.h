@@ -5,7 +5,11 @@
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <wrl/client.h>
+
+// DirectXTK
 #include <directxtk/SimpleMath.h>
+#include <directxtk/CommonStates.h> // https://github.com/microsoft/DirectXTK/wiki/CommonStates
+#include <directxtk/Effects.h>		// https://github.com/microsoft/DirectXTK/wiki/BasicEffect
 
 // imgui
 #include "imgui_impl_dx11.h"
@@ -14,6 +18,7 @@
 
 // other files
 #include "../Common/GameApp.h"
+#include "DebugDraw.h"
 
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
@@ -91,15 +96,15 @@ public:
 	int psIndex = 0; // 픽셀 셰이더 구별용 // 0. blinn-phong, 1. phong, 2. toon 
 
 	// 그림자
-	ComPtr<ID3D11VertexShader> m_pShadowMapVS;
-	ComPtr<ID3D11PixelShader> m_pShadowDebugPS;
+	ComPtr<ID3D11VertexShader> m_pShadowMapVS;			//  shadowMap에 사용할 vs
+	// ComPtr<ID3D11PixelShader> m_pShadowDebugPS;
 
-	ComPtr<ID3D11Texture2D> m_pShadowMap;
-	ComPtr<ID3D11DepthStencilView> m_pShadowMapDSV;
-	ComPtr<ID3D11ShaderResourceView> m_pShadowMapSRV;
+	ComPtr<ID3D11Texture2D> m_pShadowMap;				// 깊이 값을 기록할 텍스처
+	ComPtr<ID3D11DepthStencilView> m_pShadowMapDSV;		// 깊이 값 기록을 설정할 객체
+	ComPtr<ID3D11ShaderResourceView> m_pShadowMapSRV;	// 깊이 버퍼를 슬롯에서 설정하고 사용하기 위한 객체
 
-	Matrix m_ligthView{};
-	Matrix m_lightProj{};
+	Matrix m_shadowView{};								
+	Matrix m_shadowProj{};
 	Vector3 m_shadowLookAt{};
 	Vector3 m_shadowPos{};
 
@@ -107,7 +112,15 @@ public:
 	D3D11_VIEWPORT m_RenderViewport = {};
 	float m_shadowForwardDistFromCamera = 1000.0f;
 
-	void InitShdowMap();
+	// 그림자 디버그
+	ComPtr<ID3D11InputLayout> m_pDebugDrawInputLayout = nullptr; // debug inputlayout
+	unique_ptr<DirectX::CommonStates> m_states;	// CommonState : provide the stock? state objects
+	unique_ptr<PrimitiveBatch<VertexPositionColor>> m_batch; // vertexPositionColor : proivde input layout
+	unique_ptr<DirectX::BasicEffect> m_effect;	// BasicEffect : provide the vertex and pixel shader progrmas
+
+	void InitDebugDraw();	// 디버그 관련 초기화 함수
+	void InitShdowMap();	// ShadowMap 관련 초기화 함수
+	void DebugDrawFrustum(Vector3 localPos, Vector3 rot, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
 
 	// =============================================================
 	virtual bool OnInitialize();

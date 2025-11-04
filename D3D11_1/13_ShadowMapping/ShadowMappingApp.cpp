@@ -25,8 +25,8 @@ struct ConstantBuffer
 	Matrix cameraProjection;
 
 	Vector4 lightDirection;
-	Matrix lightView;
-	Matrix lightProjection;
+	Matrix shadowView;
+	Matrix shadowProjection;
 
 	Color lightColor;
 
@@ -40,12 +40,36 @@ struct ConstantBuffer
 ShadowMappingApp::ShadowMappingApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
-
+	
 }
 
 ShadowMappingApp::~ShadowMappingApp()
 {
 	UninitImGUI();
+}
+
+void ShadowMappingApp::InitDebugDraw()
+{
+	m_states = std::make_unique<CommonStates>(m_pDevice.Get());
+	m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(m_pDeviceContext.Get());
+
+	m_effect = std::make_unique<BasicEffect>(m_pDevice.Get());
+	m_effect->SetVertexColorEnabled(true);
+	m_effect->SetView(m_shadowView);
+	m_effect->SetProjection(m_shadowProj);
+
+	{
+		void const* shaderByteCode;
+		size_t byteCodeLength;
+
+		m_effect->GetVertexShaderBytecode(&shaderByteCode, &byteCodeLength); // ??
+
+		// https://github.com/Microsoft/DirectXTK/wiki/throwIfFailed -> 이거 문서에 있던건데 이거 결국 HRESULT 값을 반환한다는 소리임
+		HR_T(m_pDevice->CreateInputLayout(
+				VertexPositionColor::InputElements, VertexPositionColor::InputElementCount,
+				shaderByteCode, byteCodeLength,
+				m_pDebugDrawInputLayout.ReleaseAndGetAddressOf()));
+	}
 }
 
 void ShadowMappingApp::InitShdowMap()
@@ -76,7 +100,35 @@ void ShadowMappingApp::InitShdowMap()
 	srvDesc.Texture2D.MipLevels = 1;
 	HR_T(m_pDevice->CreateShaderResourceView(m_pShadowMap.Get(), &srvDesc, m_pShadowMapSRV.GetAddressOf()));
 
-	m_lightProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, 0.1f, m_shadowForwardDistFromCamera);
+	m_shadowProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, 0.1f, m_shadowForwardDistFromCamera);
+}
+
+void ShadowMappingApp::DebugDrawFrustum(Vector3 localPos, Vector3 rot, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color)
+{
+	Vector3 scale = { 1,1,1 };
+	Matrix frustumLocalMat = Matrix::CreateScale(scale) * Matrix::CreateFromYawPitchRoll(rot) * Matrix::CreateTranslation(localPos);
+	Matrix frustumWorldMat = frustumLocalMat * m_View.Transpose();	// 그릴 위치 ( 카메라 기준의 절투체의 로컬 위치 )
+
+	m_effect->SetWorld(frustumLocalMat);	// 해당 그림 위치 설정
+	m_effect->SetView(m_View);				// 해당 그림을 어디 기준으로 그릴지 설정
+	m_effect->SetProjection(m_Projection);	// 해당 그림이 어디에 투영 될지 설정
+
+	// 절투체 만들기
+	BoundingFrustum frustum{};
+	Matrix frustumMatrix = XMMatrixPerspectiveFovLH(angle, AspectRatio, nearZ, farZ);
+	BoundingFrustum::CreateFromMatrix(frustum, frustumMatrix);
+
+	// 문서에 따른 세팅 -> https://github.com/microsoft/DirectXTK/wiki/DebugDraw
+	m_pDeviceContext->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
+	m_pDeviceContext->OMSetDepthStencilState(m_states->DepthNone(), 0);
+	m_pDeviceContext->RSSetState(m_states->CullNone());
+
+	m_effect->Apply(m_pDeviceContext.Get());
+	m_pDeviceContext->IASetInputLayout(m_pDebugDrawInputLayout.Get()); // 디버그용 InputLayout 적용
+
+	m_batch->Begin();
+	DX::Draw(m_batch.get(), frustum, color);
+	m_batch->End();
 }
 
 bool ShadowMappingApp::OnInitialize()
@@ -94,6 +146,7 @@ bool ShadowMappingApp::OnInitialize()
 		return false;
 
 	InitShdowMap();
+	InitDebugDraw();
 	ResetValues();
 
 	return true;
@@ -129,6 +182,11 @@ void ShadowMappingApp::OnRender()
 
 	RenderPass();
 
+	// Debug Draw Test code ==============
+	DebugDrawFrustum({ 0, 20, 0 }, { -45, 0,0 }, XM_PIDIV2, 200 / (float)100, 10, 200, Colors::Red);
+
+	// Debug Draw Test code END ==============
+
 	// Render ImGui
 	RenderImGUI();
 
@@ -138,62 +196,68 @@ void ShadowMappingApp::OnRender()
 
 void ShadowMappingApp::DepthOnlyPass()
 {
-	// 뷰포트 설정 + DSV 초기화
-	D3D11_VIEWPORT viewport{ m_shadowViewport.x, m_shadowViewport.y,
-	m_shadowViewport.width, m_shadowViewport.height,
-	m_shadowViewport.minDepth, m_shadowViewport.maxDepth };
-	m_pDeviceContext->RSSetViewports(1, &viewport);
-	m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
-	m_pDeviceContext->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-
 	// 빛 계산 ( pov )
-	m_lightProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, 0.1f, m_shadowForwardDistFromCamera);
+	m_shadowProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, 0.1f, m_shadowForwardDistFromCamera);
 	float orthoSize = 50.0f; // 조명 범위 (씬 크기에 따라 조정)
 	float nearZ = 1.0f;
 	float farZ = 300.0f;
 
-	m_lightProj = XMMatrixOrthographicLH(orthoSize, orthoSize, nearZ, farZ);
+	m_shadowProj = XMMatrixOrthographicLH(orthoSize, orthoSize, nearZ, farZ);
 	Vector3 m_shadowLootAt = m_Camera.m_Position + m_Camera.GetForward() * m_shadowForwardDistFromCamera;
 	float distanceFromLight = 100/*shadowDistance*/;
 	m_shadowPos = m_shadowLootAt - m_LightDirection * distanceFromLight;
-	m_ligthView = XMMatrixLookAtLH(m_shadowPos, m_shadowLootAt, Vector3(0.0f, 1.0f, 0.0f));
+	m_shadowView = XMMatrixLookAtLH(m_shadowPos, m_shadowLootAt, Vector3(0.0f, 1.0f, 0.0f));
 
-	// 상수 버퍼 갱신
-	ConstantBuffer cb;
-	cb.cameraView = XMMatrixTranspose(m_View);
-	cb.cameraProjection = XMMatrixTranspose(m_Projection);
-	cb.lightDirection = m_LightDirection;
-	cb.lightDirection.Normalize();
-	cb.lightView = XMMatrixTranspose(m_ligthView);
-	cb.lightProjection = XMMatrixTranspose(m_lightProj);
-	cb.lightColor = m_LightColor;
+	// setting debug values
+	m_effect->SetView(m_shadowView);
+	m_effect->SetProjection(m_shadowProj);
 
-	cb.ambient = m_LightAmbient;
-	cb.diffuse = m_LightDiffuse;
-	cb.specular = m_LightSpecular;
-
-	cb.shininess = m_Shininess;
-	cb.CameraPos = m_Camera.m_Position;
-
-	// 렌더 파이프라인 설정
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
-
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->VSSetShader(m_pShadowMapVS.Get(), 0, 0);
-
-	// Debug용 ps 설정
-	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	m_pDeviceContext->PSSetShaderResources(0, 1, nullSRV);
-
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_pShadowMapSRV.GetAddressOf());
-	m_pDeviceContext->PSSetShader(m_pShadowDebugPS.Get(), nullptr, 0);
-	// 모델 draw 호출
-	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	// //상수 버퍼 갱신
+	// ConstantBuffer cb;
+	// cb.cameraView = XMMatrixTranspose(m_View);
+	// cb.cameraProjection = XMMatrixTranspose(m_Projection);
+	// cb.lightDirection = m_LightDirection;
+	// cb.lightDirection.Normalize();
+	// cb.shadowView = XMMatrixTranspose(m_shadowView);
+	// cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
+	// cb.lightColor = m_LightColor;
+	// 
+	// cb.ambient = m_LightAmbient;
+	// cb.diffuse = m_LightDiffuse;
+	// cb.specular = m_LightSpecular;
+	// 
+	// cb.shininess = m_Shininess;
+	// cb.CameraPos = m_Camera.m_Position;
+	// 
+	// // 뷰포트 설정 + DSV 초기화, RS, OM 설정
+	// D3D11_VIEWPORT viewport{ m_shadowViewport.x, m_shadowViewport.y,
+	// m_shadowViewport.width, m_shadowViewport.height,
+	// m_shadowViewport.minDepth, m_shadowViewport.maxDepth };
+	// m_pDeviceContext->RSSetViewports(1, &viewport);
+	// m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
+	// m_pDeviceContext->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	// 
+	// 
+	// // 렌더 파이프라인 설정
+	// m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	// m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	// 
+	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	// 
+	// m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	// m_pDeviceContext->VSSetShader(m_pShadowMapVS.Get(), 0, 0);
+	// 
+	// // // Debug용 ps 설정
+	// // ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	// // m_pDeviceContext->PSSetShaderResources(0, 1, nullSRV);
+	// // 
+	// // m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	// // m_pDeviceContext->PSSetShaderResources(0, 1, m_pShadowMapSRV.GetAddressOf());
+	// // m_pDeviceContext->PSSetShader(m_pShadowDebugPS.Get(), nullptr, 0);
+	// 
+	// // 모델 draw 호출
+	// m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	// m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 }
 
 void ShadowMappingApp::RenderPass()
@@ -692,9 +756,9 @@ bool ShadowMappingApp::InitEffect()
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_Toon.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pToonShader.GetAddressOf()));
 
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_ShadowDebug.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pShadowDebugPS.GetAddressOf()));
+	//pixelShaderBuffer.Reset();
+	//HR_T(CompileShaderFromFile(L"Shaders\\PS_ShadowDebug.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	//HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pShadowDebugPS.GetAddressOf()));
 
 	return true;
 }

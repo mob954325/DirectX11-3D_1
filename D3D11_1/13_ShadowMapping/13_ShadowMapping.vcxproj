@@ -193,6 +193,7 @@
   <ItemGroup>
     <ClCompile Include="Animation.cpp" />
     <ClCompile Include="Bone.cpp" />
+    <ClCompile Include="DebugDraw.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="SkeletalModel.cpp" />
     <ClCompile Include="SkeletonInfo.cpp" />
@@ -205,6 +206,7 @@
     <ClInclude Include="AnimationKey.h" />
     <ClInclude Include="Bone.h" />
     <ClInclude Include="BoneAnimation.h" />
+    <ClInclude Include="DebugDraw.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="SkeletalModel.h" />
     <ClInclude Include="SkeletonInfo.h" />

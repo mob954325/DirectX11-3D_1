@@ -16,8 +16,8 @@ cbuffer ConstantBuffer : register(b0) // PerFrame
     matrix Projection;
     
     float4 LightDirection;
-    matrix LightView;
-    matrix LightProjection;
+    matrix ShadowView;
+    matrix ShadowProjection;
     
     float4 LightColor;        
     
