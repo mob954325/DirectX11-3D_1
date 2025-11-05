@@ -31,10 +31,8 @@ PS_INPUT main(VS_INPUT input)
     
     // model -> world space 
     output.Pos = mul(input.Pos, ModelToWorld);
-    //output.Pos = mul(output.Pos, ShadowView);
-    output.Pos = mul(output.Pos, View);
-    //output.Pos = mul(output.Pos, ShadowProjection);   
-    output.Pos = mul(output.Pos, Projection);   
+    output.Pos = mul(output.Pos, ShadowView);
+    output.Pos = mul(output.Pos, ShadowProjection);   
     
     return output;
 }

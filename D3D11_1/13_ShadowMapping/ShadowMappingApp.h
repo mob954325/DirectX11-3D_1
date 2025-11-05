@@ -106,10 +106,13 @@ public:
 	Matrix m_shadowProj{};
 	Vector3 m_shadowLookAt{};
 	Vector3 m_shadowPos{};
+	float m_shadowFrustumAngle = XM_PIDIV4;
 
 	Viewport m_shadowViewport = { 0, 0, 8192, 8192, 0.0f, 1.0f }; // x, y, width, height, min, max
 	D3D11_VIEWPORT m_RenderViewport = {};
 	float m_shadowForwardDistFromCamera = 1.0f;
+	float m_shadowNear = 400.0f;
+	float m_shadowFar = 3000.0f;
 
 	// 그림자 디버그
 	ComPtr<ID3D11InputLayout> m_pDebugDrawInputLayout = nullptr; // debug inputlayout
@@ -118,13 +121,10 @@ public:
 	unique_ptr<DirectX::BasicEffect> m_effect;	// BasicEffect : provide the vertex and pixel shader progrmas
 
 	Vector3 m_shadowUpDistFromLookAt{ 0, 1000, 0 };
-	XMVECTOR m_position{};
-	XMVECTOR m_scale{};
-	XMVECTOR m_rotateRad;
 
 	void InitDebugDraw();	// 디버그 관련 초기화 함수
 	void InitShdowMap();	// ShadowMap 관련 초기화 함수
-	void DebugDrawFrustum(Vector3 localPos, Vector3 qautRot, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
+	void DebugDrawFrustum(Vector3 localPos, Quaternion quat, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
 
 	// =============================================================
 	virtual bool OnInitialize();

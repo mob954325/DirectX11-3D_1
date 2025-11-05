@@ -21,22 +21,20 @@ PS_INPUT main(VS_INPUT input)
     
     // model -> world space 
     Matrix ModelToWorld = mul(WeightOffsetPose, World);    
-    output.Pos = mul(input.Pos, ModelToWorld);
-    output.World = output.Pos;    
-    output.Pos = mul(output.Pos, View);
+    float4 worldPos = mul(input.Pos, ModelToWorld);
+    output.World = worldPos.xyz;
+
+    output.Pos = mul(worldPos, View);
     output.Pos = mul(output.Pos, Projection);
-    
+
     output.Norm = normalize(mul(input.Norm, (float3x3) ModelToWorld));
     output.Tangent = normalize(mul(input.Tangent, (float3x3) ModelToWorld));
     output.Bitangent = normalize(mul(input.Bitangent, (float3x3) ModelToWorld));
-    
-    // texure
+
     output.Tex = input.Tex;
-    
-    //output.PositionShadow = mul(float4(output.World, 1.0f), ShadowView);
-    output.PositionShadow = mul(float4(output.World, 1.0f), View);
-    //output.PositionShadow = mul(output.PositionShadow, ShadowProjection);    
-    output.PositionShadow = mul(output.PositionShadow, Projection);    
+
+    output.PositionShadow = mul(float4(output.World, 1.0f), ShadowView);
+    output.PositionShadow = mul(output.PositionShadow, ShadowProjection);
     
     return output;
 } 

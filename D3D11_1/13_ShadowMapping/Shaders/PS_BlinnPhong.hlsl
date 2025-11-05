@@ -4,7 +4,7 @@ float4 main(PS_INPUT input) : SV_TARGET
 {   
   
     // 그림자처리 부분 =====================================================================
-    float directLighing;
+    float directLighing = 1.0f;
     // 광원 NDC 좌표계에서는 좌표는 계산해주지 않으므로 계산한다.
     float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
     
@@ -20,7 +20,7 @@ float4 main(PS_INPUT input) : SV_TARGET
         float sampleShadowDepth = txShadow.Sample(samLinear, uv).r;
         
         // currentShadowDepth가 더 크면 뒤 쪽에 있으므로 직접광 차단
-        if (currentShadowDepth > sampleShadowDepth + 0.0001)
+        if (currentShadowDepth > sampleShadowDepth + 0.001)
         {
             directLighing = 0.0f;
         }
@@ -78,11 +78,11 @@ float4 main(PS_INPUT input) : SV_TARGET
         float3 halfVector = viewVector + -(float3) lightDir;
         float specularFactor = specularIntensity * pow(saturate(dot(norm, normalize(halfVector))), Shininess);
         
-        finalDiffuse = finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor;
+        finalDiffuse = finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor * directLighing;
         finalSpecular = specularFactor * matSpecular * LightSpecular * LightColor;
     }
     
-    float4 finalColor = directLighing * (finalAmbient + finalDiffuse + finalSpecular); // 최종 색
+    float4 finalColor = finalAmbient + finalDiffuse + finalSpecular; // 최종 색
     finalColor.a = finalTexture.a;           
 
     

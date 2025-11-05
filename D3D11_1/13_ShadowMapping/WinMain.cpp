@@ -9,7 +9,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
 	ShadowMappingApp App(hInstance);
-	if (!App.Initialize(1024, 768))
+	if (!App.Initialize(1440, 768))
 		return -1;
 
 	return App.Run();
