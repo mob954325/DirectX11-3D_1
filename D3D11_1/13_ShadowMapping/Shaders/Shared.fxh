@@ -9,6 +9,7 @@ Texture2D txEmission : register(t1);    // Emission
 Texture2D txNormal : register(t2);      // 노멀맵 텍스처
 Texture2D txSpec : register(t3);        // 스펙큘러맵 텍스처
 // TextureCube txCubemap : register(t1); // skybox용 큐브맵 텍스처
+Texture2D txShadow : register(t4);      // 그림자 매핑 텍스처
 
 cbuffer ConstantBuffer : register(b0) // PerFrame
 {
@@ -83,7 +84,7 @@ struct PS_INPUT
     float3 Tangent : TANGENT;
     float3 Bitangent : BINORMAL;
     
-    float2 ShadowUV : TEXCOORD3;
+    float4 PositionShadow : TEXCOORD3; // 그림자 위치
 }; 
 
 // Functions =======================================================================

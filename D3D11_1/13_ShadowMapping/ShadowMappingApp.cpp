@@ -85,7 +85,7 @@ void ShadowMappingApp::InitShdowMap()
 	texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
-	HR_T(m_pDevice->CreateTexture2D(&texDesc, NULL, m_pShadowMap.GetAddressOf()));
+	HR_T(m_pDevice->CreateTexture2D(&texDesc, nullptr, m_pShadowMap.GetAddressOf()));
 
 	// DSV
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
@@ -100,13 +100,23 @@ void ShadowMappingApp::InitShdowMap()
 	srvDesc.Texture2D.MipLevels = 1;
 	HR_T(m_pDevice->CreateShaderResourceView(m_pShadowMap.Get(), &srvDesc, m_pShadowMapSRV.GetAddressOf()));
 
-	m_shadowProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, 0.1f, m_shadowForwardDistFromCamera);
+	// 빛 계산 ( pov )
+	// m_shadowUpDistFromLookAt = { 0, 1000, 0 }; // 빛의 임의의 높이
+
+	m_shadowProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, 1.0f, 2000.0f); // 그림자 절두체
+	m_shadowLookAt = m_Camera.m_Position + m_Camera.GetForward() * m_shadowForwardDistFromCamera; // 카메라 위치 + 카메라 바라보는 방향으로부터 떨어진 태양의 위치?
+	// m_shadowPos = // m_Camera.m_Position + ((Vector3)-m_LightDirection * m_shadowUpDistFromLookAt);
+	m_shadowPos = m_position;
+	m_shadowView = XMMatrixLookAtLH(m_position, m_shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
+
+	m_shadowView *= Matrix::CreateFromYawPitchRoll({ 0, 0, 0 });
 }
 
-void ShadowMappingApp::DebugDrawFrustum(Vector3 localPos, Vector3 rot, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color)
+void ShadowMappingApp::DebugDrawFrustum(Vector3 localPos, Vector3 qautRot, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color)
 {
 	Vector3 scale = { 1,1,1 };
-	Matrix frustumLocalMat = Matrix::CreateScale(scale) * Matrix::CreateFromYawPitchRoll(rot) * Matrix::CreateTranslation(localPos);
+
+	Matrix frustumLocalMat = Matrix::CreateScale(scale) * Matrix::CreateFromYawPitchRoll(qautRot) * Matrix::CreateTranslation(localPos);
 	Matrix frustumWorldMat = frustumLocalMat * m_View.Transpose();	// 그릴 위치 ( 카메라 기준의 절투체의 로컬 위치 )
 
 	m_effect->SetWorld(frustumLocalMat);	// 해당 그림 위치 설정
@@ -183,7 +193,10 @@ void ShadowMappingApp::OnRender()
 	RenderPass();
 
 	// Debug Draw Test code ==============
-	DebugDrawFrustum({ 0, 20, 0 }, { -45, 0,0 }, XM_PIDIV2, 200 / (float)100, 10, 200, Colors::Red);
+
+	// 디버그를 위한 회전값 구하기
+	XMMatrixDecompose(&m_position, &m_rotateRad, &m_scale, m_shadowView);
+	DebugDrawFrustum(m_position, m_rotateRad, XM_PIDIV4, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, 1.0f, 2000.0f);
 
 	// Debug Draw Test code END ==============
 
@@ -194,70 +207,54 @@ void ShadowMappingApp::OnRender()
 	m_pSwapChain->Present(0, 0);
 }
 
+bool isplayed = false;
+
 void ShadowMappingApp::DepthOnlyPass()
 {
-	// 빛 계산 ( pov )
-	m_shadowProj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, 0.1f, m_shadowForwardDistFromCamera);
-	float orthoSize = 50.0f; // 조명 범위 (씬 크기에 따라 조정)
-	float nearZ = 1.0f;
-	float farZ = 300.0f;
+	// 바인딩 해제
+	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	m_pDeviceContext->PSSetShaderResources(4, 1, nullSRV);
+	m_pDeviceContext->VSSetShaderResources(4, 1, nullSRV);
 
-	m_shadowProj = XMMatrixOrthographicLH(orthoSize, orthoSize, nearZ, farZ);
-	Vector3 m_shadowLootAt = m_Camera.m_Position + m_Camera.GetForward() * m_shadowForwardDistFromCamera;
-	float distanceFromLight = 100/*shadowDistance*/;
-	m_shadowPos = m_shadowLootAt - m_LightDirection * distanceFromLight;
-	m_shadowView = XMMatrixLookAtLH(m_shadowPos, m_shadowLootAt, Vector3(0.0f, 1.0f, 0.0f));
+	//상수 버퍼 갱신
+	ConstantBuffer cb;
+	cb.cameraView = XMMatrixTranspose(m_View);
+	cb.cameraProjection = XMMatrixTranspose(m_Projection);
+	cb.lightDirection = m_LightDirection;
+	cb.lightDirection.Normalize();
+	cb.shadowView = XMMatrixTranspose(m_shadowView);
+	cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
+	cb.lightColor = m_LightColor;
+	
+	cb.ambient = m_LightAmbient;
+	cb.diffuse = m_LightDiffuse;
+	cb.specular = m_LightSpecular;
+	
+	cb.shininess = m_Shininess;
+	cb.CameraPos = m_Camera.m_Position;
+	
+	// 뷰포트 설정 + DSV 초기화, RS, OM 설정
+	D3D11_VIEWPORT viewport{ m_shadowViewport.x, m_shadowViewport.y,
+	m_shadowViewport.width, m_shadowViewport.height,
+	m_shadowViewport.minDepth, m_shadowViewport.maxDepth };
+	m_pDeviceContext->RSSetViewports(1, &viewport);
+	m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
+	m_pDeviceContext->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);	
+	
+	// 렌더 파이프라인 설정
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-	// setting debug values
-	m_effect->SetView(m_shadowView);
-	m_effect->SetProjection(m_shadowProj);
 
-	// //상수 버퍼 갱신
-	// ConstantBuffer cb;
-	// cb.cameraView = XMMatrixTranspose(m_View);
-	// cb.cameraProjection = XMMatrixTranspose(m_Projection);
-	// cb.lightDirection = m_LightDirection;
-	// cb.lightDirection.Normalize();
-	// cb.shadowView = XMMatrixTranspose(m_shadowView);
-	// cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
-	// cb.lightColor = m_LightColor;
-	// 
-	// cb.ambient = m_LightAmbient;
-	// cb.diffuse = m_LightDiffuse;
-	// cb.specular = m_LightSpecular;
-	// 
-	// cb.shininess = m_Shininess;
-	// cb.CameraPos = m_Camera.m_Position;
-	// 
-	// // 뷰포트 설정 + DSV 초기화, RS, OM 설정
-	// D3D11_VIEWPORT viewport{ m_shadowViewport.x, m_shadowViewport.y,
-	// m_shadowViewport.width, m_shadowViewport.height,
-	// m_shadowViewport.minDepth, m_shadowViewport.maxDepth };
-	// m_pDeviceContext->RSSetViewports(1, &viewport);
-	// m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
-	// m_pDeviceContext->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-	// 
-	// 
-	// // 렌더 파이프라인 설정
-	// m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	// m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
-	// 
-	// m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	// 
-	// m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	// m_pDeviceContext->VSSetShader(m_pShadowMapVS.Get(), 0, 0);
-	// 
-	// // // Debug용 ps 설정
-	// // ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	// // m_pDeviceContext->PSSetShaderResources(0, 1, nullSRV);
-	// // 
-	// // m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-	// // m_pDeviceContext->PSSetShaderResources(0, 1, m_pShadowMapSRV.GetAddressOf());
-	// // m_pDeviceContext->PSSetShader(m_pShadowDebugPS.Get(), nullptr, 0);
-	// 
-	// // 모델 draw 호출
-	// m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	// m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pDeviceContext->VSSetShader(m_pShadowMapVS.Get(), 0, 0);
+	m_pDeviceContext->PSSetShader(NULL, NULL, 0); // 렌더 타겟에 기롤학 RGBA가 없으므로 실행하지 않는다.
+	
+	// 모델 draw 호출
+	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 }
 
 void ShadowMappingApp::RenderPass()
@@ -316,6 +313,7 @@ void ShadowMappingApp::RenderPass()
 	// m_pDeviceContext->OMSetRenderTargets(0, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_pDeviceContext->PSSetShaderResources(4, 1, m_pShadowMapSRV.GetAddressOf());
 
 	// Draw 
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
@@ -374,6 +372,11 @@ void ShadowMappingApp::RenderImGUI()
 		ImTextureID img = (ImTextureID)(intptr_t)(m_pShadowMapSRV.Get());
 		ImGui::Image(img, ImVec2(256, 256));
 		ImGui::DragFloat("dist from camera ", &m_shadowForwardDistFromCamera);
+
+		ImGui::DragFloat3("m_shadowUpDistFromLookAt", &m_shadowUpDistFromLookAt.x);
+		Vector3 m_positionVec = m_position;
+		ImGui::DragFloat3("m_position", &m_positionVec.x);
+		m_position = m_positionVec;
 	}
 	
 	ImGui::End();
@@ -440,9 +443,8 @@ void ShadowMappingApp::RenderImGUI()
 
 	ImGui::NewLine();
 
-	// Lighting 설정
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
-
+	
 	ImGui::ColorEdit4("Light Color", &m_LightColor.x);
 	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
 
@@ -756,17 +758,13 @@ bool ShadowMappingApp::InitEffect()
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_Toon.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pToonShader.GetAddressOf()));
 
-	//pixelShaderBuffer.Reset();
-	//HR_T(CompileShaderFromFile(L"Shaders\\PS_ShadowDebug.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	//HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pShadowDebugPS.GetAddressOf()));
-
 	return true;
 }
 
 void ShadowMappingApp::ResetValues()
 {
 	m_Near = 0.01f;
-	m_Far = 1000.0f;
+	m_Far = 3000.0f;
 	m_PovAngle = XM_PIDIV2;
 
 	m_CameraRotation = Vector3::Zero;

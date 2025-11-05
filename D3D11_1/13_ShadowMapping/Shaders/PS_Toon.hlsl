@@ -37,10 +37,11 @@ float4 main(PS_INPUT input) : SV_TARGET
     
     // lighting Calculate
     float3 norm = finalNorm; // normal
+    float4 lightDir = -LightDirection;
 	
     float4 finalAmbient = matAmbient * LightAmbient;
     
-    float NdotL = dot((float3) LightDirection, norm);
+    float NdotL = dot((float3) lightDir, norm);
     float lightIntensity = smoothstep(0.0f, 0.01f, NdotL); // 어두운 부분과 밝은 부분을 나눔
     // float stepped = ceil(NdotL * 3.0) / 3.0; // 명암 나누기
     float diffuseFactor = lightIntensity;
@@ -52,7 +53,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     if (diffuseFactor > 0.0f)
     {
         // 정반사광        
-        float3 halfVector = viewVector + -(float3) LightDirection;
+        float3 halfVector = viewVector + -(float3) lightDir;
         float specularFactor = specularIntensity * pow(saturate(dot(norm, normalize(halfVector))), Shininess);
         float specularFactorSmooth = smoothstep(0.005f, 0.01f, specularFactor); // 정반사광이 좀 더 날카롭게 표현하기위해 사용
         

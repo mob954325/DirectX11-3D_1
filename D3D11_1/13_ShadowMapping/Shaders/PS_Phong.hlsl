@@ -36,10 +36,11 @@ float4 main(PS_INPUT input) : SV_TARGET
     
     // lighting Calculate
     float3 norm = finalNorm;
+    float4 lightDir = -LightDirection;
 
     float4 finalAmbient = matAmbient * LightAmbient;   
     
-    float diffuseFactor = dot((float3)LightDirection, norm);
+    float diffuseFactor = dot((float3) lightDir, norm);
     
     float4 finalDiffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 finalSpecular = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -47,7 +48,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     if (diffuseFactor > 0.0f)
     {   
         // Phong
-        float3 reflectionVector = reflect(normalize(-(float3)LightDirection), norm); //       
+        float3 reflectionVector = reflect(normalize(-(float3)lightDir), norm); //       
         
         float specFactor = specularIntensity * pow(max(dot(reflectionVector, normalize(CameraPos - input.World)), 0.0f), Shininess);
         

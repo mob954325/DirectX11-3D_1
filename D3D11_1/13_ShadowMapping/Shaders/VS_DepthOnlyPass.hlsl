@@ -25,14 +25,14 @@ PS_INPUT main(VS_INPUT input)
     }
     else if(isRigid == 1)
     {
-        ModelToWorld = mul(bonePose[refBoneIndex], World); 
+        // ModelToWorld = mul(bonePose[refBoneIndex], World); 
+        ModelToWorld = World; 
     }  
     
     // model -> world space 
     output.Pos = mul(input.Pos, ModelToWorld);
     output.Pos = mul(output.Pos, ShadowView);
     output.Pos = mul(output.Pos, ShadowProjection);   
-    output.ShadowUV = output.Pos.xy / output.Pos.w * 0.5f + 0.5f; // ???
     
     return output;
 }

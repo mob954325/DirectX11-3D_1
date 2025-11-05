@@ -1,7 +1,32 @@
 #include <Shared.fxh>
 
 float4 main(PS_INPUT input) : SV_TARGET
-{
+{   
+  
+    // 그림자처리 부분 =====================================================================
+    float directLighing;
+    // 광원 NDC 좌표계에서는 좌표는 계산해주지 않으므로 계산한다.
+    float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
+    
+    // 광원 NDC 좌표계에서의 x(-1 ~ 1), y(-1 ~ 1)
+    float2 uv = input.PositionShadow.xy / input.PositionShadow.w;
+    
+    // NDC좌표계에서 Texture 좌표계로 변환
+    uv.y = -uv.y;
+    uv = uv * 0.5 + 0.5;
+    
+    if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0)
+    {
+        float sampleShadowDepth = txShadow.Sample(samLinear, uv).r;
+        
+        // currentShadowDepth가 더 크면 뒤 쪽에 있으므로 직접광 차단
+        if (currentShadowDepth > sampleShadowDepth)
+        {
+            directLighing = 0.0f;
+        }
+    }   
+    
+    // 광원처리 부분 =====================================================================
     // specularSample
     float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;   
     if (!hasSpecular)
@@ -37,10 +62,11 @@ float4 main(PS_INPUT input) : SV_TARGET
     
     // lighting Calculate
     float3 norm = finalNorm; // normal
-	
+    float4 lightDir = -LightDirection;	
+    
     float4 finalAmbient = matAmbient * LightAmbient;	
     
-    float diffuseFactor = dot((float3) LightDirection, norm);
+    float diffuseFactor = dot((float3) lightDir, norm);
 	
     float4 finalDiffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float4 finalSpecular = float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -49,15 +75,16 @@ float4 main(PS_INPUT input) : SV_TARGET
     {        
         // 정반사광        
         float3 viewVector = CameraPos - input.World;        
-        float3 halfVector = viewVector + -(float3)LightDirection;        
+        float3 halfVector = viewVector + -(float3) lightDir;
         float specularFactor = specularIntensity * pow(saturate(dot(norm, normalize(halfVector))), Shininess);
         
         finalDiffuse = finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor;
         finalSpecular = specularFactor * matSpecular * LightSpecular * LightColor;
     }
     
-    float4 finalColor = finalAmbient + finalDiffuse + finalSpecular; // 최종 색
-    finalColor.a = finalTexture.a;        
+    float4 finalColor = directLighing * (finalAmbient + finalDiffuse + finalSpecular); // 최종 색
+    finalColor.a = finalTexture.a;           
+
     
     return finalColor + textureEmission;
 }

@@ -33,5 +33,7 @@ PS_INPUT main(VS_INPUT input)
     // texure
     output.Tex = input.Tex;
     
+    output.PositionShadow = mul(float4(output.World, 1.0f), ShadowView);
+    output.PositionShadow = mul(output.PositionShadow, ShadowProjection);    
     return output;
 } 
