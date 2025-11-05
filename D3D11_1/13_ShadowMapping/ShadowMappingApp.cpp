@@ -76,8 +76,10 @@ void ShadowMappingApp::InitShdowMap()
 {
 	// create shadow map texure desc
 	D3D11_TEXTURE2D_DESC texDesc = {}; // https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ns-d3d11-d3d11_texture2d_desc
-	texDesc.Width = (UINT)m_shadowViewport.width;
-	texDesc.Height = (UINT)m_shadowViewport.height;
+	//texDesc.Width = (UINT)m_shadowViewport.width;
+	texDesc.Width = m_ClientWidth;
+	//texDesc.Height = (UINT)m_shadowViewport.height;
+	texDesc.Height = m_ClientHeight;
 	texDesc.MipLevels = 1;
 	texDesc.ArraySize = 1;
 	texDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -175,6 +177,7 @@ void ShadowMappingApp::OnUpdate()
 
 	m_pSillyDance->Update();
 	m_pGround->Update();
+	m_pGround->m_Scale = { 100, 1, 100 };
 }
 
 void ShadowMappingApp::OnRender()
@@ -196,7 +199,7 @@ void ShadowMappingApp::OnRender()
 
 	// 디버그를 위한 회전값 구하기
 	XMMatrixDecompose(&m_position, &m_rotateRad, &m_scale, m_shadowView);
-	DebugDrawFrustum(m_position, m_rotateRad, XM_PIDIV4, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, 1.0f, 2000.0f);
+	DebugDrawFrustum(m_Camera.m_Position, m_Camera.m_Rotation, XM_PIDIV4, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	// Debug Draw Test code END ==============
 
@@ -213,8 +216,8 @@ void ShadowMappingApp::DepthOnlyPass()
 {
 	// 바인딩 해제
 	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	m_pDeviceContext->PSSetShaderResources(4, 1, nullSRV);
 	m_pDeviceContext->VSSetShaderResources(4, 1, nullSRV);
+	m_pDeviceContext->PSSetShaderResources(4, 1, nullSRV);
 
 	//상수 버퍼 갱신
 	ConstantBuffer cb;
@@ -235,9 +238,10 @@ void ShadowMappingApp::DepthOnlyPass()
 	
 	// 뷰포트 설정 + DSV 초기화, RS, OM 설정
 	D3D11_VIEWPORT viewport{ m_shadowViewport.x, m_shadowViewport.y,
-	m_shadowViewport.width, m_shadowViewport.height,
+	m_ClientWidth, m_ClientHeight,
 	m_shadowViewport.minDepth, m_shadowViewport.maxDepth };
 	m_pDeviceContext->RSSetViewports(1, &viewport);
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 	m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
 	m_pDeviceContext->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);	
 	
@@ -248,9 +252,8 @@ void ShadowMappingApp::DepthOnlyPass()
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
-
 	m_pDeviceContext->VSSetShader(m_pShadowMapVS.Get(), 0, 0);
-	m_pDeviceContext->PSSetShader(NULL, NULL, 0); // 렌더 타겟에 기롤학 RGBA가 없으므로 실행하지 않는다.
+	m_pDeviceContext->PSSetShader(NULL, NULL, 0); // 렌더 타겟에 기록할 RGBA가 없으므로 실행하지 않는다.
 	
 	// 모델 draw 호출
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
@@ -597,7 +600,7 @@ bool ShadowMappingApp::InitD3D()
 	depthStencilDesc = {};
 	depthStencilDesc.DepthEnable = TRUE;                // 깊이 테스트 활성화
 	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; // 깊이 버퍼 업데이트 허용
-	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
 
 	m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilStateAllMask);
@@ -706,8 +709,7 @@ bool ShadowMappingApp::InitScene()
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
 
-	m_pGround->m_Position = { 0, -100, 0 };
-	m_pGround->m_Scale = { 3, 1, 3 };
+	m_pGround->m_Position = { 0, -100, 0 };	
 
 	return true;
 }

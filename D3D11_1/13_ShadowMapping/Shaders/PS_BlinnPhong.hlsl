@@ -20,7 +20,7 @@ float4 main(PS_INPUT input) : SV_TARGET
         float sampleShadowDepth = txShadow.Sample(samLinear, uv).r;
         
         // currentShadowDepth가 더 크면 뒤 쪽에 있으므로 직접광 차단
-        if (currentShadowDepth > sampleShadowDepth)
+        if (currentShadowDepth > sampleShadowDepth + 0.0001)
         {
             directLighing = 0.0f;
         }
