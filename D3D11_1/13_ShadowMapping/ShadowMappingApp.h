@@ -124,9 +124,10 @@ public:
 
 	void InitDebugDraw();	// 디버그 관련 초기화 함수
 	void InitShdowMap();	// ShadowMap 관련 초기화 함수
-	void DebugDrawFrustum(Vector3 localPos, Quaternion quat, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
+	void DebugDrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
+		float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
 
-	Vector3 m_GroundScale{ 1,1,1 };
+	Vector3 m_GroundScale{ 20,1,20 };
 
 	// =============================================================
 	virtual bool OnInitialize();
@@ -145,6 +146,7 @@ public:
 	bool InitEffect();
 
 	void ResetValues();
+	void ShowMatrix(const DirectX::XMFLOAT4X4& mat, const char* label = "Matrix");
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };

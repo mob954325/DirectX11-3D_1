@@ -1,8 +1,7 @@
 #include <Shared.fxh>
 
 float4 main(PS_INPUT input) : SV_TARGET
-{   
-  
+{    
     // 그림자처리 부분 =====================================================================
     float directLighing = 1.0f;
     // 광원 NDC 좌표계에서는 좌표는 계산해주지 않으므로 계산한다.
@@ -84,7 +83,6 @@ float4 main(PS_INPUT input) : SV_TARGET
     
     float4 finalColor = finalAmbient + finalDiffuse + finalSpecular; // 최종 색
     finalColor.a = finalTexture.a;           
-
     
     return finalColor + textureEmission;
 }

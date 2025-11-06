@@ -2,8 +2,7 @@
 
 PS_INPUT main(VS_INPUT input)
 {
-    PS_INPUT output = (PS_INPUT) 0;
-    
+    PS_INPUT output = (PS_INPUT) 0;       
     Matrix ModelToWorld;
     if(isRigid == 0)
     {

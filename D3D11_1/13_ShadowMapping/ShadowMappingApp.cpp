@@ -102,37 +102,40 @@ void ShadowMappingApp::InitShdowMap()
 
 	// 빛 계산 ( pov )
 	m_shadowProj = XMMatrixPerspectiveFovLH(m_shadowFrustumAngle, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, m_shadowNear, m_shadowFar); // 그림자 절두체
-	m_shadowLookAt = m_Camera.m_Position + m_Camera.GetForward() * m_shadowForwardDistFromCamera; // 카메라 위치 + 카메라 바라보는 방향으로부터 떨어진 태양의 위치?
-	m_shadowPos = m_Camera.m_Position + ((Vector3)-m_LightDirection * m_shadowUpDistFromLookAt);
-	m_shadowView = XMMatrixLookAtLH(m_shadowPos, m_shadowLookAt, Vector3(0.0f, 0.0f, 1.0f));
+	m_shadowLookAt = m_Camera.m_Position + m_Camera.GetForward() * m_shadowForwardDistFromCamera;	// 바라보는 방향 = 카메라 위치 + 카메라 바라보는 방향으로부터 떨어진 태양의 위치
+	m_shadowPos = m_Camera.m_Position + ((Vector3)-m_LightDirection * m_shadowUpDistFromLookAt);	// 위치
+	m_shadowView = XMMatrixLookAtLH(m_shadowPos, m_shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 }
 
-void ShadowMappingApp::DebugDrawFrustum(Vector3 localPos, Quaternion quat, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color)
+void ShadowMappingApp::DebugDrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat, 
+	float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color)
 {
 	Vector3 scale = { 1,1,1 };
-	Matrix frustumLocalMat = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(quat) * Matrix::CreateTranslation(localPos);
 
 	// 절투체 만들기
 	BoundingFrustum frustum{};
-	Matrix frustumMatrix = XMMatrixPerspectiveFovLH(angle, AspectRatio, nearZ, farZ);
-	BoundingFrustum::CreateFromMatrix(frustum, frustumMatrix);
+	BoundingFrustum::CreateFromMatrix(frustum, proejctionMat);
 
-	frustum.Transform(frustum, m_shadowProj);
+	Matrix frustumWorld = viewMat.Transpose();
+
+	frustum.Transform(frustum, frustumWorld); // 위치 옮기기
+	frustum.Transform(frustum, worldMat);
+
+	m_effect->SetWorld(Matrix::Identity);	// 해당 그림 위치 설정
+	m_effect->SetView(m_View);				// 해당 그림을 어디 기준으로 그릴지 설정
+	m_effect->SetProjection(m_Projection);	// 해당 그림이 어디에 투영 될지 설정
+	m_effect->Apply(m_pDeviceContext.Get());
 
 	// 문서에 따른 세팅 -> https://github.com/microsoft/DirectXTK/wiki/DebugDraw
 	m_pDeviceContext->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
 	m_pDeviceContext->OMSetDepthStencilState(m_states->DepthNone(), 0);
 	m_pDeviceContext->RSSetState(m_states->CullNone());
 
-	//m_effect->SetWorld(Matrix::Identity);	// 해당 그림 위치 설정
-	m_effect->SetView(m_View);				// 해당 그림을 어디 기준으로 그릴지 설정
-	m_effect->SetProjection(m_Projection);	// 해당 그림이 어디에 투영 될지 설정
-	m_effect->Apply(m_pDeviceContext.Get());
-
 	m_pDeviceContext->IASetInputLayout(m_pDebugDrawInputLayout.Get()); // 디버그용 InputLayout 적용
 
 	m_batch->Begin();
 	DX::Draw(m_batch.get(), frustum, color);
+
 	m_batch->End();
 }
 
@@ -191,9 +194,14 @@ void ShadowMappingApp::OnRender()
 	// Debug Draw Test code ==============
 
 	// 디버그를 위한 회전값 구하기
-	//XMMatrixDecompose(&m_shadowPosition, &m_shadowRotateRad, &m_shadowScale, m_shadowView);
-	//Quaternion quat = m_shadowRotateRad;
-	//DebugDrawFrustum(m_shadowPos, {}, m_shadowFrustumAngle, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, m_shadowNear, m_shadowFar); // -> 제대로 출력 안됨
+	Matrix shadowWorldMat = Matrix::CreateTranslation(m_shadowPos);
+
+	DebugDrawFrustum(shadowWorldMat, m_shadowView, m_shadowProj,
+					m_shadowFrustumAngle, 
+					m_shadowViewport.width / (FLOAT)m_shadowViewport.height,
+					m_shadowNear, m_shadowFar); // -> 제대로 출력 안됨
+
+
 
 	// Debug Draw Test code END ==============
 
@@ -255,6 +263,7 @@ void ShadowMappingApp::DepthOnlyPass()
 	// 모델 draw 호출
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
 }
 
 void ShadowMappingApp::RenderPass()
@@ -321,6 +330,7 @@ void ShadowMappingApp::RenderPass()
 	// Draw 
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
 }
 
 bool ShadowMappingApp::InitImGUI()
@@ -379,10 +389,18 @@ void ShadowMappingApp::RenderImGUI()
 		ImGui::DragFloat("m_shadowFar", &m_shadowFar);
 		ImGui::DragFloat("m_shadowFrustumAngle", &m_shadowFrustumAngle, 0.02f);
 
-		m_shadowProj = XMMatrixPerspectiveFovLH(m_shadowFrustumAngle, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, m_shadowNear, m_shadowFar); // 그림자 절두체
-		m_shadowLookAt = m_Camera.m_Position + m_Camera.GetForward() * m_shadowForwardDistFromCamera; // 카메라 위치 + 카메라 바라보는 방향으로부터 떨어진 태양의 위치?
-		m_shadowPos = m_Camera.m_Position + ((Vector3)-m_LightDirection * m_shadowUpDistFromLookAt);
+		// m_shadow 관련 갱신
+		m_shadowProj = XMMatrixPerspectiveFovLH(m_shadowFrustumAngle, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, m_shadowNear, m_shadowFar);
+		m_shadowLookAt = m_Camera.m_Position + m_Camera.GetForward() * m_shadowForwardDistFromCamera;	// 바라보는 방향 = 카메라 위치 + 카메라 바라보는 방향으로부터 떨어진 태양의 위치
+		m_shadowPos = m_Camera.m_Position + ((Vector3)-m_LightDirection * m_shadowUpDistFromLookAt);	// 위치
 		m_shadowView = XMMatrixLookAtLH(m_shadowPos, m_shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
+
+		ImGui::Text("ShadowView");
+		ShowMatrix(m_shadowView, "m_shadowView");
+		ImGui::Spacing();
+
+		ImGui::Text("ShadowProj");
+		ShowMatrix(m_shadowProj, "m_shadowProj");
 	}
 	
 	ImGui::End();
@@ -781,6 +799,15 @@ void ShadowMappingApp::ResetValues()
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
 	m_LightDirection = m_LightDirectionInitial;
+}
+
+void ShadowMappingApp::ShowMatrix(const DirectX::XMFLOAT4X4& mat, const char* label)
+{
+	// 각 행을 출력
+	ImGui::Text("%.3f  %.3f  %.3f  %.3f", mat._11, mat._12, mat._13, mat._14);
+	ImGui::Text("%.3f  %.3f  %.3f  %.3f", mat._21, mat._22, mat._23, mat._24);
+	ImGui::Text("%.3f  %.3f  %.3f  %.3f", mat._31, mat._32, mat._33, mat._34);
+	ImGui::Text("%.3f  %.3f  %.3f  %.3f", mat._41, mat._42, mat._43, mat._44);
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp
