@@ -83,7 +83,7 @@ public:
 	Vector3 m_CameraRotation{};
 
 	// 빛
-	Vector4 m_LightDirectionInitial{ 0.0f, -1.0f, 0.0f, 1.0f };
+	Vector4 m_LightDirectionInitial{ 0.0f, -1.0f, 1.0f, 1.0f };
 	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 0.1f }; // 환경광 반사 계수
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
@@ -125,6 +125,8 @@ public:
 	void InitDebugDraw();	// 디버그 관련 초기화 함수
 	void InitShdowMap();	// ShadowMap 관련 초기화 함수
 	void DebugDrawFrustum(Vector3 localPos, Quaternion quat, float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
+
+	Vector3 m_GroundScale{ 1,1,1 };
 
 	// =============================================================
 	virtual bool OnInitialize();

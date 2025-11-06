@@ -170,7 +170,7 @@ void ShadowMappingApp::OnUpdate()
 
 	m_pSillyDance->Update();
 	m_pGround->Update();
-	m_pGround->m_Scale = { 10, 1, 10 };
+	m_pGround->m_Scale = m_GroundScale;
 }
 
 void ShadowMappingApp::OnRender()
@@ -320,8 +320,6 @@ void ShadowMappingApp::RenderPass()
 
 	// Draw 
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
-	m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 }
 
@@ -461,6 +459,8 @@ void ShadowMappingApp::RenderImGUI()
 	ImGui::ColorEdit4("Light Specular", &m_LightSpecular.x);
 	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
 
+	ImGui::Spacing();
+	ImGui::DragFloat3("m_pGround->m_Scale", &m_GroundScale.x, 0.1f);
 	ImGui::Spacing();
 
 	// 리셋 버튼
