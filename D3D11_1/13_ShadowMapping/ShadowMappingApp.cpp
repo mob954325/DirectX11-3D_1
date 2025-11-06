@@ -170,7 +170,7 @@ void ShadowMappingApp::OnUpdate()
 
 	m_pSillyDance->Update();
 	m_pGround->Update();
-	m_pGround->m_Scale = { 100, 1, 100 };
+	m_pGround->m_Scale = { 10, 1, 10 };
 }
 
 void ShadowMappingApp::OnRender()
@@ -253,8 +253,8 @@ void ShadowMappingApp::DepthOnlyPass()
 	m_pDeviceContext->PSSetShader(NULL, NULL, 0); // 렌더 타겟에 기록할 RGBA가 없으므로 실행하지 않는다.
 	
 	// 모델 draw 호출
-	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
 }
 
 void ShadowMappingApp::RenderPass()
@@ -709,7 +709,7 @@ bool ShadowMappingApp::InitScene()
 	}
 
 	m_pGround = make_unique<SkeletalModel>();
-	if (!m_pGround->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Cube1.fbx"))
+	if (!m_pGround->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Ground.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
