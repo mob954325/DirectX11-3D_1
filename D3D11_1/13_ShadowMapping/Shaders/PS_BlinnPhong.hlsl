@@ -59,6 +59,8 @@ float4 main(PS_INPUT input) : SV_TARGET
         finalTexture = float4(1.0f, 1.0f, 1.0f, 1.0f);
     }
     
+    if (finalTexture.a < 0.5f) discard;
+    
     // lighting Calculate
     float3 norm = finalNorm; // normal
     float4 lightDir = -LightDirection;	
@@ -77,11 +79,11 @@ float4 main(PS_INPUT input) : SV_TARGET
         float3 halfVector = viewVector + -(float3) lightDir;
         float specularFactor = specularIntensity * pow(saturate(dot(norm, normalize(halfVector))), Shininess);
         
-        finalDiffuse = finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor * directLighing;
+        finalDiffuse = finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor;
         finalSpecular = specularFactor * matSpecular * LightSpecular * LightColor;
     }
     
-    float4 finalColor = finalAmbient + finalDiffuse + finalSpecular; // 최종 색
+    float4 finalColor = directLighing * (finalAmbient + finalDiffuse + finalSpecular); // 최종 색
     finalColor.a = finalTexture.a;           
     
     return finalColor + textureEmission;

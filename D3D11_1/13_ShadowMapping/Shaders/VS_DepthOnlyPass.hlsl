@@ -33,5 +33,7 @@ PS_INPUT main(VS_INPUT input)
     output.Pos = mul(output.Pos, ShadowView);
     output.Pos = mul(output.Pos, ShadowProjection);   
     
+    output.Tex = input.Tex;
+    
     return output;
 }
