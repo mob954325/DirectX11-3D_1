@@ -113,6 +113,8 @@ public:
 	float m_shadowForwardDistFromCamera = 1.0f;
 	float m_shadowNear = 400.0f;
 	float m_shadowFar = 3000.0f;
+	const float m_shadowMinNear = 400.0f;
+	const float m_shadowMinFar = 1001.0f;
 
 	// 그림자 디버그
 	ComPtr<ID3D11InputLayout> m_pDebugDrawInputLayout = nullptr; // debug inputlayout
