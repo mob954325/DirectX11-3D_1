@@ -387,6 +387,10 @@ void ShadowMappingApp::RenderImGUI()
 
 		ImGui::DragFloat("m_shadowNear", &m_shadowNear);
 		ImGui::DragFloat("m_shadowFar", &m_shadowFar);
+
+		if (m_shadowNear <= m_shadowMinNear) m_shadowNear = m_shadowMinNear;
+		if (m_shadowFar <= m_shadowMinFar) m_shadowFar = m_shadowMinFar;
+
 		ImGui::DragFloat("m_shadowFrustumAngle", &m_shadowFrustumAngle, 0.02f);
 
 		// m_shadow 관련 갱신
@@ -456,7 +460,7 @@ void ShadowMappingApp::RenderImGUI()
 	ImGui::DragFloat("Fov Angle", &m_PovAngle, 0.02f);
 
 	if (m_Near <= 0.0f) m_Near = 0.01f;
-	if (m_Far <= 0.0f) m_Far = 0.2f;
+	if (m_Far <= m_Near) m_Far = 0.2f;
 
 	ImGui::NewLine();
 
