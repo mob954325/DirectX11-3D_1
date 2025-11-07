@@ -32,6 +32,8 @@ public:
 	// Model
 	unique_ptr<SkeletalModel> m_pSillyDance = nullptr;		// 
 	unique_ptr<SkeletalModel> m_pGround = nullptr;		// 
+	unique_ptr<SkeletalModel> m_pTree = nullptr;		// 
+	unique_ptr<SkeletalModel> m_pHuman = nullptr;		// 
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	// ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더
@@ -97,6 +99,7 @@ public:
 
 	// 그림자
 	ComPtr<ID3D11VertexShader> m_pShadowMapVS;			//  shadowMap에 사용할 vs
+	ComPtr<ID3D11PixelShader> m_pShadowMapPS = nullptr;
 
 	ComPtr<ID3D11Texture2D> m_pShadowMap;				// 깊이 값을 기록할 텍스처
 	ComPtr<ID3D11DepthStencilView> m_pShadowMapDSV;		// 깊이 값 기록을 설정할 객체

@@ -174,6 +174,7 @@ void ShadowMappingApp::OnUpdate()
 	m_pSillyDance->Update();
 	m_pGround->Update();
 	m_pGround->m_Scale = m_GroundScale;
+	m_pHuman->Update();
 }
 
 void ShadowMappingApp::OnRender()
@@ -256,14 +257,17 @@ void ShadowMappingApp::DepthOnlyPass()
 	
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	m_pDeviceContext->VSSetShader(m_pShadowMapVS.Get(), 0, 0);
-	m_pDeviceContext->PSSetShader(NULL, NULL, 0); // 렌더 타겟에 기록할 RGBA가 없으므로 실행하지 않는다.
+	// m_pDeviceContext->PSSetShader(NULL, NULL, 0); // 렌더 타겟에 기록할 RGBA가 없으므로 실행하지 않는다.
+	m_pDeviceContext->PSSetShader(m_pShadowMapPS.Get(), NULL, 0); // 
 	
 	// 모델 draw 호출
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
+	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
 }
 
 void ShadowMappingApp::RenderPass()
@@ -291,16 +295,9 @@ void ShadowMappingApp::RenderPass()
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 
-	if (m_pSillyDance->isRigid)
-	{
-		m_pDeviceContext->VSSetShader(m_pRigidMeshVertexShader.Get(), 0, 0);
-	}
-	else // isRigid == false
-	{
-		m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
-	}
-
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+	m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
 
 	switch (psIndex)
 	{
@@ -321,7 +318,6 @@ void ShadowMappingApp::RenderPass()
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 
 	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
-	// m_pDeviceContext->OMSetRenderTargets(0, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
 
 	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
@@ -330,7 +326,8 @@ void ShadowMappingApp::RenderPass()
 	// Draw 
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
+	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
 }
 
 bool ShadowMappingApp::InitImGUI()
@@ -627,7 +624,7 @@ bool ShadowMappingApp::InitD3D()
 	depthStencilDesc = {};
 	depthStencilDesc.DepthEnable = TRUE;                // 깊이 테스트 활성화
 	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; // 깊이 버퍼 업데이트 허용
-	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // 작은 Z 값이 앞에 배치되도록 설정
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
 
 	m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilStateAllMask);
@@ -736,8 +733,23 @@ bool ShadowMappingApp::InitScene()
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
 
-	m_pGround->m_Position = { 0, -100, 0 };	
+	m_pGround->m_Position = { 0, -100, 0 };
 
+	m_pTree = make_unique<SkeletalModel>();
+	if (!m_pTree->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Tree.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
+	m_pTree->m_Scale = { 100, 100, 100 };
+
+	m_pHuman = make_unique<SkeletalModel>();
+	if (!m_pHuman->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Zombie_Run.fbx"))
+	{
+		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+	}
+
+	m_pHuman->m_Position = { 200, 10, 100 };
 	return true;
 }
 
@@ -786,6 +798,10 @@ bool ShadowMappingApp::InitEffect()
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_Toon.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pToonShader.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_DepthOnlyPass.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pShadowMapPS.GetAddressOf()));
 
 	return true;
 }
