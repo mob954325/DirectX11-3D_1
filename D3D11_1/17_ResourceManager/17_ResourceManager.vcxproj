@@ -177,6 +177,7 @@
     <ClCompile Include="Animation.cpp" />
     <ClCompile Include="Bone.cpp" />
     <ClCompile Include="DebugDraw.cpp" />
+    <ClCompile Include="FBXResourceManager.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="ResourceManagerApp.cpp" />
     <ClCompile Include="SkeletalModel.cpp" />
@@ -190,6 +191,8 @@
     <ClInclude Include="Bone.h" />
     <ClInclude Include="BoneAnimation.h" />
     <ClInclude Include="DebugDraw.h" />
+    <ClInclude Include="FBXImporter.h" />
+    <ClInclude Include="FBXResourceManager.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="ResourceManagerApp.h" />
     <ClInclude Include="SkeletalModel.h" />

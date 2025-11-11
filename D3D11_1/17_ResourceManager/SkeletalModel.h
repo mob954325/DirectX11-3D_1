@@ -11,9 +11,9 @@
 
 #include "Mesh.h"
 #include "TextureLoader.h"
-#include "Bone.h"
 #include "SkeletonInfo.h"
 #include "Animation.h"
+#include "Bone.h"
 
 struct BonePoseBuffer
 {
