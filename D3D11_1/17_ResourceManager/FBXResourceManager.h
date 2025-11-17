@@ -47,5 +47,5 @@ public:
 		return manager;
 	}
 
-	std::shared_ptr<StaticMeshAsset> LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, const aiScene* pScene, std::string path);
+	std::shared_ptr<StaticMeshAsset> LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string path);
 };

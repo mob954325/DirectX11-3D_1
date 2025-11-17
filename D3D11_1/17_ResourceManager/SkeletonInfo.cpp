@@ -50,6 +50,8 @@ bool SkeletonInfo::CreateFromAiScene(const aiScene* pAiScene)
 		aiMesh* pMesh = pAiScene->mMeshes[i];
 		UINT boneNum = pMesh->mNumBones;
 
+		if (boneNum > 0) isRigid = false;
+
 		for (int j = 0; j < boneNum; j++)
 		{
 			aiBone* pBone = pMesh->mBones[j];

@@ -172,9 +172,14 @@ void ResourceManagerApp::OnUpdate()
 	m_Camera.GetCameraViewMatrix(m_View);
 
 	m_pSillyDance->Update();
-	//m_pGround->Update();
-	//m_pGround->m_Scale = m_GroundScale;
-	//m_pHuman->Update();
+	m_pGround->Update();
+	m_pGround->m_Scale = m_GroundScale;
+	m_pHuman->Update();
+
+	for (auto& e : m_models)
+	{
+		e->Update();
+	}
 }
 
 void ResourceManagerApp::OnRender()
@@ -268,6 +273,11 @@ void ResourceManagerApp::DepthOnlyPass()
 	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
+	for (auto& e : m_models)
+	{
+		e->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	}
 }
 
 void ResourceManagerApp::RenderPass()
@@ -328,6 +338,11 @@ void ResourceManagerApp::RenderPass()
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
+	for (auto& e : m_models)
+	{
+		e->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	}
 }
 
 bool ResourceManagerApp::InitImGUI()
@@ -743,6 +758,23 @@ bool ResourceManagerApp::InitScene()
 	}
 
 	m_pHuman->m_Position = { 200, 10, 100 };
+
+	// test create 100 x 100
+	for (int y = 0; y < 100; y++)
+	{
+		for (int x = 0; x < 100; x++)
+		{
+			auto model = make_unique<SkeletalModel>();
+			if (!model->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
+			{
+				MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+			}
+
+			model->m_Position = { 100 * (float)x, 10, 100 * (float)y };
+			m_models.push_back(std::move(model));			
+		}
+	}
+
 	return true;
 }
 

@@ -208,13 +208,8 @@ void FBXResourceManager::loadEmbeddedTexture(const aiTexture* embeddedTexture, C
 	}
 }
 
-std::shared_ptr<StaticMeshAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, const aiScene* pScene, std::string path)
+std::shared_ptr<StaticMeshAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string path)
 {
-	if (pScene == nullptr) return std::shared_ptr<StaticMeshAsset>();
-
-	this->m_pDevice = pDevice;
-	this->m_pDeviceContext = pDeviceContext;
-
 	// map에 먼저 있는지 확인
 	auto it = assets.find(path);
 
@@ -230,6 +225,24 @@ std::shared_ptr<StaticMeshAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11
 			assets.erase(it); // 지우고 새로 만들기
 		}
 	}
+
+	Assimp::Importer importer;
+
+	unsigned int importFlag = aiProcess_Triangulate |	// 삼각형 변환
+		aiProcess_GenNormals |				// 노말 생성
+		aiProcess_GenUVCoords |				// UV 생성
+		aiProcess_CalcTangentSpace |		// 탄젠트 생성
+		aiProcess_LimitBoneWeights |		// 본의 영향을 받는 정점의 최대 개수 4개로 제한
+		aiProcess_ConvertToLeftHanded;		// 왼손 좌표계로 변환
+
+	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, 0);
+
+	const aiScene* pScene = importer.ReadFile(path, importFlag);
+
+	if (pScene == nullptr) return std::shared_ptr<StaticMeshAsset>();
+
+	this->m_pDevice = pDevice;
+	this->m_pDeviceContext = pDeviceContext;
 
 	// 없으면 load후 map에 추가 
 	auto sharedAsset = make_shared<StaticMeshAsset>();

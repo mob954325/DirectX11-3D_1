@@ -48,7 +48,6 @@ public:
 	float m_progressAnimationTime = 0.0f;		// 현재 애니메이션 시간 
 
 	bool isAnimPlay = true;
-	bool isRigid = true;
 
 	// 리소스 데이터
 	shared_ptr<StaticMeshAsset> modelAsset{};
@@ -71,6 +70,6 @@ private:
 	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer{};
 
 	// 기능 함수
-	void CreateBoneInfos(aiNode* pNode, const aiScene* pScene);
+	void CreateBoneInfos();
 };
 

@@ -29,6 +29,7 @@ private:
 	vector<BoneInfo> m_bones;
 	map<string, int> m_boneMappingTable;
 	map<string, Matrix> m_bonesOffset;
+	bool isRigid = true;
 
 	void CreateBoneInfoFromNode(const aiNode* pAiNode);
 public:
@@ -37,4 +38,6 @@ public:
 	int GetBoneIndexByName(const string& boneName);
 	Matrix GetBoneOffsetByName(const string& boneName);
 	bool CreateFromAiScene(const aiScene* pAiScene);
+
+	bool IsRigid() { return isRigid; };
 };
