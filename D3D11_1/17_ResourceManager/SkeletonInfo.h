@@ -26,13 +26,15 @@ public:
 class SkeletonInfo
 {
 private:
-	vector<BoneInfo> m_bones;
 	map<string, int> m_boneMappingTable;
 	map<string, Matrix> m_bonesOffset;
 	bool isRigid = true;
 
 	void CreateBoneInfoFromNode(const aiNode* pAiNode);
+
 public:
+	vector<BoneInfo> m_bones;
+
 	BoneInfo GetBoneInfoByIndex(int index);
 	BoneInfo GetBoneInfoByName(const string& boneName);
 	int GetBoneIndexByName(const string& boneName);

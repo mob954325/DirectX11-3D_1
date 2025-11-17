@@ -760,9 +760,9 @@ bool ResourceManagerApp::InitScene()
 	m_pHuman->m_Position = { 200, 10, 100 };
 
 	// test create 100 x 100
-	for (int y = 0; y < 100; y++)
+	for (int y = 0; y < 20; y++)
 	{
-		for (int x = 0; x < 100; x++)
+		for (int x = 0; x < 20; x++)
 		{
 			auto model = make_unique<SkeletalModel>();
 			if (!model->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))

@@ -143,38 +143,37 @@ void SkeletalModel::Close()
 
 void SkeletalModel::CreateBoneInfos()
 {
-	string boneName = pNode->mName.C_Str();
-	BoneInfo boneInfo = modelAsset->skeletalInfo.GetBoneInfoByName(boneName);
-	int boneIndex = modelAsset->skeletalInfo.GetBoneIndexByName(boneName);
-
-	string parentBoneName = boneInfo.parentBoneName;
-	BoneInfo parentBoneInfo;
-	int parentBoneIndex = -1;
-	if (parentBoneName != "")
+	int size = modelAsset->skeletalInfo.m_bones.size();
+	for (int i = 0; i < size; i++)
 	{
-		parentBoneInfo = modelAsset->skeletalInfo.GetBoneInfoByName(parentBoneName);
-		parentBoneIndex = modelAsset->skeletalInfo.GetBoneIndexByName(parentBoneName);
-	}
+		string boneName = modelAsset->skeletalInfo.m_bones[i].name;
+		BoneInfo boneInfo = modelAsset->skeletalInfo.GetBoneInfoByName(boneName);
+		int boneIndex = modelAsset->skeletalInfo.GetBoneIndexByName(boneName);
 
-	Matrix localMat = boneInfo.relativeTransform;
-	Matrix worldMat = parentBoneIndex > 0 ? m_bones[parentBoneIndex].m_worldTransform * localMat : localMat;
+		string parentBoneName = boneInfo.parentBoneName;
+		BoneInfo parentBoneInfo;
+		int parentBoneIndex = -1;
+		if (parentBoneName != "")
+		{
+			parentBoneInfo = modelAsset->skeletalInfo.GetBoneInfoByName(parentBoneName);
+			parentBoneIndex = modelAsset->skeletalInfo.GetBoneIndexByName(parentBoneName);
+		}
 
-	// Bone 정보 생성
-	Bone bone;
-	bone.CreateBone(boneName, parentBoneIndex, boneIndex, worldMat, localMat);	//...
+		Matrix localMat = boneInfo.relativeTransform;
+		Matrix worldMat = parentBoneIndex > 0 ? m_bones[parentBoneIndex].m_worldTransform * localMat : localMat;
 
-	BoneAnimation boneAnim;
-	bool hasAnim = modelAsset->animations.empty();
-	if (parentBoneIndex != -1 && hasAnim)
-	{
-		modelAsset->animations[m_animationIndex].GetBoneAnimationByName(boneName, boneAnim);
-		bone.m_boneAnimation = boneAnim;	// 임시 -> 0번째 애니메이션 받기
-	}
+		// Bone 정보 생성
+		Bone bone;
+		bone.CreateBone(boneName, parentBoneIndex, boneIndex, worldMat, localMat);	//...
 
-	m_bones.push_back(bone);
+		BoneAnimation boneAnim;
+		bool hasAnim = !modelAsset->animations.empty();
+		if (parentBoneIndex != -1 && hasAnim)
+		{
+			modelAsset->animations[m_animationIndex].GetBoneAnimationByName(boneName, boneAnim);
+			bone.m_boneAnimation = boneAnim;	// 임시 -> 0번째 애니메이션 받기
+		}
 
-	for (UINT i = 0; i < pNode->mNumChildren; i++)
-	{
-		this->CreateBoneInfos(pNode->mChildren[i]);
+		m_bones.push_back(bone);
 	}
 }
