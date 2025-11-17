@@ -1,124 +1,125 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="소스 파일">
+    <Filter Include="01. App">
+      <UniqueIdentifier>{e8370b6b-5872-461c-a8d6-ed60573409d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. ResourceManager">
+      <UniqueIdentifier>{c8c0a65e-c0b9-4f04-943d-a186914e144e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. SkeletalModel">
+      <UniqueIdentifier>{6bbc7b50-1102-47e3-90e6-5fb3f057fa64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="98. Shaders">
+      <UniqueIdentifier>{4e5d2251-e607-4e4a-8e7a-b15a3ba926b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="99. Others">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="헤더 파일">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="리소스 파일">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{4e5d2251-e607-4e4a-8e7a-b15a3ba926b0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\PS_Basic.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\PS_BlinnPhong.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\PS_DepthOnlyPass.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\PS_Phong.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\PS_Solid.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\PS_Toon.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\VS_DepthOnlyPass.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\VS_RigidMesh.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\VS_SkinnedMesh.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Animation.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Bone.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="DebugDraw.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Mesh.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="ResourceManagerApp.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="SkeletalModel.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="SkeletonInfo.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>99. Others</Filter>
     </ClCompile>
     <ClCompile Include="TextureLoader.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>99. Others</Filter>
     </ClCompile>
     <ClCompile Include="WinMain.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>01. App</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceManagerApp.cpp">
+      <Filter>01. App</Filter>
+    </ClCompile>
+    <ClCompile Include="Bone.cpp">
+      <Filter>02. SkeletalModel</Filter>
+    </ClCompile>
+    <ClCompile Include="Animation.cpp">
+      <Filter>02. SkeletalModel</Filter>
     </ClCompile>
     <ClCompile Include="FBXResourceManager.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>03. ResourceManager</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>02. SkeletalModel</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletalModel.cpp">
+      <Filter>02. SkeletalModel</Filter>
+    </ClCompile>
+    <ClCompile Include="SkeletonInfo.cpp">
+      <Filter>02. SkeletalModel</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Animation.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="AnimationKey.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Bone.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="BoneAnimation.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="DebugDraw.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Mesh.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="ResourceManagerApp.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SkeletalModel.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SkeletonInfo.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="TextureLoader.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>01. App</Filter>
     </ClInclude>
     <ClInclude Include="FBXResourceManager.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>03. ResourceManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Animation.h">
+      <Filter>02. SkeletalModel</Filter>
+    </ClInclude>
+    <ClInclude Include="Bone.h">
+      <Filter>02. SkeletalModel</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>02. SkeletalModel</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletalModel.h">
+      <Filter>02. SkeletalModel</Filter>
+    </ClInclude>
+    <ClInclude Include="SkeletonInfo.h">
+      <Filter>02. SkeletalModel</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationKey.h">
+      <Filter>02. SkeletalModel</Filter>
+    </ClInclude>
+    <ClInclude Include="BoneAnimation.h">
+      <Filter>02. SkeletalModel</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugDraw.h">
+      <Filter>99. Others</Filter>
     </ClInclude>
     <ClInclude Include="FBXImporter.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>99. Others</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureLoader.h">
+      <Filter>99. Others</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Shared.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>98. Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -88,7 +88,7 @@ public:
 		m_pVertexBuffer(nullptr),
 		m_pIndexBuffer(nullptr)
 	{
-		this->setupMesh(this->m_pDevice);
+		this->setupMesh();
 	}
 
     void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext);
@@ -105,7 +105,7 @@ private:
 
     // Functions
     // Initializes all the buffer objects/arrays
-    void setupMesh(ComPtr<ID3D11Device>& dev);
+    void setupMesh();
 
 	void ProcessTextureByType(ComPtr<ID3D11DeviceContext>& pDeviceContext, int index);
 };

@@ -14,6 +14,7 @@
 #include "SkeletonInfo.h"
 #include "Animation.h"
 #include "Bone.h"
+#include "FBXResourceManager.h"
 
 struct BonePoseBuffer
 {
@@ -43,21 +44,18 @@ public:
 	void Close();
 
 	// 애니메이션 관련 내용 - 디버그를 위해 public으로 옮김
-	vector<Animation> m_animations;			// 해당 모델이 사용할 애니메이션들
 	int m_animationIndex = 0;				// 실행 중인 애니메이션 인덱스
 	float m_progressAnimationTime = 0.0f;		// 현재 애니메이션 시간 
 
 	bool isAnimPlay = true;
 	bool isRigid = true;
+
+	// 리소스 데이터
+	shared_ptr<StaticMeshAsset> modelAsset{};
 private:
 	ComPtr<ID3D11Device> m_pDevice = nullptr;
 	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;
 	HWND hwnd{};
-
-	// 리소스 데이터
-	std::shared_ptr<SkeletonInfo> m_pSkeletonInfo{};	// 모델에 사용할 본 정보 
-	std::vector<Mesh> m_meshes{};						// 로드한 매쉬
-	std::vector<Texture> texturesLoaded{};				// 로드된 텍스처 모음
 
 	// 인스턴스 데이터
 	std::string directory{};				// 로드한 파일이 위차한 폴더명
@@ -73,10 +71,6 @@ private:
 	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer{};
 
 	// 기능 함수
-	void ProcessNode(aiNode* pNode, const aiScene* pScene);
-	Mesh ProcessMesh(aiMesh* pMesh, const aiScene* pScene);
-	void ProcessBoneWeight(aiMesh* pMesh);
-	std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene);
-	void loadEmbeddedTexture(const aiTexture* embeddedTexture, ComPtr<ID3D11ShaderResourceView>& outTexture);
+	void CreateBoneInfos(aiNode* pNode, const aiScene* pScene);
 };
 

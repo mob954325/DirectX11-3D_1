@@ -172,9 +172,9 @@ void ResourceManagerApp::OnUpdate()
 	m_Camera.GetCameraViewMatrix(m_View);
 
 	m_pSillyDance->Update();
-	m_pGround->Update();
-	m_pGround->m_Scale = m_GroundScale;
-	m_pHuman->Update();
+	//m_pGround->Update();
+	//m_pGround->m_Scale = m_GroundScale;
+	//m_pHuman->Update();
 }
 
 void ResourceManagerApp::OnRender()
@@ -364,13 +364,13 @@ void ResourceManagerApp::RenderImGUI()
 	ImGui::SetNextWindowPos(ImVec2(800, 10), ImGuiCond_Once);
 	ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_Once);
 
-	if (m_pSillyDance->m_animations.size() > 0)
+	if (m_pSillyDance->modelAsset->animations.size() > 0)
 	{
 		ImGui::Begin("Middle Model Animation info");
 		{
 			ImGui::Text(std::to_string(m_pSillyDance->m_progressAnimationTime).c_str());
 			ImGui::Checkbox("isPlay", &m_pSillyDance->isAnimPlay);
-			ImGui::SliderFloat("Animation Duration", &m_pSillyDance->m_progressAnimationTime, 0.0f, m_pSillyDance->m_animations[m_pSillyDance->m_animationIndex].m_duration);
+			ImGui::SliderFloat("Animation Duration", &m_pSillyDance->m_progressAnimationTime, 0.0f, m_pSillyDance->modelAsset->animations[m_pSillyDance->m_animationIndex].m_duration);
 		}
 		ImGui::End();
 	}

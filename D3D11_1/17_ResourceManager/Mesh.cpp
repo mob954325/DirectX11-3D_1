@@ -32,7 +32,7 @@ void Mesh::SetMaterial(aiMaterial* pAiMaterial)
     }
 }
 
-void Mesh::setupMesh(ComPtr<ID3D11Device>& dev)
+void Mesh::setupMesh()
 {
     // check texture
     int textureCount = textures.size();
