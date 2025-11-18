@@ -275,6 +275,21 @@ std::shared_ptr<StaticMeshAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11
 		mesh.CreateIndexBuffer(pDevice);
 	}
 
+	// bone offest 버퍼 채우기
+	for (auto& bone : sharedAsset->skeletalInfo.m_bones)
+	{
+		Matrix offsetMat = Matrix::Identity;
+		std::string currBoneName = bone.name;
+		int boneIndex = sharedAsset->skeletalInfo.GetBoneIndexByName(currBoneName);
+
+		if (boneIndex > 0)
+		{
+			offsetMat = sharedAsset->skeletalInfo.GetBoneOffsetByName(currBoneName);
+		}
+
+		sharedAsset->m_BoneOffsets.boneOffset[boneIndex] = offsetMat;
+	}
+
 	// map에 저장하기
 	weak_ptr<StaticMeshAsset> weakAsset = sharedAsset;
 	assets.insert({ path, weakAsset });

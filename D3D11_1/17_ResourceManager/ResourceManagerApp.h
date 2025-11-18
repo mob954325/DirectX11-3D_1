@@ -53,13 +53,13 @@ public:
 	ComPtr<ID3D11RasterizerState>	m_pTransparentRasterizerState = nullptr;
 
 	// Phong Shader
-	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;		
+	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;
 	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;
 	ComPtr<ID3D11PixelShader> m_pToonShader = nullptr;
 
 	// vertex shaderes
-	ComPtr<ID3D11VertexShader> m_pRigidMeshVertexShader = nullptr;	
-	ComPtr<ID3D11VertexShader> m_pSkinnedMeshVertexShader = nullptr;	
+	ComPtr<ID3D11VertexShader> m_pRigidMeshVertexShader = nullptr;
+	ComPtr<ID3D11VertexShader> m_pSkinnedMeshVertexShader = nullptr;
 
 
 	// 렌더링 파이프라인에 적용하는 객체와 정보
@@ -108,7 +108,7 @@ public:
 	ComPtr<ID3D11DepthStencilView> m_pShadowMapDSV;		// 깊이 값 기록을 설정할 객체
 	ComPtr<ID3D11ShaderResourceView> m_pShadowMapSRV;	// 깊이 버퍼를 슬롯에서 설정하고 사용하기 위한 객체
 
-	Matrix m_shadowView{};								
+	Matrix m_shadowView{};
 	Matrix m_shadowProj{};
 	Vector3 m_shadowLookAt{};
 	Vector3 m_shadowPos{};
@@ -136,6 +136,11 @@ public:
 		float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
 
 	Vector3 m_GroundScale{ 20,1,20 };
+
+	// model buffer
+	ComPtr<ID3D11Buffer> m_pTransformBuffer{};
+	ComPtr<ID3D11Buffer> m_pBonePoseBuffer{};
+	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer{};
 
 	// =============================================================
 	virtual bool OnInitialize();

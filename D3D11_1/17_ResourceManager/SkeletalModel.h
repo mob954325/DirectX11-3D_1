@@ -21,9 +21,17 @@ struct BonePoseBuffer
 	Matrix modelMatricies[256];
 };
 
-struct BoneOffsetBuffer
+/// <summary>
+/// 모델에서 사용할 트랜스폼 상수 버퍼 구조체
+/// </summary>
+struct TransformBuffer
 {
-	Matrix boneOffset[256];
+	Matrix world;
+
+	UINT isRigid;		// 1 : rigid, 0 : skinned
+	UINT refBoneIndex;	// 리지드일 때 참조하는 본 인덱스
+	FLOAT pad1;
+	FLOAT pad2;
 };
 
 class SkeletalModel
@@ -51,6 +59,9 @@ public:
 
 	// 리소스 데이터
 	shared_ptr<StaticMeshAsset> modelAsset{};
+
+	void GetBuffer(ComPtr<ID3D11Buffer>& pTransform, ComPtr<ID3D11Buffer>& pBonePose, ComPtr<ID3D11Buffer>& pBoneOffset);
+
 private:
 	ComPtr<ID3D11Device> m_pDevice = nullptr;
 	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;
@@ -62,9 +73,8 @@ private:
 
 	// 해당 모델의 상수 버퍼 내용
 	BonePoseBuffer m_BonePoses{};
-	BoneOffsetBuffer m_BoneOffsets{};
 
-	// 버퍼들
+	// 버퍼들 -> App에서 참조
 	ComPtr<ID3D11Buffer> m_pTransformBuffer{};
 	ComPtr<ID3D11Buffer> m_pBonePoseBuffer{};
 	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer{};

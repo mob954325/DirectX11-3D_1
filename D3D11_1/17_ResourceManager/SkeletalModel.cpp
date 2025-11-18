@@ -2,19 +2,6 @@
 #include "../Common/Helper.h"
 #include "../Common/TimeSystem.h"
 
-/// <summary>
-/// 모델에서 사용할 트랜스폼 상수 버퍼 구조체
-/// </summary>
-struct TransformBuffer
-{
-	Matrix world;
-
-	UINT isRigid;		// 1 : rigid, 0 : skinned
-	UINT refBoneIndex;	// 리지드일 때 참조하는 본 인덱스
-	FLOAT pad1;
-	FLOAT pad2;
-};
-
 SkeletalModel::SkeletalModel()
 {
 }
@@ -30,28 +17,6 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 	this->m_pDeviceContext = pDeviceContext;
 	this->hwnd = hwnd;
 
-	// 트랜스폼 상수 버퍼 만들기 -> ??
-	D3D11_BUFFER_DESC bufferDesc = {};
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(TransformBuffer);
-	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pTransformBuffer.GetAddressOf()));
-
-	bufferDesc = {};
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(BonePoseBuffer);
-	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBonePoseBuffer.GetAddressOf()));
-
-	bufferDesc = {};
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(BoneOffsetBuffer);
-	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
-
 	// 리소스 매니저에서 FBX 정보 가져오기 -> 어디서?
 	modelAsset = FBXResourceManager::Instance().LoadFBXByPath(pDevice, pDeviceContext, filename);
 
@@ -64,7 +29,7 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer)
 {
 	m_pDeviceContext->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &m_BonePoses, 0, 0);
-	m_pDeviceContext->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &m_BoneOffsets, 0, 0);
+	m_pDeviceContext->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &modelAsset->m_BoneOffsets, 0, 0);
 
 	m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pBonePoseBuffer.GetAddressOf());
 	m_pDeviceContext->VSSetConstantBuffers(4, 1, m_pBoneOffsetBuffer.GetAddressOf());
@@ -102,43 +67,42 @@ void SkeletalModel::Update()
 	}
 
 	// pose 본 갱신
-	for (int i = 0; i < m_bones.size(); i++)
+	for (auto& bone : m_bones)
 	{
 		// 애니메이션 업데이트
-		if (m_bones[i].m_boneAnimation.m_boneName != "")
+		if (bone.m_boneAnimation.m_boneName != "")
 		{
 			Vector3 positionVec, scaleVec;
 			Quaternion rotationQuat;
-			m_bones[i].m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec);
+			bone.m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec);
 
 			Matrix mat = Matrix::CreateScale(scaleVec) * Matrix::CreateFromQuaternion(rotationQuat) * Matrix::CreateTranslation(positionVec);
-			m_bones[i].m_localTransform = mat.Transpose();
+			bone.m_localTransform = mat.Transpose();
 		}
 
 		// 위치 갱신
-		if (m_bones[i].m_parentIndex != -1)
+		if (bone.m_parentIndex != -1)
 		{
-			m_bones[i].m_worldTransform = m_bones[m_bones[i].m_parentIndex].m_worldTransform * m_bones[i].m_localTransform;
+			bone.m_worldTransform = m_bones[bone.m_parentIndex].m_worldTransform * bone.m_localTransform;
 		}
 		else
 		{
-			m_bones[i].m_worldTransform = m_bones[i].m_localTransform;
+			bone.m_worldTransform = bone.m_localTransform;
 		}
 
-		m_BonePoses.modelMatricies[m_bones[i].m_index] = m_bones[i].m_worldTransform;
-	
-		// update offsetMatrix
-		Matrix offsetMat = Matrix::Identity;
-		if (i > 0)
-		{
-			offsetMat = modelAsset->skeletalInfo.GetBoneOffsetByName(m_bones[i].name);
-		}
-		m_BoneOffsets.boneOffset[m_bones[i].m_index] = offsetMat;
-	}		
+		m_BonePoses.modelMatricies[bone.m_index] = bone.m_worldTransform;
+	}	
 }
 
 void SkeletalModel::Close()
 {
+}
+
+void SkeletalModel::GetBuffer(ComPtr<ID3D11Buffer>& pTransform, ComPtr<ID3D11Buffer>& pBonePose, ComPtr<ID3D11Buffer>& pBoneOffset)
+{
+	m_pTransformBuffer = pTransform;
+	m_pBonePoseBuffer = pBonePose;
+	m_pBoneOffsetBuffer = pBoneOffset;
 }
 
 void SkeletalModel::CreateBoneInfos()
@@ -174,6 +138,6 @@ void SkeletalModel::CreateBoneInfos()
 			bone.m_boneAnimation = boneAnim;	// 임시 -> 0번째 애니메이션 받기
 		}
 
-		m_bones.push_back(bone);
+		m_bones.push_back(bone); // -> 할당 겁나됨
 	}
 }

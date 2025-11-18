@@ -8,6 +8,11 @@
 #include "SkeletonInfo.h"
 #include "Animation.h"
 
+struct BoneOffsetBuffer
+{
+	Matrix boneOffset[256];
+};
+
 struct StaticMeshAsset
 {
 	SkeletonInfo skeletalInfo;
@@ -16,6 +21,7 @@ struct StaticMeshAsset
 	std::vector<Texture> textures;
 
 	std::string directory = "";
+	BoneOffsetBuffer m_BoneOffsets{}; // skeletalInfo 본 위치 정보
 };
 
 class FBXResourceManager

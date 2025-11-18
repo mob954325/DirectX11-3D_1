@@ -411,8 +411,28 @@ void ResourceManagerApp::RenderImGUI()
 		m_shadowPos = m_Camera.m_Position + ((Vector3)-m_LightDirection * m_shadowUpDistFromLookAt);	// 위치
 		m_shadowView = XMMatrixLookAtLH(m_shadowPos, m_shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 	}
-
 	ImGui::End();
+
+	// 리소스 매니터 테스트 코드
+	ImGui::Begin("Resource Infos");
+	{
+		if (ImGui::Button("Generate Silly Dance"))
+		{
+			auto model = make_unique<SkeletalModel>();
+			if (!model->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
+			{
+				MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+			}
+
+			model->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
+
+			Vector3 pos = m_Camera.m_Position;
+			model->m_Position = pos;
+			m_models.push_back(std::move(model));
+		}
+	}
+	ImGui::End();
+
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
@@ -728,19 +748,45 @@ bool ResourceManagerApp::InitScene()
 
 	m_pDevice->CreateRasterizerState(&rasterizerDesc, &m_pTransparentRasterizerState);
 
+	// 모델들이 사용할 버퍼 만들기
+	// 트랜스폼 상수 버퍼 만들기
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(TransformBuffer);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pTransformBuffer.GetAddressOf()));
+
+	// 본 포즈 버퍼 만들기
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(BonePoseBuffer);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBonePoseBuffer.GetAddressOf()));
+
+	// 본 오프셋 버퍼 만들기
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(BoneOffsetBuffer);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
+
 	// 모델 생성
 	m_pSillyDance = make_unique<SkeletalModel>();
 	if (!m_pSillyDance->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
+	m_pSillyDance->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 
 	m_pGround = make_unique<SkeletalModel>();
 	if (!m_pGround->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Ground.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-
+	m_pGround->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 	m_pGround->m_Position = { 0, -100, 0 };
 
 	m_pTree = make_unique<SkeletalModel>();
@@ -748,7 +794,7 @@ bool ResourceManagerApp::InitScene()
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-
+	m_pTree->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 	m_pTree->m_Scale = { 100, 100, 100 };
 
 	m_pHuman = make_unique<SkeletalModel>();
@@ -756,24 +802,8 @@ bool ResourceManagerApp::InitScene()
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-
+	m_pHuman->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 	m_pHuman->m_Position = { 200, 10, 100 };
-
-	// test create 100 x 100
-	for (int y = 0; y < 20; y++)
-	{
-		for (int x = 0; x < 20; x++)
-		{
-			auto model = make_unique<SkeletalModel>();
-			if (!model->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
-			{
-				MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-			}
-
-			model->m_Position = { 100 * (float)x, 10, 100 * (float)y };
-			m_models.push_back(std::move(model));			
-		}
-	}
 
 	return true;
 }
