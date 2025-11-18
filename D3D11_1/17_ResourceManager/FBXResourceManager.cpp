@@ -4,7 +4,7 @@
 #include <assimp\scene.h>
 #include <assimp\postprocess.h>
 
-void FBXResourceManager::ProcessNode(std::shared_ptr<StaticMeshAsset>& pAsset, aiNode* pNode, const aiScene* pScene)
+void FBXResourceManager::ProcessNode(std::shared_ptr<FBXResourceAsset>& pAsset, aiNode* pNode, const aiScene* pScene)
 {
 	string boneName = pNode->mName.C_Str();
 	BoneInfo boneInfo = pAsset->skeletalInfo.GetBoneInfoByName(boneName);
@@ -29,7 +29,7 @@ void FBXResourceManager::ProcessNode(std::shared_ptr<StaticMeshAsset>& pAsset, a
 	}
 }
 
-Mesh FBXResourceManager::ProcessMesh(std::shared_ptr<StaticMeshAsset>& pAsset, aiMesh* pMesh, const aiScene* pScene)
+Mesh FBXResourceManager::ProcessMesh(std::shared_ptr<FBXResourceAsset>& pAsset, aiMesh* pMesh, const aiScene* pScene)
 {
 	// Data to fill
 	std::vector<BoneWeightVertex> vertices;
@@ -104,7 +104,7 @@ Mesh FBXResourceManager::ProcessMesh(std::shared_ptr<StaticMeshAsset>& pAsset, a
 	return Mesh(m_pDevice, vertices, indices, textures);
 }
 
-void FBXResourceManager::ProcessBoneWeight(std::shared_ptr<StaticMeshAsset>& pAsset, aiMesh* pMesh)
+void FBXResourceManager::ProcessBoneWeight(std::shared_ptr<FBXResourceAsset>& pAsset, aiMesh* pMesh)
 {
 	UINT meshBoneCount = pMesh->mNumBones;
 	if (meshBoneCount <= 0) return;
@@ -124,7 +124,7 @@ void FBXResourceManager::ProcessBoneWeight(std::shared_ptr<StaticMeshAsset>& pAs
 	}
 }
 
-std::vector<Texture> FBXResourceManager::loadMaterialTextures(std::shared_ptr<StaticMeshAsset>& pAsset, aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene)
+std::vector<Texture> FBXResourceManager::loadMaterialTextures(std::shared_ptr<FBXResourceAsset>& pAsset, aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene)
 {
 	std::vector<Texture> textures;
 	for (UINT i = 0; i < mat->GetTextureCount(type); i++)
@@ -208,7 +208,7 @@ void FBXResourceManager::loadEmbeddedTexture(const aiTexture* embeddedTexture, C
 	}
 }
 
-std::shared_ptr<StaticMeshAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string path)
+std::shared_ptr<FBXResourceAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string path)
 {
 	// map에 먼저 있는지 확인
 	auto it = assets.find(path);
@@ -217,7 +217,7 @@ std::shared_ptr<StaticMeshAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11
 	{
 		if (!it->second.expired())
 		{
-			shared_ptr<StaticMeshAsset> assetPtr = it->second.lock();
+			shared_ptr<FBXResourceAsset> assetPtr = it->second.lock();
 			return assetPtr;
 		}
 		else
@@ -239,13 +239,13 @@ std::shared_ptr<StaticMeshAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11
 
 	const aiScene* pScene = importer.ReadFile(path, importFlag);
 
-	if (pScene == nullptr) return std::shared_ptr<StaticMeshAsset>();
+	if (pScene == nullptr) return std::shared_ptr<FBXResourceAsset>();
 
 	this->m_pDevice = pDevice;
 	this->m_pDeviceContext = pDeviceContext;
 
 	// 없으면 load후 map에 추가 
-	auto sharedAsset = make_shared<StaticMeshAsset>();
+	auto sharedAsset = make_shared<FBXResourceAsset>();
 
 	if (pScene == nullptr)
 		return nullptr;
@@ -291,7 +291,7 @@ std::shared_ptr<StaticMeshAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D11
 	}
 
 	// map에 저장하기
-	weak_ptr<StaticMeshAsset> weakAsset = sharedAsset;
+	weak_ptr<FBXResourceAsset> weakAsset = sharedAsset;
 	assets.insert({ path, weakAsset });
 
 	return sharedAsset;

@@ -59,7 +59,7 @@ public:
 	bool isAnimPlay = true;
 
 	// 리소스 데이터
-	shared_ptr<StaticMeshAsset> modelAsset{};
+	shared_ptr<FBXResourceAsset> modelAsset{};
 
 	void GetBuffer(ComPtr<ID3D11Buffer>& pTransform, ComPtr<ID3D11Buffer>& pBonePose, ComPtr<ID3D11Buffer>& pBoneOffset);
 

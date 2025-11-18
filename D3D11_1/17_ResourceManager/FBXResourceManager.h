@@ -13,7 +13,7 @@ struct BoneOffsetBuffer
 	Matrix boneOffset[256];
 };
 
-struct StaticMeshAsset
+struct FBXResourceAsset
 {
 	SkeletonInfo skeletalInfo;
 	std::vector<Animation> animations;
@@ -34,16 +34,17 @@ class FBXResourceManager
 
 	// 해당 매니저에서 fbx를 읽는다.
 	// 이미 읽은 fbx는 map에 저장된다.
-	std::map<std::string, std::weak_ptr<StaticMeshAsset>> assets;
+	std::map<std::string, std::weak_ptr<FBXResourceAsset>> assets;
 
 	// texture 불러오기 위한 device, deviceContext
 	ComPtr<ID3D11Device> m_pDevice = nullptr;
 	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;
 
-	void ProcessNode(std::shared_ptr<StaticMeshAsset>& pAsset, aiNode* pNode, const aiScene* pScene);
-	Mesh ProcessMesh(std::shared_ptr<StaticMeshAsset>& pAsset, aiMesh* pMesh, const aiScene* pScene);
-	void ProcessBoneWeight(std::shared_ptr<StaticMeshAsset>& pAsset, aiMesh* pMesh);
-	std::vector<Texture> loadMaterialTextures(std::shared_ptr<StaticMeshAsset>& pAsset, aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene);
+	// 에셋 내용 로드 함수들
+	void ProcessNode(std::shared_ptr<FBXResourceAsset>& pAsset, aiNode* pNode, const aiScene* pScene);
+	Mesh ProcessMesh(std::shared_ptr<FBXResourceAsset>& pAsset, aiMesh* pMesh, const aiScene* pScene);
+	void ProcessBoneWeight(std::shared_ptr<FBXResourceAsset>& pAsset, aiMesh* pMesh);
+	std::vector<Texture> loadMaterialTextures(std::shared_ptr<FBXResourceAsset>& pAsset, aiMaterial* mat, aiTextureType type, std::string typeName, const aiScene* scene);
 	void loadEmbeddedTexture(const aiTexture* embeddedTexture, ComPtr<ID3D11ShaderResourceView>& outTexture);
 
 public:
@@ -53,5 +54,5 @@ public:
 		return manager;
 	}
 
-	std::shared_ptr<StaticMeshAsset> LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string path);
+	std::shared_ptr<FBXResourceAsset> LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string path);
 };
