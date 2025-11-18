@@ -19,6 +19,7 @@
 // other files
 #include "../Common/GameApp.h"
 #include "DebugDraw.h"
+#include <deque>
 
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
@@ -34,7 +35,7 @@ public:
 	unique_ptr<SkeletalModel> m_pGround = nullptr;		// 
 	unique_ptr<SkeletalModel> m_pTree = nullptr;		// 
 	unique_ptr<SkeletalModel> m_pHuman = nullptr;		// 
-	vector<unique_ptr<SkeletalModel>> m_models;
+	deque<unique_ptr<SkeletalModel>> m_models;
 
 
 

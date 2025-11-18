@@ -44,6 +44,7 @@ public:
 	Vector3 m_Position{ 0.0f, 0.0f, 10.0f };
 	Vector3 m_Rotation{};
 	Vector3 m_Scale{ 1.0f, 1.0f, 1.0f };
+	bool isRemoved = false;
 
 	bool Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string filename);
 	void Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer);

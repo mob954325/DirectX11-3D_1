@@ -178,7 +178,7 @@ void ResourceManagerApp::OnUpdate()
 
 	for (auto& e : m_models)
 	{
-		e->Update();
+		if (!e->isRemoved) e->Update();
 	}
 }
 
@@ -276,7 +276,7 @@ void ResourceManagerApp::DepthOnlyPass()
 
 	for (auto& e : m_models)
 	{
-		e->Draw(m_pDeviceContext, m_pMaterialBuffer);
+		if(!e->isRemoved) e->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	}
 }
 
@@ -429,6 +429,18 @@ void ResourceManagerApp::RenderImGUI()
 			Vector3 pos = m_Camera.m_Position;
 			model->m_Position = pos;
 			m_models.push_back(std::move(model));
+		}
+
+		if (ImGui::Button("Remove Silly Dance"))
+		{
+			if (!m_models.empty())
+			{
+				auto model = std::move(m_models.front());
+				m_models.pop_front();
+				model->isRemoved = true;
+
+				model.release();
+			}
 		}
 	}
 	ImGui::End();
