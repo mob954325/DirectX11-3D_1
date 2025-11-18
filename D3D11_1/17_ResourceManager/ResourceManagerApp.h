@@ -171,4 +171,7 @@ public:
 	void ShowMatrix(const DirectX::XMFLOAT4X4& mat, const char* label = "Matrix");
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+	void OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker,
+		const Mouse::State& MouseState, const Mouse::ButtonStateTracker& MouseTracker) override;
 };

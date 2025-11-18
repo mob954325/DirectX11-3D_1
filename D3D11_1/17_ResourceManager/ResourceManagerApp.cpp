@@ -458,6 +458,13 @@ void ResourceManagerApp::RenderImGUI()
 	// 리소스 매니터 테스트 코드
 	ImGui::Begin("Resource Infos");
 	{
+		ImGui::Text("Generate Button : O");
+		ImGui::Text("Delete Button : P");
+		ImGui::Text("Delete All Generated Model : delete");
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+
 		if (ImGui::Button("Generate Silly Dance"))
 		{
 			auto model = make_unique<SkeletalModel>();
@@ -491,7 +498,6 @@ void ResourceManagerApp::RenderImGUI()
 		}
 
 		ImGui::Spacing();
-
 		// 사용량 출력 하기
 		DXGI_ADAPTER_DESC1 desc;
 		dxgiAdapter1->GetDesc1(&desc);
@@ -1045,4 +1051,43 @@ LRESULT ResourceManagerApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 		return true;
 
 	return __super::WndProc(hWnd, message, wParam, lParam);
+}
+
+void ResourceManagerApp::OnInputProcess(const Keyboard::State& KeyState, const Keyboard::KeyboardStateTracker& KeyTracker, const Mouse::State& MouseState, const Mouse::ButtonStateTracker& MouseTracker)
+{
+	__super::OnInputProcess(KeyState, KeyTracker, MouseState, MouseTracker);
+
+	if(KeyState.O)
+	{
+		auto model = make_unique<SkeletalModel>();
+		if (!model->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
+		{
+			MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
+		}
+
+		model->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
+
+		Vector3 pos = m_Camera.m_Position;
+		model->m_Position = pos;
+		m_models.push_back(std::move(model));
+	}
+
+	if (KeyState.P)
+	{
+		if (!m_models.empty())
+		{
+			m_models.front()->isRemoved = true;
+			m_models.pop_front();
+		}
+	}
+
+	if (KeyState.Delete)
+	{
+		for (auto& e : m_models)
+		{
+			e->isRemoved = true;
+		}
+
+		m_models.clear();
+	}
 }
