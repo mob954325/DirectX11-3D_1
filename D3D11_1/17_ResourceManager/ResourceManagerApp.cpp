@@ -37,6 +37,22 @@ struct ConstantBuffer
 	Vector3 CameraPos;
 };
 
+std::string WStringToUTF8(const std::wstring& wstr)
+{
+	int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(),
+		(int)wstr.size(),
+		nullptr, 0, nullptr, nullptr);
+
+	std::string result(sizeNeeded, 0);
+
+	WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(),
+		(int)wstr.size(),
+		&result[0], sizeNeeded,
+		nullptr, nullptr);
+
+	return result;
+}
+
 ResourceManagerApp::ResourceManagerApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
@@ -139,6 +155,29 @@ void ResourceManagerApp::DebugDrawFrustum(Matrix worldMat, Matrix viewMat, Matri
 	m_batch->End();
 }
 
+bool ResourceManagerApp::InitDxgi()
+{
+	// ============================================
+	// 1. IDXGIDevice3 생성
+	// ============================================
+	HR_T(m_pDevice->QueryInterface(__uuidof(IDXGIDevice3), reinterpret_cast<void**>(dxgiDevice3.GetAddressOf())));
+
+
+	// ============================================
+	// 1. DXGI 어댑터 생성
+	// ============================================
+	HR_T((CreateDXGIFactory1(__uuidof(IDXGIFactory6), reinterpret_cast<void**>(dxgiFactory6.GetAddressOf()))));
+
+	HR_T(dxgiFactory6->EnumAdapters1(0, dxgiAdapter1.GetAddressOf()));
+
+	// ============================================
+	// 3. VRAM 사용량 (DXGI 1.4 - Windows 10+)
+	// ============================================
+	HR_T(dxgiAdapter1->QueryInterface(__uuidof(IDXGIAdapter3), reinterpret_cast<void**>(dxgiAdapter3.GetAddressOf())));
+
+	return true;
+}
+
 bool ResourceManagerApp::OnInitialize()
 {
 	if (!InitD3D())
@@ -151,6 +190,9 @@ bool ResourceManagerApp::OnInitialize()
 		return false;
 
 	if (!InitEffect())
+		return false;
+
+	if (!InitDxgi()) 
 		return false;
 
 	InitShdowMap();
@@ -441,6 +483,103 @@ void ResourceManagerApp::RenderImGUI()
 
 				model.release();
 			}
+		}
+
+		if (ImGui::Button("Call Trim"))
+		{
+			dxgiDevice3->Trim();
+		}
+
+		ImGui::Spacing();
+
+		// 사용량 출력 하기
+		DXGI_ADAPTER_DESC1 desc;
+		dxgiAdapter1->GetDesc1(&desc);
+
+		wstring gpuStr = L"GPU: ";
+		gpuStr += desc.Description;
+		string utf8 = WStringToUTF8(gpuStr);
+		ImGui::Text(utf8.c_str());
+
+		// ============================================
+		// 2. VRAM 전체 용량
+		// ============================================
+
+		string textStr;
+		SIZE_T vramTotal = desc.DedicatedVideoMemory;
+		std::cout << "VRAM Total: " << (vramTotal / 1024 / 1024) << " MB\n";
+		textStr += "VRAM Total: ";
+		textStr += to_string(vramTotal / 1024 / 1024);
+		textStr += " MB";
+		ImGui::Text(textStr.c_str());
+		textStr.clear();
+
+		// ============================================
+		// 3. VRAM 사용량 (DXGI 1.4 - Windows 10+)
+		// ============================================
+		DXGI_QUERY_VIDEO_MEMORY_INFO memInfo = {};
+		if (SUCCEEDED(dxgiAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &memInfo)))
+		{
+			SIZE_T vramUsed = memInfo.CurrentUsage;
+			textStr += "VRAM Used: ";
+			textStr += to_string(vramUsed / 1024 / 1024);
+			textStr += " MB";
+			ImGui::Text(textStr.c_str());
+			textStr.clear();
+		}
+
+		// ============================================
+		// 4. 시스템 메모리 / 페이지 파일
+		// ============================================
+		MEMORYSTATUSEX mem = {};
+		mem.dwLength = sizeof(MEMORYSTATUSEX);
+
+		if (GlobalMemoryStatusEx(&mem))
+		{
+			textStr += "RAM Total:";
+			textStr += to_string(mem.ullTotalPhys / 1024 / 1024);
+			textStr += " MB";
+			ImGui::Text(textStr.c_str());
+			textStr.clear();
+
+			textStr += "RAM Available: ";
+			textStr += to_string(mem.ullAvailPhys / 1024 / 1024);
+			textStr += " MB";
+			ImGui::Text(textStr.c_str());
+			textStr.clear();
+
+			textStr += "PageFile Total: ";
+			textStr += to_string(mem.ullTotalPageFile / 1024 / 1024);
+			textStr += " MB";
+			ImGui::Text(textStr.c_str());
+			textStr.clear();
+
+			textStr += "PageFile Available: ";
+			textStr += to_string(mem.ullAvailPageFile / 1024 / 1024);
+			textStr += " MB";
+			ImGui::Text(textStr.c_str());
+			textStr.clear();
+		}
+
+		// ============================================
+		// 5. 프로세스 메모리 사용량
+		// ============================================
+		PROCESS_MEMORY_COUNTERS_EX pmc = {};
+		if (GetProcessMemoryInfo(GetCurrentProcess(),
+			(PROCESS_MEMORY_COUNTERS*)&pmc,
+			sizeof(pmc)))
+		{
+			textStr += "Process Working Set: ";
+			textStr += to_string(pmc.WorkingSetSize / 1024 / 1024);
+			textStr += " MB";
+			ImGui::Text(textStr.c_str());
+			textStr.clear();
+
+			textStr += "Private Bytes: ";
+			textStr += to_string(pmc.PrivateUsage / 1024 / 1024);
+			textStr += " MB";
+			ImGui::Text(textStr.c_str());
+			textStr.clear();
 		}
 	}
 	ImGui::End();

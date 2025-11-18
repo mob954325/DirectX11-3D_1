@@ -143,6 +143,14 @@ public:
 	ComPtr<ID3D11Buffer> m_pBonePoseBuffer{};
 	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer{};
 
+	// dxgi들
+	ComPtr<IDXGIDevice3> dxgiDevice3{};
+	ComPtr<IDXGIFactory6> dxgiFactory6{};
+	ComPtr<IDXGIAdapter1> dxgiAdapter1{};
+	ComPtr<IDXGIAdapter3> dxgiAdapter3{};
+
+	bool InitDxgi();
+
 	// =============================================================
 	virtual bool OnInitialize();
 	virtual void OnUpdate();

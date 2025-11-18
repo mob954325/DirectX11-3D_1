@@ -4,6 +4,12 @@
 #include "InputSystem.h"
 #include "Camera.h"
 
+// dxgi 어뎁터 조회용
+#include <dxgi1_6.h>
+#include <psapi.h>
+#pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "psapi.lib")
+
 #define MAX_LOADSTRING 100
 
 class GameApp : public InputProcesser
