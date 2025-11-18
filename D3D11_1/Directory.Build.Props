@@ -1,5 +1,5 @@
 <Project>
-  <!-- ==== 경로/트리플릿 공통 설정 ==== -->
+	<!-- ==== 경로/트리플릿 공통 설정 ==== -->
   <PropertyGroup>
     <!-- vcpkg 루트 경로: 필요시 본인 경로로 수정 -->
     <VcpkgRoot>D:\vcpkg</VcpkgRoot>
