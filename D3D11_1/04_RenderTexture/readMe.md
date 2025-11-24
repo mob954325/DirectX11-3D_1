@@ -64,7 +64,10 @@ DirectXTK의 DDSTextureLoader를 사용해 DDS 포맷 텍스처를 로드하고,
         
 
 ## 6. 실행 결과
-(스크린샷 또는 GIF)
+
+https://github.com/user-attachments/assets/435763e9-dd84-4dbd-8a85-d2ee097fea26
+
+
 
 ## 7. 배운 점
 
