@@ -129,6 +129,11 @@ Lambert's Cosine Law를 적용한 Diffuse 조명 계산을 통해
 
 ## 6. 실행 결과
 
+
+https://github.com/user-attachments/assets/700b0265-3ea1-4d50-9abc-dbb0487cb0c9
+
+
+
 ## 7. 배운 점
 
 - Lambert's Cosine Law의 수학적/물리적 의미
