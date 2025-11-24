@@ -47,7 +47,7 @@ Depth Stencil View를 활용한 깊이 테스트와, 계층적 변환(부모-자
     
     - 원인 :
         DirectX(C++)는 행 우선 HLSL은 열 우선으로 행렬을 해석
-        
+
         mul(matrix, vector) 연산 시 메모리 레이아웃이 달라 결과가 다름
         
     - 해결 :
@@ -57,15 +57,15 @@ Depth Stencil View를 활용한 깊이 테스트와, 계층적 변환(부모-자
         
 
 ## 6. 실행 결과
-![draw mesh result](../../document/Resource/Projects/DrawMesh/DrawMeshResult.mp4)
+https://github.com/user-attachments/assets/308f7bc0-c200-48c0-8ed2-c7aa52d9f266
+
 
 - 중앙 큐브: Y축 기준 자전
 - 중간 큐브: 중앙 큐브 주위를 공전하며 자전
 - 작은 큐브: 중간 큐브 주위를 공전
 - ImGui로 각 큐브 위치, 카메라 위치/회전, FOV/Near/Far 실시간 조정 가능
 
-## 7. 배운 점 & 다음 단계로 이어지는 포인트
-
+## 7. 배운 점
 - MVP 변환의 수학적 의미와 각 행렬의 역할 이해
 - Depth Test가 3D 렌더링에서 필수적인 이유 체득
 - 행렬 곱셈 순서가 변환 결과에 미치는 영향 파악
