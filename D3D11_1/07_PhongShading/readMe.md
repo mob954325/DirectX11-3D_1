@@ -137,6 +137,10 @@ PhongShading과 Blinn-Phong Shading 연산의 차이를 비교해봅니다.
 
 ## 6. 실행 결과
 
+
+https://github.com/user-attachments/assets/67c62c0a-69d6-431f-a6b6-1ef3fe2a1c05
+
+
 ## 7. 배운 점
 
 - Phong Shading Model의 빛 출력 방식
