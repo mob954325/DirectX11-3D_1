@@ -7,22 +7,78 @@ PhongShading과 Blinn-Phong Shading 연산의 차이를 비교해봅니다.
 
 ## 2. 핵심 기술 포인트
 
-- 환경광 결정
-    - 물체는 “ 재질의 색 * 빛의 색 “ 을 통해 결정한다.
+* 환경광 (Ambient) 결정
+  - 재질 환경광 × 빛 환경광
+  - 음영이 있는 면에도 완전히 검게 보이지 않도록 기본 밝기 제공
+  - 전역 조명(Global Illumination)의 간단한 근사치  
+  
+* 확산광 (Diffuse) 결정
+  - 공식: max(0, dot(-lightDir, normal)) × 재질 확산광 × 빛 확산광 × 빛 색상
+  - 텍스처 색상도 곱하여 최종 확산광 결정
+  - Lambert's Cosine Law 기반  
+  
+* 정반사광 (Specular) 결정
+  - **Phong 방식:**
+    공식: pow(max(0, dot(reflectVec, viewVec)), shininess) × 재질 정반사광 × 빛 정반사광
+    - reflect() 함수로 빛의 반사 벡터 계산
+    - 반사 벡터와 시선 벡터의 각도로 하이라이트 강도 결정
     
-- 확산광 결정
-    - ( 빛 방향 dot 표면 노말 ) * 물체 재질의 확산광 색 * 빛의 확산광 색에 의해 결정된다.
-    - 텍스쳐 요소도 해당 값에 곱한다.
+  - **Blinn-Phong 방식:**
+    공식: pow(max(0, dot(halfVec, normal)), shininess) × 재질 정반사광 × 빛 정반사광
+    - Half Vector = normalize(viewVec + (-lightDir))
+    - reflect() 연산 불필요 → 더 빠름
+    - 시각적으로 Phong보다 약간 더 넓은 하이라이트  
 
-- 정반사광 결정
-    - Phong :  ( 반사각 dot 시선 벡터 ) ^광택값 * 재질 정반사광 색 * 빛의 정반사광 색
-    - Blinn-Phong : ( half벡터 dot 노말 벡터 ) ^ 광택 값 * 재질 정반사광 색 * 빛의 정반사광
+* 재질(Material) 시스템 구현
+  - 별도의 Constant Buffer (register(b1))로 재질 속성 관리
+  - 오브젝트마다 다른 재질 적용 가능
+  - Ambient, Diffuse, Specular 색상 독립적으로 조정  
+
+* 카메라 위치 전달  
+  - Specular 계산에 필요한 View Vector를 위해
+  - Constant Buffer에 CameraPos 추가  
 
 ## 3. 그래픽스 파이프라인에서의 위치
 
-- Pixel Shader
-    
-    빛의 광들과 재질 광에 따라 최종 출력 값을 결정한다.
+- Input Assembler:
+  Vertex 구조체: position, normal, texture (UV)
+  재질 정보를 별도 Constant Buffer(b1)로 관리
+
+- Vertex Shader:
+  1. 정점을 World Space로 변환 → PS에 전달 (Specular용)
+  2. 법선을 World Space로 변환 → PS에 전달
+  3. MVP 변환으로 최종 위치 계산
+  4. UV 좌표를 그대로 PS로 전달
+  
+  ※ 주의: 비균등 스케일 시 법선 변환에 역전치 행렬 필요  
+         (이 프로젝트는 균등 스케일만 사용)
+
+- Pixel Shader (Phong 또는 Blinn-Phong):  
+  
+  [공통 단계]  
+  1. 텍스처 샘플링: txDiffuse.Sample(sampler, UV)
+  2. 법선 정규화: normalize(input.normal)
+  3. 환경광 계산: matAmbient × lightAmbient
+  4. Diffuse Factor 계산: max(0, dot(-lightDir, normal))
+  
+  [Diffuse Factor > 0일 때만 계산]  
+  5a. 확산광 계산:  
+      texture × diffuseFactor × matDiffuse × lightDiffuse × lightColor
+  
+  5b. 정반사광 계산 (방식이 다름):  
+      
+      **Phong:**
+      - reflectVec = reflect(lightDir, normal)
+      - specFactor = pow(max(0, dot(reflectVec, viewVec)), shininess)
+      
+      **Blinn-Phong:**
+      - halfVec = normalize(viewVec + (-lightDir))
+      - specFactor = pow(max(0, dot(halfVec, normal)), shininess)
+      
+      finalSpecular = specFactor × matSpecular × lightSpecular × lightColor
+  
+  6. 최종 색상: ambient + diffuse + specular
+     알파값은 텍스처 알파 사용
     
 
 ## 4. 구현에서 중요한 지점
