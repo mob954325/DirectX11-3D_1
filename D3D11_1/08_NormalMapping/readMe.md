@@ -68,6 +68,10 @@ Vertex Format을 3D좌표, 텍스처 좌표, TBN 벡터로 구성하고 NormalMa
 
 ## 6. 실행 결과
 
+
+https://github.com/user-attachments/assets/37188b01-67dd-4b65-b360-ab94f27870cc
+
+
 ## 7. 배운 점
 
 1. 노말 맵은 면의 노말 벡터의 값을 색상 데이터로 저장한다.
