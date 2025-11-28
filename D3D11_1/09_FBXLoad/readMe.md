@@ -31,6 +31,10 @@ aiNode를 읽을 때 meshes 데이터를 순회하면서 Mesh 클래스에 데�
 
 ## 6. 실행 결과
 
+
+https://github.com/user-attachments/assets/9f53d981-a085-40b9-a8a8-351e8e4030ca
+
+
 ## 7. 배운 점
 
 - Assimp의 aiScene이 구성하는 정보
