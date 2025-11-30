@@ -9,20 +9,19 @@ C++, HLSL
 ### 프로젝트 내용
 
 1. [ClearScreen](/D3D11_1/01_ClearScreen/)
-2. DrawRectangle, DrawTriangle
-3. DrawMesh
-4. RenderTexture
-5. Lighting
-6. DrawTextureAndSkybox
-7. PhongShading
-8. NormalMapping
-9. FBXLoad
-10. TranslucentRender
-11. BoneTransformAnimation
-12. SkinnedAnimation
-13. ShadowMapping
-14. CartoonRendering
-15. ResourceManager
+2. [DrawRectangle](/D3D11_1/02_DrawRectangle/)
+3. [DrawMesh](/D3D11_1/03_DrawMesh/)
+4. [RenderTexture](/D3D11_1/04_RenderTexture/)
+5. [Lighting](/D3D11_1/05_Lighting/)
+6. [DrawTextureAndSkybox](/D3D11_1/06_DrawTextureAndSkybox/)
+7. [PhongShading](/D3D11_1/07_PhongShading/)
+8. [NormalMapping](/D3D11_1/08_NormalMapping/)
+9. [FBXLoad](/D3D11_1/09_FBXLoad/)
+10. [BoneTransformAnimation](/D3D11_1/11_BoneTransformAnimation/)
+11. [SkinnedAnimation](/D3D11_1/12_SkinnedAnimation/)
+12. [ShadowMapping](/D3D11_1/13_ShadowMapping/)
+13. [CartoonRendering](/D3D11_1/15_CartoonRendering/)
+14. [ResourceManager](/D3D11_1/17_ResourceManager/)
 
 ### 프로젝트 설정
 
