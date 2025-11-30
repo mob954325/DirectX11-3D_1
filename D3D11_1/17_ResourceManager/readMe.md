@@ -32,6 +32,10 @@ struct FBXResourceAsset
 
 ## 4. 실행 결과
 
+
+https://github.com/user-attachments/assets/5a12f6ed-938b-4d50-8baa-1b8f57d57657
+
+
 ## 5. 배운 점
 
 - IDXGIDevice3::Trim() 을 통해 드라이버와 런타임이 캐싱해둔 리소스를 정리하여 시스템 메모리와 GPU 메모리를 절약할 수 있다.
