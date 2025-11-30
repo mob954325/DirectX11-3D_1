@@ -195,6 +195,11 @@ RenderPass NDC에서의 깊이 값과 그림자 깊이 값을 비교해 RenderPa
 
 ## 6. 실행 결과
 
+
+https://github.com/user-attachments/assets/086b3279-c81a-4173-b48b-782363568e87
+
+
+
 ## 7. 배운 점
 
 - Depth Only Pass를 구성해 이를 이용해서 그림자 맵을 샘플링해 그림자를 구현할 수 있다.
