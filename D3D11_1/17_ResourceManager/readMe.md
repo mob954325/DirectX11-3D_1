@@ -10,7 +10,7 @@ FBX에서 불러온 데이터에서 공유 데이터를 구분하여 관리하�
 
 - 기존에 FBX 파일 데이터를 리소스 데이터와 인스턴스 데이터로 구분합니다.
     
-    ![resourceData.png](attachment:1d59d12d-14f0-4375-9b24-99e73ef9212b:resourceData.png)
+    ![resourceData.png](../../document/Resource/Projects/ResourceManager/resourceData.png)
     
 
 리소스 매니저가 저장할 구조체 만들기
