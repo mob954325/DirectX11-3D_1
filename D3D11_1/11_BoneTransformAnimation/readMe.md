@@ -176,6 +176,10 @@ cbuffer ModelMatrix : register(b3) // Skinning
 
 ## 6. 실행 결과
 
+https://github.com/user-attachments/assets/00a138d7-f51f-4ab3-8842-9347b6eeaf7a
+
+
+
 ## 7. 배운 점
 
 - Skeletal Animation 중 Rigid Body 방식
