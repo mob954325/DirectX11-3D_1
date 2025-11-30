@@ -1,50 +1,71 @@
 해당 리포지토리는 DirectX11 3D 개인 학습 리포지토리입니다.
 
-### 개발 환경 및 사용 언어
-C++, HLSL, DirectX11, Visual Studio  
+### 개발 환경
+DirectX11, Visual Studio  
 
-## 학습 내용
+### 사용 언어
+C++, HLSL
 
-### Clear Screen
-ClearRenderTargetView를 이용한 화면 초기화  
-<img width="500" height="500" alt="ClearScreen" src="https://github.com/user-attachments/assets/4838b067-552d-42ba-b831-572837295135" />
+### 프로젝트 내용
 
+1. [ClearScreen](/D3D11_1/01_ClearScreen/)
+2. [DrawRectangle](/D3D11_1/02_DrawRectangle/)
+3. [DrawMesh](/D3D11_1/03_DrawMesh/)
+4. [RenderTexture](/D3D11_1/04_RenderTexture/)
+5. [Lighting](/D3D11_1/05_Lighting/)
+6. [DrawTextureAndSkybox](/D3D11_1/06_DrawTextureAndSkybox/)
+7. [PhongShading](/D3D11_1/07_PhongShading/)
+8. [NormalMapping](/D3D11_1/08_NormalMapping/)
+9. [FBXLoad](/D3D11_1/09_FBXLoad/)
+10. [BoneTransformAnimation](/D3D11_1/11_BoneTransformAnimation/)
+11. [SkinnedAnimation](/D3D11_1/12_SkinnedAnimation/)
+12. [ShadowMapping](/D3D11_1/13_ShadowMapping/)
+13. [CartoonRendering](/D3D11_1/15_CartoonRendering/)
+14. [ResourceManager](/D3D11_1/17_ResourceManager/)
 
-### Draw Rectangle
-버텍스 버퍼와 인덱스 버퍼를 이용한 사각형 그리기  
-<img width="500" height="500" alt="DrawRectangle" src="https://github.com/user-attachments/assets/15d7f16c-da0d-44a7-95d7-e575a0ca822c" />
+### 프로젝트 설정
 
+위 레포는 vcpkg를 통해 라이브러리를 관리하고 있습니다.
+필요한 라이브러리는 다음과같습니다.
 
-### Draw Mesh
-정육면체 그리기 및 씬 그래프를 이용한 행성 회전 구현  
+Vcpkg - 마소에서 개발한 오픈 소스 라이브러리 관리자
+https://github.com/microsoft/vcpkg.git
 
-https://github.com/user-attachments/assets/17350c28-b77b-454c-81e9-4effeffc2a6c
+DirectX Tool kit - DX11 헬퍼 클래스 모음
+https://github.com/microsoft/DirectXTK.git
 
+DirectXTex - 텍스처 변환 및 최적화 용도
+https://github.com/microsoft/DirectXTex
 
-### Render Texture
-졍육면체에 DDS 텍스처 매핑  
+ImGUI - 실시간 값 체크 용
+https://github.com/ocornut/imgui.git
 
-https://github.com/user-attachments/assets/41f25f60-9427-4e56-896e-ee63248ebfa3
+Assimp - 3D 모델 파일 읽기
+https://github.com/assimp/assimp.git
 
+### 경로 설정
 
-### Lighting
-표면 노말 값을 이용한 Lambertian Shading Model 구현  
+.Props을 통해 vcpkg와 연결하고 있습니다. 
 
-https://github.com/user-attachments/assets/c7857ad8-c5d1-4d3d-bfdb-91e1e4acedec
+만약 vcpkg의 경로가 .Props와 다르다면 vcpkg 경로로 알맞게 변경해야합니다.
 
-### SkyBox
-큐브모양 Skybox 구현  
+```jsx
+<!-- vcpkg 루트 경로: 필요시 본인 경로로 수정 -->
+<VcpkgRoot>D:\vcpkg</VcpkgRoot>
+```
 
-https://github.com/user-attachments/assets/e5845f63-4f3f-4118-8775-a3fa69ccfac2
+Vcpkg 설치하기 및 vcpkg로 소스 다운 
 
---- 
+1. vcpkg git을 클론 후 bootstrap-vcpkg.bat 실행
+2. 아래 코드를 vcpkg 폴더 경로를 가진 터미널에서 입력
 
-## 사용하는 라이브러리 
+```
+vcpkg install directxtk:x64-windows-static-md
+vcpkg install directxtex[dx11]:x64-windows-static-md
+vcpkg install imgui[dx11-binding]:x64-windows-static-md
+vcpkg install imgui[win32-binding]:x64-windows-static-md --recurse 
+vcpkg install assimp:x64-windows        
+```
 
-Vcpkg 
-
-DirectX Tool Kit 
-
-DirectXTex 
-
-ImGUI 
+### 실행 파일
+각 프로젝트는 빌드하면 Bin폴더에서 프로젝트명으로된 폴더 내에 .exe를 통해 확인 할 수 있습니다.
