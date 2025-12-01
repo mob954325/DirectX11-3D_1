@@ -27,6 +27,10 @@ cbuffer ConstantBuffer : register(b0) // PerFrame
     float4 LightSpecular; // 정반사    
     float Shininess; // 광택지수
     float3 CameraPos; // 카메라 위치        
+    
+    float Metalness;
+    float Roughness;
+	float2 pad3;    
 }
 
 cbuffer Material : register(b1) // PerMaterial

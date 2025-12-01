@@ -34,7 +34,11 @@ struct ConstantBuffer
 	Vector4 diffuse;	// 난반사
 	Vector4 specular;	// 정반사
 	FLOAT shininess;	// 광택지수
-	Vector3 CameraPos;
+	Vector3 CameraPos;	// 카메라 위치
+
+	FLOAT metalness;	//  
+	FLOAT roughness;	//
+	Vector2 pad3;
 };
 
 std::string WStringToUTF8(const std::wstring& wstr)
@@ -342,6 +346,9 @@ void PBR1App::RenderPass()
 
 	cb.shininess = m_Shininess;
 	cb.CameraPos = m_Camera.m_Position;
+
+	cb.roughness = roughness;
+	cb.metalness = metalness;
 
 	// 텍스처 및 샘플링 설정 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -665,6 +672,11 @@ void PBR1App::RenderImGUI()
 
 	ImGui::Spacing();
 	ImGui::DragFloat3("m_pGround->m_Scale", &m_GroundScale.x, 0.1f);
+	ImGui::Spacing();
+
+	ImGui::DragFloat("Roughness", &roughness, 0.1f, 0, 1);
+	ImGui::DragFloat("Metalness", &metalness, 0.1f, 0, 1);
+
 	ImGui::Spacing();
 
 	// 리셋 버튼

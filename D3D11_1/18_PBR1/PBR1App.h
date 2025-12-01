@@ -37,8 +37,6 @@ public:
 	unique_ptr<SkeletalModel> m_pHuman = nullptr;		// 
 	deque<unique_ptr<SkeletalModel>> m_models;
 
-
-
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	// ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더
 	ComPtr<ID3D11PixelShader>		m_pPixelShader = nullptr;				// 사용할 픽셀 셰이더
@@ -150,6 +148,10 @@ public:
 	ComPtr<IDXGIAdapter3> dxgiAdapter3{};
 
 	bool InitDxgi();
+
+	// PBR 매개변수
+	float roughness = 0;
+	float metalness = 0;
 
 	// =============================================================
 	virtual bool OnInitialize();
