@@ -156,7 +156,8 @@ public:
 	ComPtr<ID3D11RasterizerState> m_pSkyRasterizerState = nullptr;	// 스카이박스 래스터라이저 상태
 	ComPtr<ID3D11DepthStencilState> m_pSkyDepthStencilState = nullptr;	// 스카이 박스를 위한 뎊스스텐실 상태 개체
 
-	// PBR 매개변수
+	// PBR
+	ComPtr<ID3D11PixelShader> m_pPBRPS = nullptr;
 	float roughness = 0;
 	float metalness = 0;
 

@@ -3,25 +3,40 @@
 static const float PI = 3.141592;
 static const float Epsilon = 0.00001;
 
-// D(h) (Normal Distribution Function)
-float NdfGGXTR(float3 normal, float3 halfVec, float roughness)
+// D(h) (Normal Distribution Function) : Trowbridge-Reitz GGX
+float NDFGGXTR(float3 normal, float3 halfVec, float roughness)
 {
+    float cosLh = dot(normal, halfVec);
     float alpha = roughness * roughness;
-    float demon = PI * pow((pow(dot(normal, halfVec), 2) * (alpha - 1) + 1), 2);
+    float alphaSq = alpha * alpha;
     
-    return alpha / demon;
+    float demon = PI * pow((cosLh * cosLh) * (alphaSq - 1) + 1, 2);
+    
+    return alphaSq / demon;
 }
 
-// F(v, h)
-float3 FresnelReflection()
+// F(v, h) Fresnel equation : Fresnel-Schlick approximation 
+float3 FresnelSchlick(float3 halfVec, float3 viewVec, float3 F0) // F0 == relfection factor
 {
-    return float3(0, 0, 0);
+    return F0 + (1.0 - F0) * pow(1.0 - dot(halfVec, viewVec), 5.0);  
 }
 
-// G(l,v,h)
-float GeometricAttenuation()
+// G(l,v,h) 
+float GSchlickGGX(float3 norm, float3 viewVec, float roughness)
 {
-    return float(0);
+    float NdotV = dot(norm, viewVec);    
+    float denom = NdotV * (1.0 - roughness) + roughness;
+    return NdotV / denom;
+}
+
+// G(n, v, l, k) : Smith's Method
+float GSmithMethod(float3 norm, float3 viewVec, float3 lightVec, float roughness)
+{
+    float kDir = (roughness + 1) * (roughness + 1);     // for directional lighting
+    //float kIBL = roughness* roughness / 2.0;          // IBL lighting
+    kDir /= 8.0;
+    
+    return GSchlickGGX(norm, viewVec, kDir) * GSchlickGGX(norm, lightVec, kDir);
 }
 
 float4 main(PS_INPUT input) : SV_TARGET
@@ -77,41 +92,43 @@ float4 main(PS_INPUT input) : SV_TARGET
     float3 finalNorm = normalize(mul(normalTexture, TBN));
     
     // texture Sampling 
-    float4 finalTexture = txDiffuse.Sample(samLinear, input.Tex);
+    float4 albedo = txDiffuse.Sample(samLinear, input.Tex);
     if (!hasDiffuse)
     {
-        finalTexture = float4(1.0f, 1.0f, 1.0f, 1.0f);
+        albedo = float4(1.0f, 1.0f, 1.0f, 1.0f);
     }
     
-    if (finalTexture.a < 0.5f)
+    if (albedo.a < 0.5f)
         discard;
     
-    // lighting Calculate
-    float3 norm = finalNorm; // normal
-    float4 lightDir = -LightDirection;
+    float3 directLighting = 0.0f;
     
-    float4 finalAmbient = matAmbient * LightAmbient;
+    // Cook-Torrance Specular BRDF
+    float3 norm = finalNorm;
+    float3 lightIn = (float3)LightDirection;    
     
-    float diffuseFactor = dot((float3) lightDir, norm);
+    float3 Lo = normalize(CameraPos - (float3) input.World); // 빛이 눈으로 가는 방향 : 현재 위치 -> eye ( view Vector )
+    float3 Li = -(float3)LightDirection;    // 빛 방향
+    float3 Lh = normalize(Li + Lo); // half-vector between Li and Lo        
     
-    float4 finalDiffuse = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    float4 finalSpecular = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    float NdotL = max(0.0, dot(norm, Li));
+    float NdotO = max(0.0, dot(norm, Lo));
     
-    if (diffuseFactor > 0.0f)
-    {
-        // 정반사광        
-        float3 viewVector = CameraPos - input.World;
-        float3 halfVector = viewVector + -(float3) lightDir;
-        float specularFactor = specularIntensity * pow(saturate(dot(norm, normalize(halfVector))), Shininess);
-        
-        float d = NdfGGXTR(norm, halfVector, Roughness);
-        
-        finalDiffuse = d * finalTexture * diffuseFactor * matDiffuse * LightDiffuse * LightColor;
-        finalSpecular = d * specularFactor * matSpecular * LightSpecular * LightColor;
-    }
+    // 기본 반사율(F0) = lerp(비금속 평균 반사, baseColor(텍스처), matalness)
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), (float3)albedo, Metalness);   
     
-    float4 finalColor = directLighing * (finalAmbient + finalDiffuse + finalSpecular); // 최종 색
-    finalColor.a = finalTexture.a;
+    float D = NDFGGXTR(norm, Lh, max(0.001, Roughness));
+    float F = FresnelSchlick(Lh, Lo, F0);
+    float G = GSmithMethod(norm, Lo, Li, Roughness);    
     
-    return finalColor + textureEmission;
+    float3 specularBRDF = (D * F * G) / max(Epsilon, 4.0 * NdotL * NdotO);
+   
+    float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), Metalness);
+    
+    // Lambert diffuse BRDF  
+    float3 diffuseBRDF = kd * (float3)albedo / PI;
+    
+    directLighting = (diffuseBRDF + specularBRDF) * NdotL;    
+    
+    return float4(pow(float3(directLighting), 1.0 / 2.2), 1.0);
 }

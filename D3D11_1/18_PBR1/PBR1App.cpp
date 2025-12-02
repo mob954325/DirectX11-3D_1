@@ -491,12 +491,15 @@ void PBR1App::RenderPass()
 	switch (psIndex)
 	{
 	case 0:
-		m_pDeviceContext->PSSetShader(m_pBlinnPhongShader.Get(), 0, 0);
+		m_pDeviceContext->PSSetShader(m_pPBRPS.Get(), 0, 0);
 		break;
 	case 1:
-		m_pDeviceContext->PSSetShader(m_pPhongShader.Get(), 0, 0);
+		m_pDeviceContext->PSSetShader(m_pBlinnPhongShader.Get(), 0, 0);
 		break;
 	case 2:
+		m_pDeviceContext->PSSetShader(m_pPhongShader.Get(), 0, 0);
+		break;
+	case 3:
 		m_pDeviceContext->PSSetShader(m_pToonShader.Get(), 0, 0);
 		break;
 	}
@@ -813,9 +816,10 @@ void PBR1App::RenderImGUI()
 	ImGui::NewLine();
 
 	ImGui::Text("PixelShader:");
-	ImGui::RadioButton("Blinn-Phong", psIndex == 0); if (ImGui::IsItemClicked()) psIndex = 0;
-	ImGui::RadioButton("Phong", psIndex == 1); if (ImGui::IsItemClicked()) psIndex = 1;
-	ImGui::RadioButton("Toon", psIndex == 2); if (ImGui::IsItemClicked()) psIndex = 2;
+	ImGui::RadioButton("PBR", psIndex == 0); if (ImGui::IsItemClicked()) psIndex = 0;
+	ImGui::RadioButton("Blinn-Phong", psIndex == 1); if (ImGui::IsItemClicked()) psIndex = 1;
+	ImGui::RadioButton("Phong", psIndex == 2); if (ImGui::IsItemClicked()) psIndex = 2;
+	ImGui::RadioButton("Toon", psIndex == 3); if (ImGui::IsItemClicked()) psIndex = 3;
 
 	ImGui::NewLine();
 
@@ -833,8 +837,8 @@ void PBR1App::RenderImGUI()
 	ImGui::DragFloat3("m_pGround->m_Scale", &m_GroundScale.x, 0.1f);
 	ImGui::Spacing();
 
-	ImGui::DragFloat("Roughness", &roughness, 0.1f, 0, 1);
-	ImGui::DragFloat("Metalness", &metalness, 0.1f, 0, 1);
+	ImGui::DragFloat("Roughness", &roughness, 0.01f, 0, 1);
+	ImGui::DragFloat("Metalness", &metalness, 0.01f, 0, 1);
 
 	ImGui::Spacing();
 
@@ -1187,6 +1191,10 @@ bool PBR1App::InitEffect()
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_DepthOnlyPass.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pShadowMapPS.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_PBR.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPBRPS.GetAddressOf()));
 
 	return true;
 }

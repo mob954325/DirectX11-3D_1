@@ -159,7 +159,7 @@ std::vector<Texture> FBXResourceManager::loadMaterialTextures(std::shared_ptr<FB
 				std::string filename = std::string(str.C_Str());
 				filename = pAsset->directory + '\\' + filename;
 				std::wstring filenamews = std::wstring(filename.begin(), filename.end());
-				HR_T(CreateWICTextureFromFile(m_pDevice.Get(), m_pDeviceContext.Get(), filenamews.c_str(), nullptr, texture.pTexture.GetAddressOf()));
+				HR_T(CreateWICTextureFromFile(m_pDevice.Get(), m_pDeviceContext.Get(), filenamews.c_str(), nullptr, texture.pTexture.GetAddressOf())); // TODO : tga? 면 dds로 불러오기 만들기
 			}
 
 			texture.type = typeName;
@@ -184,7 +184,8 @@ void FBXResourceManager::loadEmbeddedTexture(const aiTexture* embeddedTexture, C
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
 		desc.Usage = D3D11_USAGE_DEFAULT;
-		desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		// desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		desc.Format = DXGI_FORMAT_B8G8R8X8_UNORM_SRGB;
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		desc.CPUAccessFlags = 0;
 		desc.MiscFlags = 0;
