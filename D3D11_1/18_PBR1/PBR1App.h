@@ -31,10 +31,10 @@ public:
 	~PBR1App();
 
 	// Model
-	unique_ptr<SkeletalModel> m_pSillyDance = nullptr;		// 
-	unique_ptr<SkeletalModel> m_pGround = nullptr;		// 
-	unique_ptr<SkeletalModel> m_pTree = nullptr;		// 
-	unique_ptr<SkeletalModel> m_pHuman = nullptr;		// 
+	unique_ptr<SkeletalModel> m_pSillyDance = nullptr;	
+	unique_ptr<SkeletalModel> m_pGround = nullptr;	 
+	unique_ptr<SkeletalModel> m_pTree = nullptr;	 
+	unique_ptr<SkeletalModel> m_pHuman = nullptr;	 
 	deque<unique_ptr<SkeletalModel>> m_models;
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
@@ -128,12 +128,6 @@ public:
 	unique_ptr<DirectX::BasicEffect> m_effect;	// BasicEffect : provide the vertex and pixel shader progrmas
 
 	Vector3 m_shadowUpDistFromLookAt{ 0, 1000, 0 };
-
-	void InitDebugDraw();	// 디버그 관련 초기화 함수
-	void InitShdowMap();	// ShadowMap 관련 초기화 함수
-	void DebugDrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
-		float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
-
 	Vector3 m_GroundScale{ 20,1,20 };
 
 	// model buffer
@@ -147,7 +141,20 @@ public:
 	ComPtr<IDXGIAdapter1> dxgiAdapter1{};
 	ComPtr<IDXGIAdapter3> dxgiAdapter3{};
 
-	bool InitDxgi();
+	// 스카이 박스
+	ComPtr<ID3D11ShaderResourceView> m_pSkyboxTexture;
+
+	ComPtr<ID3D11VertexShader> m_pSkyboxVS = nullptr;				// 스카이 박스용 정점 셰이더
+	ComPtr<ID3D11PixelShader> m_pSkyboxPS = nullptr;				// 스카이 박스용 픽셀 셰이더
+	ComPtr<ID3D11InputLayout> m_pSkyboxInputLayout = nullptr;		// 입력 레이아웃
+	ComPtr<ID3D11Buffer> m_pSkyboxVertexBuffer = nullptr;			// 스카이 박스 정점 버퍼
+	UINT m_SkyboxVertexBufferStride = 0;							// 스카이 박스 정점 하나의 버퍼 크기
+	UINT m_SkyboxVertexBufferOffset = 0;							// 스카이 박스 정점 버퍼의 오프셋
+	ComPtr<ID3D11Buffer> m_pSkyboxIndexBuffer;						// 스카이 박스가 사용할 인덱스 버퍼
+	int m_nSkyboxIndices = 0;										// 스카이박스 인덱스 버퍼 개수
+
+	ComPtr<ID3D11RasterizerState> m_pSkyRasterizerState = nullptr;	// 스카이박스 래스터라이저 상태
+	ComPtr<ID3D11DepthStencilState> m_pSkyDepthStencilState = nullptr;	// 스카이 박스를 위한 뎊스스텐실 상태 개체
 
 	// PBR 매개변수
 	float roughness = 0;
@@ -160,6 +167,7 @@ public:
 
 	void DepthOnlyPass();
 	void RenderPass();
+	void RenderSkyBox();
 
 	bool InitImGUI();
 	void RenderImGUI();
@@ -168,6 +176,13 @@ public:
 	bool InitD3D();
 	bool InitScene();
 	bool InitEffect();
+	void InitDebugDraw();	// 디버그 관련 초기화 함수
+	void InitShdowMap();	// ShadowMap 관련 초기화 함수
+	bool InitDxgi();		// 메모리 사용량 디버그용 dxgi
+	bool InitSkyBox();
+
+	void DrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
+		float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수
 
 	void ResetValues();
 	void ShowMatrix(const DirectX::XMFLOAT4X4& mat, const char* label = "Matrix");

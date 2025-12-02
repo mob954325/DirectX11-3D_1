@@ -11,6 +11,7 @@
 #pragma comment(lib, "d3dcompiler.lib")
 
 #include <string>
+#include <directxtk/DDSTextureLoader.h>
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -39,6 +40,11 @@ struct ConstantBuffer
 	FLOAT metalness;	//  
 	FLOAT roughness;	//
 	Vector2 pad3;
+};
+
+struct CubeVertex
+{
+	Vector3 position;
 };
 
 std::string WStringToUTF8(const std::wstring& wstr)
@@ -127,7 +133,129 @@ void PBR1App::InitShdowMap()
 	m_shadowView = XMMatrixLookAtLH(m_shadowPos, m_shadowLookAt, Vector3(0.0f, 1.0f, 0.0f));
 }
 
-void PBR1App::DebugDrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
+bool PBR1App::InitSkyBox()
+{
+	const float width = 1.0f;
+	const float height = 1.0f;
+	const float depth = 1.0f;
+	CubeVertex skyboxVertices[] =
+	{
+		{ Vector3(-width, -height, -depth) },
+		{ Vector3(-width, +height, -depth) },
+		{ Vector3(+width, +height, -depth) },
+		{ Vector3(+width, -height, -depth) },
+
+		{ Vector3(-width, -height, +depth) },
+		{ Vector3(+width, -height, +depth) },
+		{ Vector3(+width, +height, +depth) },
+		{ Vector3(-width, +height, +depth) },
+
+		{ Vector3(-width, +height, -depth) },
+		{ Vector3(-width, +height, +depth) },
+		{ Vector3(+width, +height, +depth) },
+		{ Vector3(+width, +height, -depth) },
+
+		{ Vector3(-width, -height, -depth) },
+		{ Vector3(+width, -height, -depth) },
+		{ Vector3(+width, -height, +depth) },
+		{ Vector3(-width, -height, +depth) },
+
+		{ Vector3(-width, -height, +depth) },
+		{ Vector3(-width, +height, +depth) },
+		{ Vector3(-width, +height, -depth) },
+		{ Vector3(-width, -height, -depth) },
+
+		{ Vector3(+width, -height, -depth) },
+		{ Vector3(+width, +height, -depth) },
+		{ Vector3(+width, +height, +depth) },
+		{ Vector3(+width, -height, +depth) }
+	};
+
+	// 버텍스 버퍼
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.ByteWidth = sizeof(CubeVertex) * ARRAYSIZE(skyboxVertices);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.CPUAccessFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA vbData = {};
+	vbData.pSysMem = skyboxVertices;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &vbData, m_pSkyboxVertexBuffer.GetAddressOf()));
+
+	m_SkyboxVertexBufferStride = sizeof(CubeVertex); 	// 버텍스 버퍼의 정보
+	m_SkyboxVertexBufferOffset = 0;
+
+	// 파이프라인에 바인딩할 InputLayout 생성
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+
+	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_Skybox.hlsl", "main", "vs_5_0", &vertexShaderBuffer));
+	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pSkyboxInputLayout.GetAddressOf()));
+
+	// 파이프 라인에 바인딩할 정점 셰이더 생성
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pSkyboxVS.GetAddressOf()));
+
+	// 인덱스 버퍼
+	WORD skyboxIndices[] =
+	{
+		0, 1, 2,
+		0, 2, 3,
+		4, 5, 6,
+		4, 6, 7,
+		8, 9, 10,
+		8, 10, 11,
+		12, 13, 14,
+		12, 14, 15,
+		16, 17, 18,
+		16, 18, 19,
+		20, 21, 22,
+		20, 22, 23,
+	};
+
+	bufferDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(skyboxIndices);
+	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.CPUAccessFlags = 0;
+
+	m_SkyboxVertexBufferStride = sizeof(CubeVertex); 	// 버텍스 버퍼의 정보
+	m_SkyboxVertexBufferOffset = 0;
+
+	m_nSkyboxIndices = ARRAYSIZE(skyboxIndices); // 인덱스 개수 저장
+
+	D3D11_SUBRESOURCE_DATA ibData = {};
+	ibData.pSysMem = skyboxIndices;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &ibData, m_pSkyboxIndexBuffer.GetAddressOf()));
+
+	// 픽셀 셰이더
+	ComPtr<ID3DBlob> sbPixelShaderBuffer = nullptr;
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_Skybox.hlsl", "main", "ps_5_0", &sbPixelShaderBuffer));
+	HR_T(m_pDevice->CreatePixelShader(sbPixelShaderBuffer->GetBufferPointer(), sbPixelShaderBuffer->GetBufferSize(), NULL, m_pSkyboxPS.GetAddressOf()));
+
+	// 래스터라이저
+	D3D11_RASTERIZER_DESC rasterizerState = {};
+	rasterizerState.CullMode = D3D11_CULL_BACK;
+	rasterizerState.FillMode = D3D11_FILL_SOLID;
+	rasterizerState.DepthClipEnable = true;
+	rasterizerState.FrontCounterClockwise = true;
+
+	HR_T(m_pDevice->CreateRasterizerState(&rasterizerState, m_pSkyRasterizerState.ReleaseAndGetAddressOf()));
+
+	// 스카이 박스 뎊스 스텐실 상태 개체 추가
+	D3D11_DEPTH_STENCIL_DESC skyboxDsDesc;
+	ZeroMemory(&skyboxDsDesc, sizeof(skyboxDsDesc));
+	skyboxDsDesc.DepthEnable = false;
+	skyboxDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;	// 깊이 버퍼 사용 X
+	// skyboxDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;		
+	skyboxDsDesc.StencilEnable = false;
+	HR_T(m_pDevice->CreateDepthStencilState(&skyboxDsDesc, m_pSkyDepthStencilState.GetAddressOf()));
+
+	return true;
+}
+
+void PBR1App::DrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
 	float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color)
 {
 	Vector3 scale = { 1,1,1 };
@@ -199,6 +327,9 @@ bool PBR1App::OnInitialize()
 	if (!InitDxgi())
 		return false;
 
+	if (!InitSkyBox())
+		return false;
+
 	InitShdowMap();
 	InitDebugDraw();
 	ResetValues();
@@ -241,6 +372,7 @@ void PBR1App::OnRender()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
+	RenderSkyBox();
 	RenderPass();
 
 	// Debug Draw Test code ==============
@@ -248,12 +380,10 @@ void PBR1App::OnRender()
 	// 디버그를 위한 회전값 구하기
 	Matrix shadowWorldMat = Matrix::CreateTranslation(m_shadowPos);
 
-	DebugDrawFrustum(shadowWorldMat, m_shadowView, m_shadowProj,
+	DrawFrustum(shadowWorldMat, m_shadowView, m_shadowProj,
 		m_shadowFrustumAngle,
 		m_shadowViewport.width / (FLOAT)m_shadowViewport.height,
 		m_shadowNear, m_shadowFar); // -> 제대로 출력 안됨
-
-
 
 	// Debug Draw Test code END ==============
 
@@ -392,6 +522,35 @@ void PBR1App::RenderPass()
 	{
 		e->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	}
+}
+
+void PBR1App::RenderSkyBox()
+{
+	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
+	m_pDeviceContext->OMSetDepthStencilState(m_pSkyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
+
+	// 카메라용 뷰 행렬과, 투영행렬
+	Matrix m_skyboxProjection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, 0.1, m_Far);
+
+	ConstantBuffer cb;
+
+	cb.cameraView = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
+	cb.cameraProjection = XMMatrixTranspose(m_skyboxProjection);
+
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	m_pDeviceContext->IASetInputLayout(m_pSkyboxInputLayout.Get());
+	m_pDeviceContext->IASetIndexBuffer(m_pSkyboxIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pSkyboxVertexBuffer.GetAddressOf(), &m_SkyboxVertexBufferStride, &m_SkyboxVertexBufferOffset);
+	m_pDeviceContext->VSSetShader(m_pSkyboxVS.Get(), nullptr, 0);
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->RSSetState(m_pSkyRasterizerState.Get());
+	m_pDeviceContext->PSSetShader(m_pSkyboxPS.Get(), nullptr, 0);
+	m_pDeviceContext->PSSetShaderResources(5, 1, m_pSkyboxTexture.GetAddressOf());
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
+	m_pDeviceContext->DrawIndexed(m_nSkyboxIndices, 0, 0);
 }
 
 bool PBR1App::InitImGUI()
@@ -973,6 +1132,8 @@ bool PBR1App::InitScene()
 	}
 	m_pHuman->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 	m_pHuman->m_Position = { 200, 10, 100 };
+
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\cubemap.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
 
 	return true;
 }

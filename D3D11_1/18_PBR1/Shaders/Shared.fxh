@@ -4,14 +4,14 @@
 
 SamplerState samLinear : register(s0);
 
-Texture2D txDiffuse : register(t0);     // 
-Texture2D txEmission : register(t1);    // Emission 
-Texture2D txNormal : register(t2);      // 노멀맵 텍스처
-Texture2D txSpec : register(t3);        // 스펙큘러맵 텍스처
-// TextureCube txCubemap : register(t1); // skybox용 큐브맵 텍스처
-Texture2D txShadow : register(t4);      // 그림자 매핑 텍스처
+Texture2D txDiffuse    : register(t0);   // 
+Texture2D txEmission   : register(t1);   // Emission 
+Texture2D txNormal     : register(t2);   // 노멀맵 텍스처
+Texture2D txSpec       : register(t3);   // 스펙큘러맵 텍스처
+Texture2D txShadow     : register(t4);   // 그림자 매핑 텍스처
+TextureCube txCubemap  : register(t5);   // skybox용 큐브맵 텍스처
 
-cbuffer ConstantBuffer : register(b0) // PerFrame
+cbuffer ConstantBuffer : register(b0)   // PerFrame
 {
     matrix View;
     matrix Projection;
@@ -22,11 +22,11 @@ cbuffer ConstantBuffer : register(b0) // PerFrame
     
     float4 LightColor;        
     
-    float4 LightAmbient; // 환경광
-    float4 LightDiffuse; // 난반사
-    float4 LightSpecular; // 정반사    
-    float Shininess; // 광택지수
-    float3 CameraPos; // 카메라 위치        
+    float4 LightAmbient;    // 환경광
+    float4 LightDiffuse;    // 난반사
+    float4 LightSpecular;   // 정반사    
+    float Shininess;        // 광택지수
+    float3 CameraPos;       // 카메라 위치        
     
     float Metalness;
     float Roughness;
@@ -90,6 +90,17 @@ struct PS_INPUT
     
     float4 PositionShadow : TEXCOORD3; // 그림자 위치
 }; 
+
+struct VS_INPUT_sky
+{
+    float3 Pos : POSITION;
+};
+
+struct PS_INPUT_Sky
+{
+    float4 PosClipSpace : SV_POSITION;
+    float3 Pos : POSITION;
+};
 
 // Functions =======================================================================
 float3 EncodeNormal(float3 N)
