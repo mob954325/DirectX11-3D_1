@@ -72,12 +72,16 @@ void SkeletalModel::Update()
 		// 애니메이션 업데이트
 		if (bone.m_boneAnimation.m_boneName != "")
 		{
-			Vector3 positionVec, scaleVec;
-			Quaternion rotationQuat;
+			Vector3 positionVec = Vector3::Zero;
+			Vector3 scaleVec = Vector3::Zero;
+			Quaternion rotationQuat = Quaternion::Identity;
 			bone.m_boneAnimation.Evaluate(m_progressAnimationTime, positionVec, rotationQuat, scaleVec);
 
-			Matrix mat = Matrix::CreateScale(scaleVec) * Matrix::CreateFromQuaternion(rotationQuat) * Matrix::CreateTranslation(positionVec);
-			bone.m_localTransform = mat.Transpose();
+			if (positionVec != Vector3::Zero || rotationQuat != Quaternion::Identity || scaleVec != Vector3::Zero) // 움직이지 않는 본들은 갱신 안함
+			{
+				Matrix mat = Matrix::CreateScale(scaleVec) * Matrix::CreateFromQuaternion(rotationQuat) * Matrix::CreateTranslation(positionVec);
+				bone.m_localTransform = mat.Transpose();
+			}
 		}
 
 		// 위치 갱신
