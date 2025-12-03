@@ -6,6 +6,9 @@ void Mesh::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext)
     // ps ÃÊ±âÈ­ 
     ID3D11ShaderResourceView* nullSRV[4] = { nullptr };
     pDeviceContext->PSSetShaderResources(0, 4, nullSRV);
+
+    ID3D11ShaderResourceView* nullSRV2[2] = { nullptr };
+    pDeviceContext->PSSetShaderResources(6, 2, nullSRV);
     
     UINT stride = sizeof(BoneWeightVertex);
     UINT offset = 0;
@@ -62,6 +65,10 @@ void Mesh::setupMesh()
         {
             material.hasRoughness= true;
         }
+        else if (typeName == TEXTURE_SHININESS)
+        {
+            material.hasShininess = true;
+        }
     }
 }
 
@@ -90,6 +97,10 @@ void Mesh::ProcessTextureByType(ComPtr<ID3D11DeviceContext>& pDeviceContext, int
         pDeviceContext->PSSetShaderResources(6, 1, textures[index].pTexture.GetAddressOf());
     }
     else if (typeName == TEXTURE_ROUGHNESS)
+    {
+        pDeviceContext->PSSetShaderResources(7, 1, textures[index].pTexture.GetAddressOf());
+    }
+    else if (typeName == TEXTURE_SHININESS)
     {
         pDeviceContext->PSSetShaderResources(7, 1, textures[index].pTexture.GetAddressOf());
     }

@@ -22,6 +22,7 @@ const string TEXTURE_NORMAL = "texture_normal";
 const string TEXTURE_SPECULAR = "texture_specular";
 const string TEXTURE_METALNESS = "texture_metalness";
 const string TEXTURE_ROUGHNESS = "texture_roughness";
+const string TEXTURE_SHININESS = "texture_shininess";
 
 struct BoneWeightVertex
 {
@@ -73,7 +74,8 @@ struct Material
 
 	BOOL hasMatalness = false;
 	BOOL hasRoughness = false;
-	Vector2 pad;
+	BOOL hasShininess = false;
+	INT pad;
 };
 
 class Mesh

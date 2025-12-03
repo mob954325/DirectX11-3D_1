@@ -18,14 +18,14 @@ float NDFGGXTR(float3 normal, float3 halfVec, float roughness)
 // F(v, h) Fresnel equation : Fresnel-Schlick approximation 
 float3 FresnelSchlick(float3 halfVec, float3 viewVec, float3 F0) // F0 == relfection factor
 {
-    return F0 + (1.0 - F0) * pow(1.0 - dot(halfVec, viewVec), 5.0);  
+    return F0 + (1.0 - F0) * pow(1.0 - saturate(dot(halfVec, viewVec)), 5.0);
 }
 
 // G(l,v,h) 
-float GSchlickGGX(float3 norm, float3 viewVec, float roughness)
+float GSchlickGGX(float3 norm, float3 viewVec, float k) // K : 블러 감소 인자
 {
     float NdotV = dot(norm, viewVec);    
-    float denom = NdotV * (1.0 - roughness) + roughness;
+    float denom = NdotV * (1.0 - k) + k;
     return NdotV / denom;
 }
 
@@ -42,7 +42,7 @@ float GSmithMethod(float3 norm, float3 viewVec, float3 lightVec, float roughness
 float4 main(PS_INPUT input) : SV_TARGET
 {
     // 그림자처리 부분 =====================================================================
-    float directLighing = 1.0f;
+    float finalShadow = 1.0f;
     // 광원 NDC 좌표계에서는 좌표는 계산해주지 않으므로 계산한다.
     float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
     
@@ -60,7 +60,7 @@ float4 main(PS_INPUT input) : SV_TARGET
         // currentShadowDepth가 더 크면 뒤 쪽에 있으므로 직접광 차단
         if (currentShadowDepth > sampleShadowDepth + 0.001)
         {
-            directLighing = 0.0f;
+            finalShadow = 0.0f;
         }
     }
     
@@ -75,7 +75,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     if (albedo.a < 0.5f) // alpha cliping
         discard;
     
-    albedo = pow(albedo, 2.2); // gamma -> linear
+    albedo.rgb = pow(albedo.rgb, 2.2); // gamma -> linear
     
     // specularSample
     float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;
@@ -115,8 +115,8 @@ float4 main(PS_INPUT input) : SV_TARGET
     float roughnessSample = txRoughness.Sample(samLinear, input.Tex).r; // grayScale
     if(!hasRoughness)
     {
-        roughnessSample = 0;
-    }    
+        roughnessSample = hasShininess ? 1 - roughnessSample : 0;
+    }
     
     float finalRoughness = roughnessSample + Roughness;
 
@@ -124,7 +124,6 @@ float4 main(PS_INPUT input) : SV_TARGET
     
     // Cook-Torrance Specular BRDF
     float3 norm = finalNorm;
-    float3 lightIn = (float3)LightDirection;    
     
     float3 Lo = normalize(CameraPos - (float3) input.World); // 빛이 눈으로 가는 방향 : 현재 위치 -> eye ( view Vector )
     float3 Li = -(float3)LightDirection;    // 빛 방향
@@ -147,8 +146,8 @@ float4 main(PS_INPUT input) : SV_TARGET
     // Lambert diffuse BRDF  
     float3 diffuseBRDF = kd * (float3)albedo / PI;
     
-    directLighting = (diffuseBRDF + specularBRDF) * NdotL;    
+    directLighting = (diffuseBRDF + specularBRDF * specularIntensity) * NdotL * finalShadow;
     
-    return float4(pow(float3(directLighting), 1.0 / 2.2), 1.0); // linear -> gamma
+    return float4(pow(float3(directLighting), 1.0 / 2.2), 1.0) + textureEmission; // linear -> gamma 
     // return float4(directLighting, 1.0);
 }

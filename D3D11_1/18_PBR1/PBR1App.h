@@ -31,7 +31,7 @@ public:
 	~PBR1App();
 
 	// Model
-	unique_ptr<SkeletalModel> m_pSillyDance = nullptr;	
+	unique_ptr<SkeletalModel> m_pChara = nullptr;	
 	unique_ptr<SkeletalModel> m_pGround = nullptr;	 
 	unique_ptr<SkeletalModel> m_pTree = nullptr;	 
 	unique_ptr<SkeletalModel> m_pHuman = nullptr;	 
@@ -78,9 +78,9 @@ public:
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
 
 	// imgui 컨트롤 변수
-	Vector3 m_sillyDancePosition{};
-	Vector3 m_sillyDanceRotation{};
-	Vector3 m_sillyDanceScale{ 1.0f,1.0f,1.0f };
+	Vector3 m_charaPosition{};
+	Vector3 m_charaRotation{};
+	Vector3 m_charaScale{ 1.0f,1.0f,1.0f };
 
 	// 카메라
 	Vector3 m_CameraPositionInitial{ 0.0f, 100.0f, -200.0f };
@@ -160,6 +160,11 @@ public:
 	ComPtr<ID3D11PixelShader> m_pPBRPS = nullptr;
 	float roughness = 0;
 	float metalness = 0;
+
+	bool useBaseColor = true;
+	bool useNormal = true;
+	bool useMetalness = true;
+	bool useRoughness = true;
 
 	// =============================================================
 	virtual bool OnInitialize();

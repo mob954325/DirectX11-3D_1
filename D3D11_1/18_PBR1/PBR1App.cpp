@@ -348,7 +348,7 @@ void PBR1App::OnUpdate()
 	// Camera
 	m_Camera.GetCameraViewMatrix(m_View);
 
-	m_pSillyDance->Update();
+	m_pChara->Update();
 	m_pGround->Update();
 	m_pGround->m_Scale = m_GroundScale;
 	m_pHuman->Update();
@@ -446,7 +446,7 @@ void PBR1App::DepthOnlyPass()
 
 	// 모델 draw 호출
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
@@ -488,21 +488,7 @@ void PBR1App::RenderPass()
 
 	m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
 
-	switch (psIndex)
-	{
-	case 0:
-		m_pDeviceContext->PSSetShader(m_pPBRPS.Get(), 0, 0);
-		break;
-	case 1:
-		m_pDeviceContext->PSSetShader(m_pBlinnPhongShader.Get(), 0, 0);
-		break;
-	case 2:
-		m_pDeviceContext->PSSetShader(m_pPhongShader.Get(), 0, 0);
-		break;
-	case 3:
-		m_pDeviceContext->PSSetShader(m_pToonShader.Get(), 0, 0);
-		break;
-	}
+	m_pDeviceContext->PSSetShader(m_pPBRPS.Get(), 0, 0);
 
 	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
@@ -516,7 +502,7 @@ void PBR1App::RenderPass()
 	m_pDeviceContext->PSSetShaderResources(4, 1, m_pShadowMapSRV.GetAddressOf());
 
 	// Draw 
-	m_pSillyDance->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
@@ -590,13 +576,13 @@ void PBR1App::RenderImGUI()
 	ImGui::SetNextWindowPos(ImVec2(800, 10), ImGuiCond_Once);
 	ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_Once);
 
-	if (m_pSillyDance->modelAsset->animations.size() > 0)
+	if (m_pChara->modelAsset->animations.size() > 0)
 	{
 		ImGui::Begin("Middle Model Animation info");
 		{
-			ImGui::Text(std::to_string(m_pSillyDance->m_progressAnimationTime).c_str());
-			ImGui::Checkbox("isPlay", &m_pSillyDance->isAnimPlay);
-			ImGui::SliderFloat("Animation Duration", &m_pSillyDance->m_progressAnimationTime, 0.0f, m_pSillyDance->modelAsset->animations[m_pSillyDance->m_animationIndex].m_duration);
+			ImGui::Text(std::to_string(m_pChara->m_progressAnimationTime).c_str());
+			ImGui::Checkbox("isPlay", &m_pChara->isAnimPlay);
+			ImGui::SliderFloat("Animation Duration", &m_pChara->m_progressAnimationTime, 0.0f, m_pChara->modelAsset->animations[m_pChara->m_animationIndex].m_duration);
 		}
 		ImGui::End();
 	}
@@ -624,141 +610,6 @@ void PBR1App::RenderImGUI()
 	}
 	ImGui::End();
 
-	// 리소스 매니터 테스트 코드
-	ImGui::Begin("Resource Infos");
-	{
-		ImGui::Text("Generate Button : O");
-		ImGui::Text("Delete Button : P");
-		ImGui::Text("Delete All Generated Model : delete");
-
-		ImGui::Spacing();
-		ImGui::Spacing();
-
-		if (ImGui::Button("Generate Silly Dance"))
-		{
-			auto model = make_unique<SkeletalModel>();
-			if (!model->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
-			{
-				MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
-			}
-
-			model->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
-
-			Vector3 pos = m_Camera.m_Position;
-			model->m_Position = pos;
-			m_models.push_back(std::move(model));
-		}
-
-		if (ImGui::Button("Remove Silly Dance"))
-		{
-			if (!m_models.empty())
-			{
-				auto model = std::move(m_models.front());
-				m_models.pop_front();
-				model->isRemoved = true;
-
-				model.release();
-			}
-		}
-
-		if (ImGui::Button("Call Trim"))
-		{
-			dxgiDevice3->Trim();
-		}
-
-		ImGui::Spacing();
-		// 사용량 출력 하기
-		DXGI_ADAPTER_DESC1 desc;
-		dxgiAdapter1->GetDesc1(&desc);
-
-		wstring gpuStr = L"GPU: ";
-		gpuStr += desc.Description;
-		string utf8 = WStringToUTF8(gpuStr);
-		ImGui::Text(utf8.c_str());
-
-		// ============================================
-		// 2. VRAM 전체 용량
-		// ============================================
-
-		string textStr;
-		SIZE_T vramTotal = desc.DedicatedVideoMemory;
-		std::cout << "VRAM Total: " << (vramTotal / 1024 / 1024) << " MB\n";
-		textStr += "VRAM Total: ";
-		textStr += to_string(vramTotal / 1024 / 1024);
-		textStr += " MB";
-		ImGui::Text(textStr.c_str());
-		textStr.clear();
-
-		// ============================================
-		// 3. VRAM 사용량 (DXGI 1.4 - Windows 10+)
-		// ============================================
-		DXGI_QUERY_VIDEO_MEMORY_INFO memInfo = {};
-		if (SUCCEEDED(dxgiAdapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &memInfo)))
-		{
-			SIZE_T vramUsed = memInfo.CurrentUsage;
-			textStr += "VRAM Used: ";
-			textStr += to_string(vramUsed / 1024 / 1024);
-			textStr += " MB";
-			ImGui::Text(textStr.c_str());
-			textStr.clear();
-		}
-
-		// ============================================
-		// 4. 시스템 메모리 / 페이지 파일
-		// ============================================
-		MEMORYSTATUSEX mem = {};
-		mem.dwLength = sizeof(MEMORYSTATUSEX);
-
-		if (GlobalMemoryStatusEx(&mem))
-		{
-			textStr += "RAM Total:";
-			textStr += to_string(mem.ullTotalPhys / 1024 / 1024);
-			textStr += " MB";
-			ImGui::Text(textStr.c_str());
-			textStr.clear();
-
-			textStr += "RAM Available: ";
-			textStr += to_string(mem.ullAvailPhys / 1024 / 1024);
-			textStr += " MB";
-			ImGui::Text(textStr.c_str());
-			textStr.clear();
-
-			textStr += "PageFile Total: ";
-			textStr += to_string(mem.ullTotalPageFile / 1024 / 1024);
-			textStr += " MB";
-			ImGui::Text(textStr.c_str());
-			textStr.clear();
-
-			textStr += "PageFile Available: ";
-			textStr += to_string(mem.ullAvailPageFile / 1024 / 1024);
-			textStr += " MB";
-			ImGui::Text(textStr.c_str());
-			textStr.clear();
-		}
-
-		// ============================================
-		// 5. 프로세스 메모리 사용량
-		// ============================================
-		PROCESS_MEMORY_COUNTERS_EX pmc = {};
-		if (GetProcessMemoryInfo(GetCurrentProcess(),
-			(PROCESS_MEMORY_COUNTERS*)&pmc,
-			sizeof(pmc)))
-		{
-			textStr += "Process Working Set: ";
-			textStr += to_string(pmc.WorkingSetSize / 1024 / 1024);
-			textStr += " MB";
-			ImGui::Text(textStr.c_str());
-			textStr.clear();
-
-			textStr += "Private Bytes: ";
-			textStr += to_string(pmc.PrivateUsage / 1024 / 1024);
-			textStr += " MB";
-			ImGui::Text(textStr.c_str());
-			textStr.clear();
-		}
-	}
-	ImGui::End();
-
 
 	// 월드 오브젝트 조종 창 만들기
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);		// 처음 실행될 때 위치 초기화
@@ -766,24 +617,24 @@ void PBR1App::RenderImGUI()
 	ImGui::Begin("World Controller");
 
 	{
-		ImGui::DragFloat3("Middle Object Position", &m_sillyDancePosition.x);
+		ImGui::DragFloat3("Middle Object Position", &m_charaPosition.x);
 
 		Vector3 cube1Rotation;
-		cube1Rotation.x = XMConvertToDegrees(m_sillyDanceRotation.x);
-		cube1Rotation.y = XMConvertToDegrees(m_sillyDanceRotation.y);
-		cube1Rotation.z = XMConvertToDegrees(m_sillyDanceRotation.z);
+		cube1Rotation.x = XMConvertToDegrees(m_charaRotation.x);
+		cube1Rotation.y = XMConvertToDegrees(m_charaRotation.y);
+		cube1Rotation.z = XMConvertToDegrees(m_charaRotation.z);
 		ImGui::DragFloat3("Middle Object Rotation", &cube1Rotation.x);
-		m_sillyDanceRotation.x = XMConvertToRadians(cube1Rotation.x);
-		m_sillyDanceRotation.y = XMConvertToRadians(cube1Rotation.y);
-		m_sillyDanceRotation.z = XMConvertToRadians(cube1Rotation.z);
+		m_charaRotation.x = XMConvertToRadians(cube1Rotation.x);
+		m_charaRotation.y = XMConvertToRadians(cube1Rotation.y);
+		m_charaRotation.z = XMConvertToRadians(cube1Rotation.z);
 
-		ImGui::DragFloat("Middle Object Scale", &m_sillyDanceScale.x, 0.05f);
-		m_sillyDanceScale.y = m_sillyDanceScale.x;
-		m_sillyDanceScale.z = m_sillyDanceScale.x;
+		ImGui::DragFloat("Middle Object Scale", &m_charaScale.x, 0.05f);
+		m_charaScale.y = m_charaScale.x;
+		m_charaScale.z = m_charaScale.x;
 
-		m_pSillyDance->m_Position = m_sillyDancePosition;
-		m_pSillyDance->m_Rotation = m_sillyDanceRotation;
-		m_pSillyDance->m_Scale = m_sillyDanceScale;
+		m_pChara->m_Position = m_charaPosition;
+		m_pChara->m_Rotation = m_charaRotation;
+		m_pChara->m_Scale = m_charaScale;
 	}
 
 	ImGui::NewLine();
@@ -815,27 +666,26 @@ void PBR1App::RenderImGUI()
 
 	ImGui::NewLine();
 
-	ImGui::Text("PixelShader:");
-	ImGui::RadioButton("PBR", psIndex == 0); if (ImGui::IsItemClicked()) psIndex = 0;
-	ImGui::RadioButton("Blinn-Phong", psIndex == 1); if (ImGui::IsItemClicked()) psIndex = 1;
-	ImGui::RadioButton("Phong", psIndex == 2); if (ImGui::IsItemClicked()) psIndex = 2;
-	ImGui::RadioButton("Toon", psIndex == 3); if (ImGui::IsItemClicked()) psIndex = 3;
+
+	ImGui::Text("Select tex:");
+	ImGui::Checkbox("Enable hasDiffuse", &useBaseColor);
+	ImGui::Checkbox("Enable hasNormal", &useNormal);
+	ImGui::Checkbox("Enable hasMatalness", &useMetalness);
+	ImGui::Checkbox("Enable hasRoughness", &useRoughness);
+
+	for (auto& mesh : m_pChara->modelAsset->meshes)
+	{
+		mesh.GetMaterial().hasDiffuse = useBaseColor;
+		mesh.GetMaterial().hasNormal = useNormal;
+		mesh.GetMaterial().hasMatalness = useMetalness;
+		mesh.GetMaterial().hasRoughness = useRoughness;
+	}
 
 	ImGui::NewLine();
 
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
-	ImGui::ColorEdit4("Light Color", &m_LightColor.x);
 	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
-
-	ImGui::ColorEdit4("Light Ambient", &m_LightAmbient.x);
-	ImGui::ColorEdit4("Light Diffuse", &m_LightDiffuse.x);
-	ImGui::ColorEdit4("Light Specular", &m_LightSpecular.x);
-	ImGui::DragFloat("Shininess", &m_Shininess, 10.0f);
-
-	ImGui::Spacing();
-	ImGui::DragFloat3("m_pGround->m_Scale", &m_GroundScale.x, 0.1f);
-	ImGui::Spacing();
 
 	ImGui::DragFloat("Roughness", &roughness, 0.01f, 0, 1);
 	ImGui::DragFloat("Metalness", &metalness, 0.01f, 0, 1);
@@ -1106,12 +956,12 @@ bool PBR1App::InitScene()
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
 
 	// 모델 생성
-	m_pSillyDance = make_unique<SkeletalModel>();
-	if (!m_pSillyDance->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\char.fbx"))
+	m_pChara = make_unique<SkeletalModel>();
+	if (!m_pChara->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\char.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-	m_pSillyDance->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
+	m_pChara->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 
 	m_pGround = make_unique<SkeletalModel>();
 	if (!m_pGround->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Ground.fbx"))
@@ -1128,6 +978,7 @@ bool PBR1App::InitScene()
 	}
 	m_pTree->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 	m_pTree->m_Scale = { 100, 100, 100 };
+	m_pTree->m_Position = { 0, 0, 300 };
 
 	m_pHuman = make_unique<SkeletalModel>();
 	if (!m_pHuman->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Zombie_Run.fbx"))

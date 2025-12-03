@@ -34,7 +34,7 @@ cbuffer ConstantBuffer : register(b0)   // PerFrame
     
     float Metalness;
     float Roughness;
-	float2 pad1;    
+	float1 pad1;    
 }
 
 cbuffer Material : register(b1) // PerMaterial
@@ -50,7 +50,8 @@ cbuffer Material : register(b1) // PerMaterial
     
     int hasMetalness;
     int hasRoughness;    
-    float2 pad2;
+    int hasShininess;;    
+    float pad2;
 };
 
 cbuffer ModelTransform : register(b2)

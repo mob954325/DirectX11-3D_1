@@ -115,6 +115,12 @@ Mesh FBXResourceManager::ProcessMesh(std::shared_ptr<FBXResourceAsset>& pAsset, 
 		{
 			textures.insert(textures.end(), roughnessMap.begin(), roughnessMap.end());
 		}
+
+		std::vector<Texture> shininessMap = this->loadMaterialTextures(pAsset, material, aiTextureType_SHININESS, TEXTURE_SHININESS, pScene);
+		if (!shininessMap.empty())
+		{
+			textures.insert(textures.end(), shininessMap.begin(), shininessMap.end());
+		}
 	}
 
 	return Mesh(m_pDevice, vertices, indices, textures);
@@ -216,8 +222,7 @@ void FBXResourceManager::loadEmbeddedTexture(const aiTexture* embeddedTexture, C
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
 		desc.Usage = D3D11_USAGE_DEFAULT;
-		// desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-		desc.Format = DXGI_FORMAT_B8G8R8X8_UNORM_SRGB;
+		desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		desc.CPUAccessFlags = 0;
 		desc.MiscFlags = 0;
