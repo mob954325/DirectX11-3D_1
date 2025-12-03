@@ -35,10 +35,9 @@ void Mesh::SetMaterial(aiMaterial* pAiMaterial)
 void Mesh::setupMesh()
 {
     // check texture
-    int textureCount = textures.size();
-    for (int i = 0; i < textureCount; i++)
+    for (auto& tex : textures)
     {
-        string typeName = textures[i].type;
+        string typeName = tex.type;
         if (typeName == TEXTURE_DIFFUSE)
         {
             material.hasDiffuse = true;
@@ -54,6 +53,14 @@ void Mesh::setupMesh()
         else if (typeName == TEXTURE_SPECULAR)
         {
             material.hasSpecular = true;
+        }
+        else if (typeName == TEXTURE_METALNESS)
+        {
+            material.hasMatalness = true;
+        }
+        else if (typeName == TEXTURE_ROUGHNESS)
+        {
+            material.hasRoughness= true;
         }
     }
 }
@@ -77,6 +84,14 @@ void Mesh::ProcessTextureByType(ComPtr<ID3D11DeviceContext>& pDeviceContext, int
     else if (typeName == TEXTURE_SPECULAR)
     {
         pDeviceContext->PSSetShaderResources(3, 1, textures[index].pTexture.GetAddressOf());
+    }
+    else if (typeName == TEXTURE_METALNESS)
+    {
+        pDeviceContext->PSSetShaderResources(6, 1, textures[index].pTexture.GetAddressOf());
+    }
+    else if (typeName == TEXTURE_ROUGHNESS)
+    {
+        pDeviceContext->PSSetShaderResources(7, 1, textures[index].pTexture.GetAddressOf());
     }
 }
 

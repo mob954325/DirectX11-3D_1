@@ -11,6 +11,10 @@ Texture2D txSpec       : register(t3);   // 스펙큘러맵 텍스처
 Texture2D txShadow     : register(t4);   // 그림자 매핑 텍스처
 TextureCube txCubemap  : register(t5);   // skybox용 큐브맵 텍스처
 
+Texture2D txMetalness  : register(t6);   // metalness 텍스처
+Texture2D txRoughness  : register(t7);   // roughness 텍스처
+
+
 cbuffer ConstantBuffer : register(b0)   // PerFrame
 {
     matrix View;
@@ -30,7 +34,7 @@ cbuffer ConstantBuffer : register(b0)   // PerFrame
     
     float Metalness;
     float Roughness;
-	float2 pad3;    
+	float2 pad1;    
 }
 
 cbuffer Material : register(b1) // PerMaterial
@@ -39,10 +43,14 @@ cbuffer Material : register(b1) // PerMaterial
     float4 matDiffuse;
     float4 matSpecular;  
     
-    bool hasDiffuse;
-    bool hasEmissive;
-    bool hasNormal;
-    bool hasSpecular;
+    int hasDiffuse;
+    int hasEmissive;
+    int hasNormal;
+    int hasSpecular;
+    
+    int hasMetalness;
+    int hasRoughness;    
+    float2 pad2;
 };
 
 cbuffer ModelTransform : register(b2)
@@ -51,8 +59,8 @@ cbuffer ModelTransform : register(b2)
     
     int isRigid; // 1 : rigid, 0 : skinned
     int refBoneIndex; // 리지드일 때 참조하는 본 인덱스
-    float pad1;
-    float pad2;
+    float pad3;
+    float pad4;
 }
 
 cbuffer BonePoseMatrix : register(b3) 

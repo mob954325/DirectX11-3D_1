@@ -65,6 +65,18 @@ float4 main(PS_INPUT input) : SV_TARGET
     }
     
     // 광원처리 부분 =====================================================================
+    // base(diffuse) texture Sampling 
+    float4 albedo = txDiffuse.Sample(samLinear, input.Tex);
+    if (!hasDiffuse)
+    {
+        albedo = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    
+    if (albedo.a < 0.5f) // alpha cliping
+        discard;
+    
+    albedo = pow(albedo, 2.2); // gamma -> linear
+    
     // specularSample
     float specularIntensity = txSpec.Sample(samLinear, input.Tex).r;
     if (!hasSpecular)
@@ -88,19 +100,26 @@ float4 main(PS_INPUT input) : SV_TARGET
         normalMapSample = float3(0.5f, 0.5f, 1.0f); // flat normal (no perturbation)
     }
     float3 normalTexture = normalize(DecodeNormal(normalMapSample)); //  Convert normal map color (RGB [0,1]) to normal vector in range [-1,1] 
+    float3 finalNorm = normalize(mul(normalTexture, TBN));  
     
-    float3 finalNorm = normalize(mul(normalTexture, TBN));
-    
-    // texture Sampling 
-    float4 albedo = txDiffuse.Sample(samLinear, input.Tex);
-    if (!hasDiffuse)
+    // MetalnessSample
+    float metalnessSample = txMetalness.Sample(samLinear, input.Tex).r; // grayScale
+    if(!hasMetalness)
     {
-        albedo = float4(1.0f, 1.0f, 1.0f, 1.0f);
+        metalnessSample = 0;
     }
     
-    if (albedo.a < 0.5f)
-        discard;
+    float finalMetalness = metalnessSample + Metalness;
     
+    // RoughnessSample
+    float roughnessSample = txRoughness.Sample(samLinear, input.Tex).r; // grayScale
+    if(!hasRoughness)
+    {
+        roughnessSample = 0;
+    }    
+    
+    float finalRoughness = roughnessSample + Roughness;
+
     float3 directLighting = 0.0f;
     
     // Cook-Torrance Specular BRDF
@@ -115,20 +134,21 @@ float4 main(PS_INPUT input) : SV_TARGET
     float NdotO = max(0.0, dot(norm, Lo));
     
     // 기본 반사율(F0) = lerp(비금속 평균 반사, baseColor(텍스처), matalness)
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), (float3)albedo, Metalness);   
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), (float3) albedo, finalMetalness);
     
-    float D = NDFGGXTR(norm, Lh, max(0.001, Roughness));
+    float D = NDFGGXTR(norm, Lh, max(0.001, finalRoughness));
     float F = FresnelSchlick(Lh, Lo, F0);
-    float G = GSmithMethod(norm, Lo, Li, Roughness);    
+    float G = GSmithMethod(norm, Lo, Li, finalRoughness);
     
     float3 specularBRDF = (D * F * G) / max(Epsilon, 4.0 * NdotL * NdotO);
    
-    float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), Metalness);
+    float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), finalMetalness);
     
     // Lambert diffuse BRDF  
     float3 diffuseBRDF = kd * (float3)albedo / PI;
     
     directLighting = (diffuseBRDF + specularBRDF) * NdotL;    
     
-    return float4(pow(float3(directLighting), 1.0 / 2.2), 1.0);
+    return float4(pow(float3(directLighting), 1.0 / 2.2), 1.0); // linear -> gamma
+    // return float4(directLighting, 1.0);
 }

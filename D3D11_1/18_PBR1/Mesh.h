@@ -20,6 +20,8 @@ const string TEXTURE_DIFFUSE = "texture_diffuse";
 const string TEXTURE_EMISSIVE = "texture_emissive";
 const string TEXTURE_NORMAL = "texture_normal";
 const string TEXTURE_SPECULAR = "texture_specular";
+const string TEXTURE_METALNESS = "texture_metalness";
+const string TEXTURE_ROUGHNESS = "texture_roughness";
 
 struct BoneWeightVertex
 {
@@ -68,6 +70,10 @@ struct Material
     BOOL hasEmissive = false;
     BOOL hasNormal = false;
     BOOL hasSpecular = false;
+
+	BOOL hasMatalness = false;
+	BOOL hasRoughness = false;
+	Vector2 pad;
 };
 
 class Mesh

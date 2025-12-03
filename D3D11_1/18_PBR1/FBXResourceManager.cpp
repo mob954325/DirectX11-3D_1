@@ -101,6 +101,20 @@ Mesh FBXResourceManager::ProcessMesh(std::shared_ptr<FBXResourceAsset>& pAsset, 
 		{
 			textures.insert(textures.end(), sepcualrMaps.begin(), sepcualrMaps.end());
 		}
+
+		// metalnessMap 불러오기
+		std::vector<Texture> metalnessMap = this->loadMaterialTextures(pAsset, material, aiTextureType_METALNESS, TEXTURE_METALNESS, pScene);
+		if (!metalnessMap.empty())
+		{
+			textures.insert(textures.end(), metalnessMap.begin(), metalnessMap.end());
+		}
+
+		// roughnessMap 불러오기
+		std::vector<Texture> roughnessMap = this->loadMaterialTextures(pAsset, material, aiTextureType_DIFFUSE_ROUGHNESS, TEXTURE_ROUGHNESS, pScene);
+		if (!roughnessMap.empty())
+		{
+			textures.insert(textures.end(), roughnessMap.begin(), roughnessMap.end());
+		}
 	}
 
 	return Mesh(m_pDevice, vertices, indices, textures);
@@ -171,6 +185,7 @@ std::vector<Texture> FBXResourceManager::loadMaterialTextures(std::shared_ptr<FB
 
 					HR_T(DirectX::LoadFromTGAFile(filenamews.c_str(), DirectX::TGA_FLAGS_NONE, nullptr, image)); // Load the TGA data
 					HR_T(DirectX::CreateTexture(m_pDevice.Get(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), tgaTexture.GetAddressOf())); // convert image to texture
+
 					HR_T(m_pDevice.Get()->CreateShaderResourceView(tgaTexture.Get(), nullptr, texture.pTexture.GetAddressOf()));
 				}
 				else
