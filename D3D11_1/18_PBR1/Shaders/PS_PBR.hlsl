@@ -43,26 +43,26 @@ float4 main(PS_INPUT input) : SV_TARGET
 {
     // 그림자처리 부분 =====================================================================
     float finalShadow = 1.0f;
-    // 광원 NDC 좌표계에서는 좌표는 계산해주지 않으므로 계산한다.
-    float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
-    
-    // 광원 NDC 좌표계에서의 x(-1 ~ 1), y(-1 ~ 1)
-    float2 uv = input.PositionShadow.xy / input.PositionShadow.w;
-    
-    // NDC좌표계에서 Texture 좌표계로 변환
-    uv.y = -uv.y;
-    uv = uv * 0.5 + 0.5;
-    
-    if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0)
-    {
-        float sampleShadowDepth = txShadow.Sample(samLinear, uv).r;
-        
-        // currentShadowDepth가 더 크면 뒤 쪽에 있으므로 직접광 차단
-        if (currentShadowDepth > sampleShadowDepth + 0.001)
-        {
-            finalShadow = 0.0f;
-        }
-    }
+    //// 광원 NDC 좌표계에서는 좌표는 계산해주지 않으므로 계산한다.
+    //float currentShadowDepth = input.PositionShadow.z / input.PositionShadow.w;
+    //
+    //// 광원 NDC 좌표계에서의 x(-1 ~ 1), y(-1 ~ 1)
+    //float2 uv = input.PositionShadow.xy / input.PositionShadow.w;
+    //
+    //// NDC좌표계에서 Texture 좌표계로 변환
+    //uv.y = -uv.y;
+    //uv = uv * 0.5 + 0.5;
+    //
+    //if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0)
+    //{
+    //    float sampleShadowDepth = txShadow.Sample(samLinear, uv).r;
+    //    
+    //    // currentShadowDepth가 더 크면 뒤 쪽에 있으므로 직접광 차단
+    //    if (currentShadowDepth > sampleShadowDepth + 0.001)
+    //    {
+    //        finalShadow = 0.0f;
+    //    }
+    //}
     
     // 광원처리 부분 =====================================================================
     // base(diffuse) texture Sampling 
@@ -146,8 +146,8 @@ float4 main(PS_INPUT input) : SV_TARGET
     // Lambert diffuse BRDF  
     float3 diffuseBRDF = kd * (float3)albedo / PI;
     
-    directLighting = (diffuseBRDF + specularBRDF * specularIntensity) * NdotL * finalShadow;
+    directLighting = (diffuseBRDF + specularBRDF * specularIntensity) * NdotL * finalShadow + (float3)textureEmission;
     
-    return float4(pow(float3(directLighting), 1.0 / 2.2), 1.0) + textureEmission; // linear -> gamma 
+    return float4(pow(float3(directLighting), 1.0 / 2.2), 1.0); // linear -> gamma 
     // return float4(directLighting, 1.0);
 }

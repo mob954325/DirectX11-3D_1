@@ -50,7 +50,7 @@ cbuffer Material : register(b1) // PerMaterial
     
     int hasMetalness;
     int hasRoughness;    
-    int hasShininess;;    
+    int hasShininess;    
     float pad2;
 };
 

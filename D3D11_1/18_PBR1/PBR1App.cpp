@@ -981,7 +981,7 @@ bool PBR1App::InitScene()
 	m_pTree->m_Position = { 0, 0, 300 };
 
 	m_pHuman = make_unique<SkeletalModel>();
-	if (!m_pHuman->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Zombie_Run.fbx"))
+	if (!m_pHuman->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\sphere.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
