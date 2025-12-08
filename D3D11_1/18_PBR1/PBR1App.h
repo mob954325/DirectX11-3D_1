@@ -51,11 +51,6 @@ public:
 	ComPtr<ID3D11RasterizerState>	m_pRasterizerState = nullptr;
 	ComPtr<ID3D11RasterizerState>	m_pTransparentRasterizerState = nullptr;
 
-	// Phong Shader
-	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;
-	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;
-	ComPtr<ID3D11PixelShader> m_pToonShader = nullptr;
-
 	// vertex shaderes
 	ComPtr<ID3D11VertexShader> m_pRigidMeshVertexShader = nullptr;
 	ComPtr<ID3D11VertexShader> m_pSkinnedMeshVertexShader = nullptr;

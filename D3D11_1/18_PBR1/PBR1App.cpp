@@ -666,7 +666,6 @@ void PBR1App::RenderImGUI()
 
 	ImGui::NewLine();
 
-
 	ImGui::Text("Select tex:");
 	ImGui::Checkbox("Enable hasDiffuse", &useBaseColor);
 	ImGui::Checkbox("Enable hasNormal", &useNormal);
@@ -957,7 +956,7 @@ bool PBR1App::InitScene()
 
 	// 모델 생성
 	m_pChara = make_unique<SkeletalModel>();
-	if (!m_pChara->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Torus.fbx"))
+	if (!m_pChara->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\char.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
@@ -1025,21 +1024,6 @@ bool PBR1App::InitEffect()
 
 	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_Basic.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_Phong.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPhongShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_BlinnPhong.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_Toon.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pToonShader.GetAddressOf()));
-
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_DepthOnlyPass.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pShadowMapPS.GetAddressOf()));
