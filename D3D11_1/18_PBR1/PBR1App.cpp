@@ -351,7 +351,7 @@ void PBR1App::OnUpdate()
 	m_pChara->Update();
 	m_pGround->Update();
 	m_pGround->m_Scale = m_GroundScale;
-	m_pHuman->Update();
+	m_pSphere->Update();
 
 	for (auto& e : m_models)
 	{
@@ -448,7 +448,7 @@ void PBR1App::DepthOnlyPass()
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pSphere->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	for (auto& e : m_models)
 	{
@@ -505,7 +505,7 @@ void PBR1App::RenderPass()
 	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pSphere->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	for (auto& e : m_models)
 	{
@@ -957,11 +957,12 @@ bool PBR1App::InitScene()
 
 	// 모델 생성
 	m_pChara = make_unique<SkeletalModel>();
-	if (!m_pChara->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\char.fbx"))
+	if (!m_pChara->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Torus.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
 	m_pChara->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
+	m_pChara->m_Position = {0, 100, 0};
 
 	m_pGround = make_unique<SkeletalModel>();
 	if (!m_pGround->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Ground.fbx"))
@@ -980,13 +981,13 @@ bool PBR1App::InitScene()
 	m_pTree->m_Scale = { 100, 100, 100 };
 	m_pTree->m_Position = { 0, 0, 300 };
 
-	m_pHuman = make_unique<SkeletalModel>();
-	if (!m_pHuman->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\sphere.fbx"))
+	m_pSphere = make_unique<SkeletalModel>();
+	if (!m_pSphere->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\sphere.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-	m_pHuman->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
-	m_pHuman->m_Position = { 200, 10, 100 };
+	m_pSphere->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
+	m_pSphere->m_Position = { 200, 100, 100 };
 
 	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\cubemap.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
 

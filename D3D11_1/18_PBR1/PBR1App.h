@@ -34,7 +34,7 @@ public:
 	unique_ptr<SkeletalModel> m_pChara = nullptr;	
 	unique_ptr<SkeletalModel> m_pGround = nullptr;	 
 	unique_ptr<SkeletalModel> m_pTree = nullptr;	 
-	unique_ptr<SkeletalModel> m_pHuman = nullptr;	 
+	unique_ptr<SkeletalModel> m_pSphere = nullptr;	 
 	deque<unique_ptr<SkeletalModel>> m_models;
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
@@ -161,7 +161,7 @@ public:
 	float roughness = 0;
 	float metalness = 0;
 
-	bool useBaseColor = true;
+	bool useBaseColor = true; // NOTE: 텍스처 없는 오브젝트는 강제로 플래그 활성화되서 출력이 안될 수 있음.
 	bool useNormal = true;
 	bool useMetalness = true;
 	bool useRoughness = true;
