@@ -129,25 +129,55 @@ float4 main(PS_INPUT input) : SV_TARGET
     float3 Li = -(float3)LightDirection;    // 빛 방향
     float3 Lh = normalize(Li + Lo); // half-vector between Li and Lo        
     
-    float NdotL = max(0.0, dot(norm, Li));
-    float NdotO = max(0.0, dot(norm, Lo));
+    float NdotL = max(0.0, dot(norm, Li));  // dot(Normal, Light Direction)
+    float NdotO = max(0.0, dot(norm, Lo));  // dot(Normal, View)
     
     // 기본 반사율(F0) = lerp(비금속 평균 반사, baseColor(텍스처), matalness)
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), (float3) albedo, finalMetalness);
     
-    float D = NDFGGXTR(norm, Lh, max(0.001, finalRoughness));
-    float F = FresnelSchlick(Lh, Lo, F0);
-    float G = GSmithMethod(norm, Lo, Li, finalRoughness);
-    
-    float3 specularBRDF = (D * F * G) / max(Epsilon, 4.0 * NdotL * NdotO);
+    {   
+        float D = NDFGGXTR(norm, Lh, max(0.001, finalRoughness));
+        float F = FresnelSchlick(Lh, Lo, F0);
+        float G = GSmithMethod(norm, Lo, Li, finalRoughness);
    
-    float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), finalMetalness);
+        // 표면 산란
+        float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), finalMetalness);
     
-    // Lambert diffuse BRDF  
-    float3 diffuseBRDF = kd * (float3)albedo / PI;
+        // Lambert diffuse BRDF  
+        float3 diffuseBRDF = kd * (float3) albedo / PI;
     
-    directLighting = (diffuseBRDF + specularBRDF * specularIntensity) * NdotL * finalShadow + (float3)textureEmission;
+        // specular BRDF
+        float3 specularBRDF = (D * F * G) / max(Epsilon, 4.0 * NdotL * NdotO);
+        
+        directLighting = (diffuseBRDF + specularBRDF * specularIntensity) * NdotL * finalShadow + (float3)textureEmission;
+    }
+
     
-    return float4(pow(float3(directLighting), 1.0 / 2.2), 1.0); // linear -> gamma 
-    // return float4(directLighting, 1.0);
+    float3 inDirectLighting = 0.0f;
+    // IBL
+    {
+        float3 irradiance = txIBLIrradiance.Sample(samLinear, norm).rgb;
+    
+        // IBL diffuse    
+        float3 F = FresnelSchlick(norm, Lo, F0);
+        float3 kd = lerp(1.0 - F, 0.0, Metalness);
+        
+        float3 diffuseIBL = kd * (float3)albedo * PI * irradiance; //
+    
+        // IBL specular        
+        uint specularTexureLevels, width, height;        
+        txIBLSepcualar.GetDimensions(0, width, height, specularTexureLevels);
+        
+        float3 PrefilteredColor = txIBLSepcualar.SampleLevel(samLinear, reflect(-Lo, norm), Roughness * specularTexureLevels).rgb;
+        
+        // dot(Normal,View) , roughness를 텍셀좌표로 미리계산된 F*G , G 평균값을 샘플링한다  
+        float2 specularBRDF = txIBLLookUpTable.Sample(samLinear, float2(NdotO, Roughness)).rg;
+        
+        // 쿡토런스 Spceular BRDF 근사식
+        float3 specularIBL = PrefilteredColor * (F0 * specularBRDF.x + specularBRDF.y); // ??
+        
+        inDirectLighting = diffuseIBL + specularIBL; // * AmbientOcclusion;
+    }
+    
+    return float4(pow(float3(directLighting + inDirectLighting), 1.0 / 2.2), 1.0); // linear -> gamma 
 }

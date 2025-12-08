@@ -38,7 +38,6 @@ public:
 	deque<unique_ptr<SkeletalModel>> m_models;
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
-	// ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더
 	ComPtr<ID3D11PixelShader>		m_pPixelShader = nullptr;				// 사용할 픽셀 셰이더
 	ComPtr<ID3D11Device>			m_pDevice = nullptr;						// 디바이스
 	ComPtr<ID3D11DeviceContext>		m_pDeviceContext = nullptr;			// 디바이스 컨텍스트
@@ -91,8 +90,6 @@ public:
 	float m_Near = 0.01f;
 	float m_Far = 3000.0f;
 	float m_PovAngle = XM_PIDIV2;
-
-	int psIndex = 0; // 픽셀 셰이더 구별용 // 0. blinn-phong, 1. phong, 2. toon 
 
 	// 그림자
 	ComPtr<ID3D11VertexShader> m_pShadowMapVS;			//  shadowMap에 사용할 vs
@@ -160,6 +157,11 @@ public:
 	bool useNormal = true;
 	bool useMetalness = true;
 	bool useRoughness = true;
+
+	// PBR IBL
+	ComPtr<ID3D11ShaderResourceView> m_pIBLIrradiance;
+	ComPtr<ID3D11ShaderResourceView> m_pIBLSpecular;
+	ComPtr<ID3D11ShaderResourceView> m_pIBLLookUpTable;
 
 	// =============================================================
 	virtual bool OnInitialize();

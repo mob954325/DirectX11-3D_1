@@ -372,6 +372,11 @@ void PBR1App::OnRender()
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
 
+	// IBL 텍스처 리소스 넘겨주기
+	m_pDeviceContext->PSSetShaderResources(8, 1, m_pIBLIrradiance.GetAddressOf());		// Irradiance
+	m_pDeviceContext->PSSetShaderResources(9, 1, m_pIBLSpecular.GetAddressOf());		// Sepcular
+	m_pDeviceContext->PSSetShaderResources(10, 1, m_pIBLLookUpTable.GetAddressOf());	// LUT
+
 	RenderSkyBox();
 	RenderPass();
 
@@ -988,7 +993,10 @@ bool PBR1App::InitScene()
 	m_pSphere->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 	m_pSphere->m_Position = { 200, 100, 100 };
 
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\cubemap.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxEnvMDR.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxDiffuseMDR.dds", nullptr, m_pIBLIrradiance.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxSpecularMDR.dds", nullptr, m_pIBLSpecular.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxBrdf.dds", nullptr, m_pIBLLookUpTable.GetAddressOf()));
 
 	return true;
 }
