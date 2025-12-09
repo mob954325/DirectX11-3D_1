@@ -993,9 +993,9 @@ bool PBR1App::InitScene()
 	m_pSphere->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
 	m_pSphere->m_Position = { 200, 100, 100 };
 
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxEnvMDR.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxDiffuseMDR.dds", nullptr, m_pIBLIrradiance.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxSpecularMDR.dds", nullptr, m_pIBLSpecular.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxEnvHDR.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxDiffuseHDR.dds", nullptr, m_pIBLIrradiance.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxSpecularHDR.dds", nullptr, m_pIBLSpecular.GetAddressOf()));
 	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxBrdf.dds", nullptr, m_pIBLLookUpTable.GetAddressOf()));
 
 	return true;
