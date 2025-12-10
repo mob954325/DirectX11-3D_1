@@ -24,8 +24,8 @@ PS_INPUT main(VS_INPUT input)
     }
     else if(isRigid == 1)
     {
-        // ModelToWorld = mul(bonePose[refBoneIndex], World); 
-        ModelToWorld = World; 
+        ModelToWorld = mul(bonePose[refBoneIndex], World); 
+        // ModelToWorld = World; 
     }  
     
     // model -> world space 

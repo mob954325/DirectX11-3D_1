@@ -2,18 +2,21 @@
 // Constant Buffer Variables
 //--------------------------------------------------------------------------------------
 
-SamplerState samLinear : register(s0);
+SamplerState samLinear      : register(s0);
 
-Texture2D txDiffuse    : register(t0);   // 
-Texture2D txEmission   : register(t1);   // Emission 
-Texture2D txNormal     : register(t2);   // 노멀맵 텍스처
-Texture2D txSpec       : register(t3);   // 스펙큘러맵 텍스처
-Texture2D txShadow     : register(t4);   // 그림자 매핑 텍스처
-TextureCube txCubemap  : register(t5);   // skybox용 큐브맵 텍스처
+Texture2D txDiffuse         : register(t0);   // 
+Texture2D txEmission        : register(t1);   // Emission 
+Texture2D txNormal          : register(t2);   // 노멀맵 텍스처
+Texture2D txSpec            : register(t3);   // 스펙큘러맵 텍스처
+Texture2D txShadow          : register(t4);   // 그림자 매핑 텍스처
+TextureCube txCubemap       : register(t5);   // skybox용 큐브맵 텍스처
 
-Texture2D txMetalness  : register(t6);   // metalness 텍스처
-Texture2D txRoughness  : register(t7);   // roughness 텍스처
+Texture2D txMetalness       : register(t6);   // metalness 텍스처
+Texture2D txRoughness       : register(t7);   // roughness 텍스처
 
+TextureCube txIBLIrradiance : register(t8);   // IBL Irrandiance Map
+TextureCube txIBLSepcualar  : register(t9);   // IBL Specular Map
+Texture2D txIBLLookUpTable  : register(t10); // IBL LUT (Look Up Table)
 
 cbuffer ConstantBuffer : register(b0)   // PerFrame
 {
@@ -50,7 +53,7 @@ cbuffer Material : register(b1) // PerMaterial
     
     int hasMetalness;
     int hasRoughness;    
-    int hasShininess;;    
+    int hasShininess;    
     float pad2;
 };
 

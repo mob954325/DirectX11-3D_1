@@ -88,22 +88,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\PS_Basic.hlsl">
-      <Filter>98. Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\PS_BlinnPhong.hlsl">
-      <Filter>98. Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\PS_DepthOnlyPass.hlsl">
       <Filter>98. Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\PS_Phong.hlsl">
-      <Filter>98. Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\PS_Solid.hlsl">
-      <Filter>98. Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="Shaders\PS_Toon.hlsl">
       <Filter>98. Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\VS_DepthOnlyPass.hlsl">

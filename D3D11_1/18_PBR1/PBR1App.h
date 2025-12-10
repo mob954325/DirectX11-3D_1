@@ -34,11 +34,10 @@ public:
 	unique_ptr<SkeletalModel> m_pChara = nullptr;	
 	unique_ptr<SkeletalModel> m_pGround = nullptr;	 
 	unique_ptr<SkeletalModel> m_pTree = nullptr;	 
-	unique_ptr<SkeletalModel> m_pHuman = nullptr;	 
+	unique_ptr<SkeletalModel> m_pSphere = nullptr;	 
 	deque<unique_ptr<SkeletalModel>> m_models;
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
-	// ComPtr<ID3D11VertexShader>		m_pVertexShader = nullptr;			// 사용할 정점 셰이더
 	ComPtr<ID3D11PixelShader>		m_pPixelShader = nullptr;				// 사용할 픽셀 셰이더
 	ComPtr<ID3D11Device>			m_pDevice = nullptr;						// 디바이스
 	ComPtr<ID3D11DeviceContext>		m_pDeviceContext = nullptr;			// 디바이스 컨텍스트
@@ -50,11 +49,6 @@ public:
 	ComPtr<ID3D11DepthStencilState> m_pDepthStencilStateZeroMask = nullptr;
 	ComPtr<ID3D11RasterizerState>	m_pRasterizerState = nullptr;
 	ComPtr<ID3D11RasterizerState>	m_pTransparentRasterizerState = nullptr;
-
-	// Phong Shader
-	ComPtr<ID3D11PixelShader> m_pPhongShader = nullptr;
-	ComPtr<ID3D11PixelShader> m_pBlinnPhongShader = nullptr;
-	ComPtr<ID3D11PixelShader> m_pToonShader = nullptr;
 
 	// vertex shaderes
 	ComPtr<ID3D11VertexShader> m_pRigidMeshVertexShader = nullptr;
@@ -96,8 +90,6 @@ public:
 	float m_Near = 0.01f;
 	float m_Far = 3000.0f;
 	float m_PovAngle = XM_PIDIV2;
-
-	int psIndex = 0; // 픽셀 셰이더 구별용 // 0. blinn-phong, 1. phong, 2. toon 
 
 	// 그림자
 	ComPtr<ID3D11VertexShader> m_pShadowMapVS;			//  shadowMap에 사용할 vs
@@ -161,10 +153,15 @@ public:
 	float roughness = 0;
 	float metalness = 0;
 
-	bool useBaseColor = true;
+	bool useBaseColor = true; // NOTE: 텍스처 없는 오브젝트는 강제로 플래그 활성화되서 출력이 안될 수 있음.
 	bool useNormal = true;
 	bool useMetalness = true;
 	bool useRoughness = true;
+
+	// PBR IBL
+	ComPtr<ID3D11ShaderResourceView> m_pIBLIrradiance;
+	ComPtr<ID3D11ShaderResourceView> m_pIBLSpecular;
+	ComPtr<ID3D11ShaderResourceView> m_pIBLLookUpTable;
 
 	// =============================================================
 	virtual bool OnInitialize();

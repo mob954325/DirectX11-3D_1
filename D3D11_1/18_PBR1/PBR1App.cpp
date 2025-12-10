@@ -351,7 +351,7 @@ void PBR1App::OnUpdate()
 	m_pChara->Update();
 	m_pGround->Update();
 	m_pGround->m_Scale = m_GroundScale;
-	m_pHuman->Update();
+	m_pSphere->Update();
 
 	for (auto& e : m_models)
 	{
@@ -371,6 +371,11 @@ void PBR1App::OnRender()
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
+
+	// IBL 텍스처 리소스 넘겨주기
+	m_pDeviceContext->PSSetShaderResources(8, 1, m_pIBLIrradiance.GetAddressOf());		// Irradiance
+	m_pDeviceContext->PSSetShaderResources(9, 1, m_pIBLSpecular.GetAddressOf());		// Sepcular
+	m_pDeviceContext->PSSetShaderResources(10, 1, m_pIBLLookUpTable.GetAddressOf());	// LUT
 
 	RenderSkyBox();
 	RenderPass();
@@ -448,7 +453,7 @@ void PBR1App::DepthOnlyPass()
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pSphere->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	for (auto& e : m_models)
 	{
@@ -505,7 +510,7 @@ void PBR1App::RenderPass()
 	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
 	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pHuman->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pSphere->Draw(m_pDeviceContext, m_pMaterialBuffer);
 
 	for (auto& e : m_models)
 	{
@@ -665,7 +670,6 @@ void PBR1App::RenderImGUI()
 	if (m_Far <= m_Near) m_Far = 0.2f;
 
 	ImGui::NewLine();
-
 
 	ImGui::Text("Select tex:");
 	ImGui::Checkbox("Enable hasDiffuse", &useBaseColor);
@@ -962,6 +966,7 @@ bool PBR1App::InitScene()
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
 	m_pChara->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
+	m_pChara->m_Position = {0, 100, 0};
 
 	m_pGround = make_unique<SkeletalModel>();
 	if (!m_pGround->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Ground.fbx"))
@@ -980,15 +985,18 @@ bool PBR1App::InitScene()
 	m_pTree->m_Scale = { 100, 100, 100 };
 	m_pTree->m_Position = { 0, 0, 300 };
 
-	m_pHuman = make_unique<SkeletalModel>();
-	if (!m_pHuman->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Zombie_Run.fbx"))
+	m_pSphere = make_unique<SkeletalModel>();
+	if (!m_pSphere->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\sphere.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-	m_pHuman->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
-	m_pHuman->m_Position = { 200, 10, 100 };
+	m_pSphere->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
+	m_pSphere->m_Position = { 200, 100, 100 };
 
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\cubemap.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxEnvHDR.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxDiffuseHDR.dds", nullptr, m_pIBLIrradiance.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxSpecularHDR.dds", nullptr, m_pIBLSpecular.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxBrdf.dds", nullptr, m_pIBLLookUpTable.GetAddressOf()));
 
 	return true;
 }
@@ -1024,21 +1032,6 @@ bool PBR1App::InitEffect()
 
 	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_Basic.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPixelShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_Phong.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPhongShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_BlinnPhong.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pBlinnPhongShader.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_Toon.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pToonShader.GetAddressOf()));
-
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_DepthOnlyPass.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pShadowMapPS.GetAddressOf()));
