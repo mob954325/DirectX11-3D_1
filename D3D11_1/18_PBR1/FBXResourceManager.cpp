@@ -277,7 +277,7 @@ std::shared_ptr<FBXResourceAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D1
 
 	const aiScene* pScene = importer.ReadFile(path, importFlag);
 
-	if (pScene == nullptr) return std::shared_ptr<FBXResourceAsset>();
+	assert(pScene && ".fbx not found");
 
 	this->m_pDevice = pDevice;
 	this->m_pDeviceContext = pDeviceContext;
