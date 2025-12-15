@@ -310,6 +310,11 @@ bool ToneMappingApp::InitDxgi()
 	return true;
 }
 
+bool ToneMappingApp::IsHDRSettingOn()
+{
+	return false;
+}
+
 bool ToneMappingApp::OnInitialize()
 {
 	if (!InitD3D())
@@ -397,6 +402,7 @@ void ToneMappingApp::OnRender()
 
 	// 스왑체인 교체
 	m_pSwapChain->Present(0, 0);
+	//m_HDRSwapChain->Present(0, 0);
 }
 
 bool isplayed = false;
@@ -758,9 +764,6 @@ bool ToneMappingApp::InitD3D()
 	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif // _DEBUG
 
-	ComPtr<IDXGIFactory2> pFactory;
-	HR_T(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&pFactory)));
-
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 #if USE_FLIPMODE == 1
 	swapChainDesc.BufferCount = 2;
@@ -782,7 +785,8 @@ bool ToneMappingApp::InitD3D()
 	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // 전체 화면 전환을 허용
 	swapChainDesc.Scaling = DXGI_SCALING_NONE; // 창의 크기와 백 버퍼의 크기가 다를 때. 백버퍼 크기에 맞게 스케일링 하지 않는다.
 
-	HR_T(pFactory->CreateSwapChainForHwnd
+	HR_T(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pFactory)));
+	HR_T(m_pFactory->CreateSwapChainForHwnd
 	(
 		m_pDevice.Get(),
 		m_hWnd,

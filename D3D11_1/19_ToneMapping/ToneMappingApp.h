@@ -163,6 +163,15 @@ public:
 	ComPtr<ID3D11ShaderResourceView> m_pIBLSpecular;
 	ComPtr<ID3D11ShaderResourceView> m_pIBLLookUpTable;
 
+	// Tone Mapping - 
+	bool m_useHDRFormat = false; // hdr 포맷 사용 여부, 사용하면 DXGI_FORMAT_R10G10B10A2_UNORM, 안하면 DXGI_FORMAT_R8G8B8A8_UNORM ( LDR )
+	DXGI_FORMAT m_HDRFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
+	ComPtr<IDXGISwapChain1> m_HDRSwapChain{};
+	ComPtr<ID3D11RenderTargetView> m_HDRRenderTargetView{};
+	ComPtr<IDXGIFactory2> m_pFactory;
+
+	bool IsHDRSettingOn();
+
 	// =============================================================
 	virtual bool OnInitialize();
 	virtual void OnUpdate();

@@ -53,6 +53,6 @@ public:
 		static FBXResourceManager manager;
 		return manager;
 	}
-
+	
 	std::shared_ptr<FBXResourceAsset> LoadFBXByPath(ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string path);
 };
