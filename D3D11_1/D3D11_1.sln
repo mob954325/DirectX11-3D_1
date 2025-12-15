@@ -38,6 +38,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "17_ResourceManager", "17_Re
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "18_PBR1", "18_PBR1\18_PBR1.vcxproj", "{DFFF4D60-050D-4DB5-B73C-A775218A93DB}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "19_ToneMapping", "19_ToneMapping\19_ToneMapping.vcxproj", "{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -190,6 +192,14 @@ Global
 		{DFFF4D60-050D-4DB5-B73C-A775218A93DB}.Release|x64.Build.0 = Release|x64
 		{DFFF4D60-050D-4DB5-B73C-A775218A93DB}.Release|x86.ActiveCfg = Release|Win32
 		{DFFF4D60-050D-4DB5-B73C-A775218A93DB}.Release|x86.Build.0 = Release|Win32
+		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Debug|x64.ActiveCfg = Debug|x64
+		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Debug|x64.Build.0 = Debug|x64
+		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Debug|x86.ActiveCfg = Debug|Win32
+		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Debug|x86.Build.0 = Debug|Win32
+		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Release|x64.ActiveCfg = Release|x64
+		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Release|x64.Build.0 = Release|x64
+		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Release|x86.ActiveCfg = Release|Win32
+		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
