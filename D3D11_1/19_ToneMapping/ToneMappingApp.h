@@ -192,6 +192,7 @@ public:
 	void InitShdowMap();	// ShadowMap 관련 초기화 함수
 	bool InitDxgi();		// 메모리 사용량 디버그용 dxgi
 	bool InitSkyBox();
+	void CreateSwapchain();
 
 	void DrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
 		float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color = Colors::Red); // 절두체 그리는 함수

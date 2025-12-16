@@ -255,6 +255,54 @@ bool ToneMappingApp::InitSkyBox()
 	return true;
 }
 
+void ToneMappingApp::CreateSwapchain()
+{
+	// 2. 스왑체인 생성을 위한 DXGI Factory 생성
+	UINT dxgiFactoryFlags = 0;
+
+#ifdef _DEBUG
+	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+#endif // _DEBUG
+
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+#if USE_FLIPMODE == 1
+	swapChainDesc.BufferCount = 2;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+#else
+	swapChainDesc.BufferCount = 1;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+#endif
+	swapChainDesc.Width = m_ClientWidth;
+	swapChainDesc.Height = m_ClientHeight;
+
+	// 하나의 픽셀이 채널 RGBA 각 8비트 형식으로 표현
+	// Unsigned Normalized Integer 8비트 정수(0~255)단계를 부동소수점으로 정규화한 0.0~1.0으로 매핑하여 표현한다.
+	swapChainDesc.Format = IsHDRSettingOn() ? m_HDRFormat : DXGI_FORMAT_B8G8R8A8_UNORM;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 스왑 체인의 백 버퍼가 렌더링 파이프라인의 최종 출력 대상으로 사용
+	swapChainDesc.SampleDesc.Count = 1;	// 멀티 샘플링 사용 안함
+	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // 투명도 조작 무시 | recommand for flip mode ?
+	swapChainDesc.Stereo = FALSE;
+	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // 전체 화면 전환을 허용
+	swapChainDesc.Scaling = DXGI_SCALING_NONE; // 창의 크기와 백 버퍼의 크기가 다를 때. 백버퍼 크기에 맞게 스케일링 하지 않는다.
+
+	HR_T(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pFactory)));
+	HR_T(m_pFactory->CreateSwapChainForHwnd
+	(
+		m_pDevice.Get(),
+		m_hWnd,
+		&swapChainDesc,
+		nullptr,
+		nullptr,
+		&m_pSwapChain
+	));
+
+	// 3. 랜더타겟 뷰 생성. 랜더타겟 뷰는 "여기에 그림을 그려라"라고 GPU에게 알려주는 역할을 하는 객체
+	// 텍스쳐와 영구적으로 연결되는 객체
+	ComPtr<ID3D11Texture2D> pBackBufferTexture;
+	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
+	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
+}
+
 void ToneMappingApp::DrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
 	float angle, float AspectRatio, float nearZ, float farZ, XMVECTORF32 color)
 {
@@ -312,11 +360,28 @@ bool ToneMappingApp::InitDxgi()
 
 bool ToneMappingApp::IsHDRSettingOn()
 {
+	// 디스플레이 관련 정보 가져오기
+	ComPtr<IDXGIOutput> output{};
+	HR_T(dxgiAdapter3->EnumOutputs(0, output.GetAddressOf()));
+
+	ComPtr<IDXGIOutput6> output6{};
+	HR_T(output.As(&output6));
+
+	DXGI_OUTPUT_DESC1 desc;
+	HR_T(output6->GetDesc1(&desc));
+
+	if (desc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 ||
+		desc.ColorSpace == DXGI_COLOR_SPACE_RGB_STUDIO_G2084_NONE_P2020)
+	{
+		return true;
+	}
+
 	return false;
 }
 
 bool ToneMappingApp::OnInitialize()
 {
+
 	if (!InitD3D())
 		return false;
 
@@ -329,12 +394,13 @@ bool ToneMappingApp::OnInitialize()
 	if (!InitEffect())
 		return false;
 
-	if (!InitDxgi())
-		return false;
-
 	if (!InitSkyBox())
 		return false;
 
+	if (!InitDxgi())
+		return false;
+
+	CreateSwapchain();
 	InitShdowMap();
 	InitDebugDraw();
 	ResetValues();
@@ -710,6 +776,12 @@ void ToneMappingApp::RenderImGUI()
 
 	ImGui::End();
 
+	ImGui::Begin("Info");
+	{
+		ImGui::Text(IsHDRSettingOn() ? "HDR : On" : "HDR : Off");
+	}
+	ImGui::End();
+
 	// rendering
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -755,52 +827,6 @@ bool ToneMappingApp::InitD3D()
 		&actualFeatureLevel,
 		&m_pDeviceContext
 	));
-
-
-	// 2. 스왑체인 생성을 위한 DXGI Factory 생성
-	UINT dxgiFactoryFlags = 0;
-
-#ifdef _DEBUG
-	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-#endif // _DEBUG
-
-	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-#if USE_FLIPMODE == 1
-	swapChainDesc.BufferCount = 2;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-#else
-	swapChainDesc.BufferCount = 1;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-#endif
-	swapChainDesc.Width = m_ClientWidth;
-	swapChainDesc.Height = m_ClientHeight;
-
-	// 하나의 픽셀이 채널 RGBA 각 8비트 형식으로 표현
-	// Unsigned Normalized Integer 8비트 정수(0~255)단계를 부동소수점으로 정규화한 0.0~1.0으로 매핑하여 표현한다.
-	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 스왑 체인의 백 버퍼가 렌더링 파이프라인의 최종 출력 대상으로 사용
-	swapChainDesc.SampleDesc.Count = 1;	// 멀티 샘플링 사용 안함
-	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // 투명도 조작 무시 | recommand for flip mode ?
-	swapChainDesc.Stereo = FALSE;
-	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // 전체 화면 전환을 허용
-	swapChainDesc.Scaling = DXGI_SCALING_NONE; // 창의 크기와 백 버퍼의 크기가 다를 때. 백버퍼 크기에 맞게 스케일링 하지 않는다.
-
-	HR_T(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pFactory)));
-	HR_T(m_pFactory->CreateSwapChainForHwnd
-	(
-		m_pDevice.Get(),
-		m_hWnd,
-		&swapChainDesc,
-		nullptr,
-		nullptr,
-		&m_pSwapChain
-	));
-
-	// 3. 랜더타겟 뷰 생성. 랜더타겟 뷰는 "여기에 그림을 그려라"라고 GPU에게 알려주는 역할을 하는 객체
-	// 텍스쳐와 영구적으로 연결되는 객체
-	ComPtr<ID3D11Texture2D> pBackBufferTexture;
-	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
-	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
 
 #if !USE_FLIPMODE
 	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr);
