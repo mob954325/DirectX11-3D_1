@@ -17,6 +17,7 @@ Texture2D txRoughness       : register(t7);   // roughness 텍스처
 TextureCube txIBLIrradiance : register(t8);   // IBL Irrandiance Map
 TextureCube txIBLSepcualar  : register(t9);   // IBL Specular Map
 Texture2D txIBLLookUpTable  : register(t10); // IBL LUT (Look Up Table)
+Texture2D txSceneHDR        : register(t11);  // HDR texture
 
 cbuffer ConstantBuffer : register(b0)   // PerFrame
 {
@@ -37,7 +38,11 @@ cbuffer ConstantBuffer : register(b0)   // PerFrame
     
     float Metalness;
     float Roughness;
-	float1 pad1;    
+    int isActiveHDR;        // 디스플레이 hdr 활성화 여부
+    float exposure;
+    
+    float monitorMaxNit = 100.0f;
+    float3 pad;
 }
 
 cbuffer Material : register(b1) // PerMaterial
@@ -114,6 +119,18 @@ struct PS_INPUT_Sky
     float3 Pos : POSITION;
 };
 
+struct VS_QuadInput
+{
+    float3 position : POSITION; // ndc
+    float2 tex : TEXCOORD;
+};
+
+struct PS_QuadInput
+{
+    float4 position : SV_POSITION;
+    float2 tex : TEXCOORD;
+};
+
 // Functions =======================================================================
 float3 EncodeNormal(float3 N)
 {
@@ -123,4 +140,15 @@ float3 EncodeNormal(float3 N)
 float3 DecodeNormal(float3 N)
 {
     return N * 2 - 1;
+}
+
+float3 ACESFilm(float3 x)
+{
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    
+    return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
 }

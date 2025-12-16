@@ -1,4 +1,4 @@
-#include <Shared.fxh>
+#include <Shared.hlsli>
 
 static const float PI = 3.141592;
 static const float Epsilon = 0.00001;
@@ -179,5 +179,6 @@ float4 main(PS_INPUT input) : SV_TARGET
         inDirectLighting = (diffuseIBL + specularIBL); // * AmbientOcclusion;
     }
     
-    return float4(pow(float3(directLighting + inDirectLighting), 1.0 / 2.2), 1.0); // linear -> gamma 
+    // return float4(pow(float3(directLighting + inDirectLighting), 1.0 / 2.2), 1.0); // linear -> gamma 
+    return float4(directLighting + inDirectLighting, 1.0); // linear -> gamma 
 }

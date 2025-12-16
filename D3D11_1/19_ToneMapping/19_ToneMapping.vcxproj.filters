@@ -93,8 +93,11 @@
     <FxCompile Include="Shaders\VS_RigidMesh.hlsl" />
     <FxCompile Include="Shaders\VS_SkinnedMesh.hlsl" />
     <FxCompile Include="Shaders\VS_Skybox.hlsl" />
+    <FxCompile Include="Shaders\PS_ToneMappingLDR.hlsl" />
+    <FxCompile Include="Shaders\PS_ToneMappingHDR.hlsl" />
+    <FxCompile Include="Shaders\VS_Quad.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Shared.fxh" />
+    <None Include="Shaders\Shared.hlsli" />
   </ItemGroup>
 </Project>

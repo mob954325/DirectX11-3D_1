@@ -1,4 +1,4 @@
-#include "Shared.fxh"
+#include "Shared.hlsli"
 
 PS_INPUT_Sky main(VS_INPUT_sky input)
 {	

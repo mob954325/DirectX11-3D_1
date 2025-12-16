@@ -1,4 +1,4 @@
-#include "Shared.fxh"
+#include "Shared.hlsli"
 
 float4 main(PS_INPUT_Sky input) : SV_TARGET
 {

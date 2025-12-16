@@ -1,4 +1,4 @@
-#include <Shared.fxh>
+#include <Shared.hlsli>
 
 float main(PS_INPUT input) : SV_Depth
 {

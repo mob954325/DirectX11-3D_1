@@ -165,11 +165,27 @@ public:
 
 	// Tone Mapping - 
 	bool m_useHDRFormat = false; // hdr 포맷 사용 여부, 사용하면 DXGI_FORMAT_R10G10B10A2_UNORM, 안하면 DXGI_FORMAT_R8G8B8A8_UNORM ( LDR )
+	float exposure = 0.0f;
 	DXGI_FORMAT m_HDRFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
-	ComPtr<IDXGISwapChain1> m_HDRSwapChain{};
-	ComPtr<ID3D11RenderTargetView> m_HDRRenderTargetView{};
 	ComPtr<IDXGIFactory2> m_pFactory;
 
+	ComPtr<ID3D11RenderTargetView> m_HDRRenderTargetView{};
+	ComPtr<ID3D11Texture2D> m_HDRRendertarget{};
+	ComPtr<ID3D11ShaderResourceView> m_HDRShaderResourceView{};
+
+	ComPtr<ID3D11PixelShader> m_toneMappingPS_LDR;
+	ComPtr<ID3D11PixelShader> m_toneMappingPS_HDR;
+
+	ComPtr<ID3D11InputLayout> m_quadInputLayout;
+	ComPtr<ID3D11VertexShader> m_quadVertexShader;
+	ComPtr<ID3D11Buffer> m_quadVertexBuffer;
+	ComPtr<ID3D11Buffer> m_quadIndexBuffer;
+
+	UINT m_quadVertexBufferStride;
+	UINT m_quadVertexBufferOffset;
+	UINT m_quadIndicesCount;
+	void CreateHDRRenderTargetView();
+	void CreateQuad(); // toneMapping한 결과물 출력용 quad 생성
 	bool IsHDRSettingOn();
 
 	// =============================================================
@@ -177,8 +193,9 @@ public:
 	virtual void OnUpdate();
 	virtual void OnRender();
 
+	void HDRPass();
 	void DepthOnlyPass();
-	void RenderPass();
+	void DrawQuadPass();
 	void RenderSkyBox();
 
 	bool InitImGUI();

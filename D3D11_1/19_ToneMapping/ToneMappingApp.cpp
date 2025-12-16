@@ -3,7 +3,8 @@
 
 #include <directxtk/SimpleMath.h>
 #include <dxgidebug.h>
-#include <dxgi1_3.h>
+#include <dxgi1_4.h>
+#include <dxgi1_6.h>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -22,9 +23,11 @@ using Microsoft::WRL::ComPtr;
 // 상수 버퍼
 struct ConstantBuffer
 {
+	// camera
 	Matrix cameraView;
 	Matrix cameraProjection;
 
+	// light / shadow
 	Vector4 lightDirection;
 	Matrix shadowView;
 	Matrix shadowProjection;
@@ -37,9 +40,16 @@ struct ConstantBuffer
 	FLOAT shininess;	// 광택지수
 	Vector3 CameraPos;	// 카메라 위치
 
+	// PBR
 	FLOAT metalness;	//  
 	FLOAT roughness;	//
-	Vector2 pad3;
+
+	// tone mapping
+	BOOL  isActiveHDR;
+	FLOAT exposure;
+
+	FLOAT monitorMaxNit = 1000.0f; // 밝기 10%만 출력되게
+	Vector3 pad3;
 };
 
 struct CubeVertex
@@ -301,6 +311,16 @@ void ToneMappingApp::CreateSwapchain()
 	ComPtr<ID3D11Texture2D> pBackBufferTexture;
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
 	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
+
+	// ??
+	Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain3;
+	HR_T(m_pSwapChain->QueryInterface(__uuidof(IDXGISwapChain3), (void**)&swapChain3));
+	if (IsHDRSettingOn())
+	{
+		// EOTF = PQ (ST.2084 / G2084)  , 색역(Primaries) = Rec.2020 , RGB Full Range
+		// 이 스왑체인의 0.0~1.0 값은 선형 RGB나 감마 값이 아니라 PQ로 인코딩된 HDR10 신호로 해석하라”
+		HR_T(swapChain3->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020));
+	}
 }
 
 void ToneMappingApp::DrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
@@ -358,6 +378,87 @@ bool ToneMappingApp::InitDxgi()
 	return true;
 }
 
+void ToneMappingApp::CreateHDRRenderTargetView()
+{
+	// Create HDR Render target and view
+	D3D11_TEXTURE2D_DESC td = {};
+	td.Width = static_cast<UINT>(m_ClientWidth);
+	td.Height = static_cast<UINT>(m_ClientHeight);
+	td.MipLevels = 1;
+	td.ArraySize = 1;
+	td.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	td.SampleDesc.Count = 1;
+	td.SampleDesc.Quality = 0;
+	td.Usage = D3D11_USAGE_DEFAULT;
+	td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE; // https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ne-d3d11-d3d11_bind_flag
+
+	HR_T(m_pDevice->CreateTexture2D(&td, nullptr, m_HDRRendertarget.GetAddressOf()));
+	HR_T(m_pDevice->CreateRenderTargetView(m_HDRRendertarget.Get(), nullptr, m_HDRRenderTargetView.GetAddressOf()));
+	HR_T(m_pDevice->CreateShaderResourceView(m_HDRRendertarget.Get(), nullptr, m_HDRShaderResourceView.GetAddressOf()));
+}
+
+void ToneMappingApp::CreateQuad()
+{
+
+	struct QuadVertex
+	{
+		Vector3 position;
+		Vector2 uv;
+
+		QuadVertex(float x, float y, float z, float u, float v) : position(x, y, z), uv(u, v) {}
+		QuadVertex(Vector3 p, Vector2 u) : position(p), uv(u) {}
+	};
+
+	QuadVertex QuadVertices[] =
+	{
+		QuadVertex(Vector3(-1.0f,  1.0f, 1.0f), Vector2(0.0f,0.0f)),	// Left Top 
+		QuadVertex(Vector3(1.0f,  1.0f, 1.0f), Vector2(1.0f, 0.0f)),	// Right Top
+		QuadVertex(Vector3(-1.0f, -1.0f, 1.0f), Vector2(0.0f, 1.0f)),	// Left Bottom
+		QuadVertex(Vector3(1.0f, -1.0f, 1.0f), Vector2(1.0f, 1.0f))		// Right Bottom
+	};
+
+	D3D11_BUFFER_DESC vbDesc = {};
+	vbDesc.ByteWidth = sizeof(QuadVertex) * ARRAYSIZE(QuadVertices);
+	vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vbDesc.Usage = D3D11_USAGE_DEFAULT;
+	D3D11_SUBRESOURCE_DATA vbData = {};
+	vbData.pSysMem = QuadVertices;	// 배열 데이터 할당.
+	HR_T(m_pDevice->CreateBuffer(&vbDesc, &vbData, &m_quadVertexBuffer));
+	m_quadVertexBufferStride = sizeof(QuadVertex);		// 버텍스 버퍼 정보
+	m_quadVertexBufferOffset = 0;
+
+	// InputLayout 생성 	
+	D3D11_INPUT_ELEMENT_DESC layout[] = // 입력 레이아웃.
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	ComPtr<ID3DBlob> vertexShaderBuffer{};
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_Quad.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
+		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_quadInputLayout.GetAddressOf()));
+
+	// 버텍스 셰이더 생성
+	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(),
+		vertexShaderBuffer->GetBufferSize(), NULL, m_quadVertexShader.GetAddressOf()));
+
+	// 인덱스 버퍼 생성
+	WORD indices[] =
+	{
+		0,1,2,
+		1,3,2
+	};
+	m_quadIndicesCount = ARRAYSIZE(indices);	// 인덱스 개수 저장.
+	D3D11_BUFFER_DESC ibDesc = {};
+	ibDesc.ByteWidth = sizeof(WORD) * ARRAYSIZE(indices);
+	ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibDesc.Usage = D3D11_USAGE_DEFAULT;
+	D3D11_SUBRESOURCE_DATA ibData = {};
+	ibData.pSysMem = indices;
+	HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, m_quadIndexBuffer.GetAddressOf()));
+}
+
 bool ToneMappingApp::IsHDRSettingOn()
 {
 	// 디스플레이 관련 정보 가져오기
@@ -404,6 +505,8 @@ bool ToneMappingApp::OnInitialize()
 	InitShdowMap();
 	InitDebugDraw();
 	ResetValues();
+	CreateHDRRenderTargetView();
+	CreateQuad();
 
 	return true;
 }
@@ -434,22 +537,10 @@ void ToneMappingApp::OnRender()
 {
 	DepthOnlyPass();
 
-#if USE_FLIPMODE == 1
-	// Flip 모드에서는 매프레임 설정해야한다.
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
-#endif	
-	// 화면 칠하기.
-	Color color(0.1f, 0.2f, 0.3f, 1.0f);
-	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
-	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
+	//RenderSkyBox();
+	HDRPass();
 
-	// IBL 텍스처 리소스 넘겨주기
-	m_pDeviceContext->PSSetShaderResources(8, 1, m_pIBLIrradiance.GetAddressOf());		// Irradiance
-	m_pDeviceContext->PSSetShaderResources(9, 1, m_pIBLSpecular.GetAddressOf());		// Sepcular
-	m_pDeviceContext->PSSetShaderResources(10, 1, m_pIBLLookUpTable.GetAddressOf());	// LUT
-
-	RenderSkyBox();
-	RenderPass();
+	DrawQuadPass();
 
 	// Debug Draw Test code ==============
 
@@ -468,10 +559,102 @@ void ToneMappingApp::OnRender()
 
 	// 스왑체인 교체
 	m_pSwapChain->Present(0, 0);
-	//m_HDRSwapChain->Present(0, 0);
 }
 
 bool isplayed = false;
+
+void ToneMappingApp::HDRPass()
+{
+	// claer
+	Color color(0.1f, 0.2f, 0.3f, 1.0f);
+	m_pDeviceContext->ClearRenderTargetView(m_HDRRenderTargetView.Get(), color);
+	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	m_pDeviceContext->OMSetRenderTargets(1, m_HDRRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
+
+	// IBL 텍스처 리소스 넘겨주기
+	m_pDeviceContext->PSSetShaderResources(8, 1, m_pIBLIrradiance.GetAddressOf());		// Irradiance
+	m_pDeviceContext->PSSetShaderResources(9, 1, m_pIBLSpecular.GetAddressOf());		// Sepcular
+	m_pDeviceContext->PSSetShaderResources(10, 1, m_pIBLLookUpTable.GetAddressOf());	// LUT
+
+	// Update Constant Values
+	ConstantBuffer cb;
+	cb.cameraView = XMMatrixTranspose(m_View);
+	cb.cameraProjection = XMMatrixTranspose(m_Projection);
+	cb.lightDirection = m_LightDirection;
+	cb.lightDirection.Normalize();
+	cb.lightColor = m_LightColor;
+	cb.shadowView = XMMatrixTranspose(m_shadowView);
+	cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
+
+	cb.ambient = m_LightAmbient;
+	cb.diffuse = m_LightDiffuse;
+	cb.specular = m_LightSpecular;
+
+	cb.shininess = m_Shininess;
+	cb.CameraPos = m_Camera.m_Position;
+
+	cb.roughness = roughness;
+	cb.metalness = metalness;
+	cb.isActiveHDR = IsHDRSettingOn();
+	cb.exposure = this->exposure;
+
+	// skybox draw ====================================
+	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
+	m_pDeviceContext->OMSetDepthStencilState(m_pSkyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
+	
+	// 카메라용 뷰 행렬과, 투영행렬
+	Matrix m_skyboxProjection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, 0.1, m_Far);
+	
+	cb.cameraView = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
+	cb.cameraProjection = XMMatrixTranspose(m_skyboxProjection);
+	
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	
+	m_pDeviceContext->IASetInputLayout(m_pSkyboxInputLayout.Get());
+	m_pDeviceContext->IASetIndexBuffer(m_pSkyboxIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pSkyboxVertexBuffer.GetAddressOf(), &m_SkyboxVertexBufferStride, &m_SkyboxVertexBufferOffset);
+	m_pDeviceContext->VSSetShader(m_pSkyboxVS.Get(), nullptr, 0);
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->RSSetState(m_pSkyRasterizerState.Get());
+	m_pDeviceContext->PSSetShader(m_pSkyboxPS.Get(), nullptr, 0);
+	m_pDeviceContext->PSSetShaderResources(5, 1, m_pSkyboxTexture.GetAddressOf());
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	
+	m_pDeviceContext->DrawIndexed(m_nSkyboxIndices, 0, 0);
+
+	// 텍스처 및 샘플링 설정 -> 초기화
+	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
+	m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
+
+	m_pDeviceContext->PSSetShader(m_pPBRPS.Get(), 0, 0);
+
+	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
+
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+
+	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
+
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_pDeviceContext->PSSetShaderResources(4, 1, m_pShadowMapSRV.GetAddressOf());
+
+	// Draw 
+	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_pSphere->Draw(m_pDeviceContext, m_pMaterialBuffer);
+
+	for (auto& e : m_models)
+	{
+		e->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	}
+}
 
 void ToneMappingApp::DepthOnlyPass()
 {
@@ -533,65 +716,50 @@ void ToneMappingApp::DepthOnlyPass()
 	}
 }
 
-void ToneMappingApp::RenderPass()
+void ToneMappingApp::DrawQuadPass()
 {
 	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
 
-	// Update Constant Values
-	ConstantBuffer cb;
-	cb.cameraView = XMMatrixTranspose(m_View);
-	cb.cameraProjection = XMMatrixTranspose(m_Projection);
-	cb.lightDirection = m_LightDirection;
-	cb.lightDirection.Normalize();
-	cb.lightColor = m_LightColor;
-	cb.shadowView = XMMatrixTranspose(m_shadowView);
-	cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
-
-	cb.ambient = m_LightAmbient;
-	cb.diffuse = m_LightDiffuse;
-	cb.specular = m_LightSpecular;
-
-	cb.shininess = m_Shininess;
-	cb.CameraPos = m_Camera.m_Position;
-
-	cb.roughness = roughness;
-	cb.metalness = metalness;
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr);
+	Color color(0.1f, 0.2f, 0.3f, 1.0f);
+	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
 
 	// 텍스처 및 샘플링 설정 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	m_pDeviceContext->IASetInputLayout(m_quadInputLayout.Get());
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_quadVertexBuffer.GetAddressOf(), &m_quadVertexBufferStride, &m_quadVertexBufferOffset);
+	m_pDeviceContext->IASetIndexBuffer(m_quadIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->VSSetShader(m_quadVertexShader.Get(), 0, 0);
 
-	m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
-
-	m_pDeviceContext->PSSetShader(m_pPBRPS.Get(), 0, 0);
-
-	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
-
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-
-	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
-
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_pDeviceContext->PSSetShaderResources(4, 1, m_pShadowMapSRV.GetAddressOf());
-
-	// Draw 
-	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pSphere->Draw(m_pDeviceContext, m_pMaterialBuffer);
-
-	for (auto& e : m_models)
+	if (IsHDRSettingOn())
 	{
-		e->Draw(m_pDeviceContext, m_pMaterialBuffer);
+		m_pDeviceContext->PSSetShader(m_toneMappingPS_HDR.Get(), 0, 0);
 	}
+	else
+	{
+		m_pDeviceContext->PSSetShader(m_toneMappingPS_LDR.Get(), 0, 0);
+	}
+
+	m_pDeviceContext->PSSetShaderResources(11, 1, m_HDRShaderResourceView.GetAddressOf());
+	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	m_pDeviceContext->DrawIndexed(m_quadIndicesCount, 0, 0);
+
+
+	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+	m_pDeviceContext->PSSetShaderResources(11, 1, nullSRV);
 }
 
 void ToneMappingApp::RenderSkyBox()
 {
+#if USE_FLIPMODE == 1
+	// Flip 모드에서는 매프레임 설정해야한다.
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
+#endif	
+	// 화면 칠하기.
+	Color color(0.1f, 0.2f, 0.3f, 1.0f);
+	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
+
 	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
 	m_pDeviceContext->OMSetDepthStencilState(m_pSkyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
 
@@ -779,6 +947,7 @@ void ToneMappingApp::RenderImGUI()
 	ImGui::Begin("Info");
 	{
 		ImGui::Text(IsHDRSettingOn() ? "HDR : On" : "HDR : Off");
+		ImGui::DragFloat("exposure", &exposure, 0.01f, -5.0f, 5.0f);
 	}
 	ImGui::End();
 
@@ -1069,6 +1238,14 @@ bool ToneMappingApp::InitEffect()
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_PBR.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPBRPS.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_ToneMappingLDR.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_toneMappingPS_LDR.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_ToneMappingHDR.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_toneMappingPS_HDR.GetAddressOf()));
 
 	return true;
 }
