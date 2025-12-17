@@ -196,7 +196,6 @@ public:
 	void HDRPass();
 	void DepthOnlyPass();
 	void DrawQuadPass();
-	void RenderSkyBox();
 
 	bool InitImGUI();
 	void RenderImGUI();

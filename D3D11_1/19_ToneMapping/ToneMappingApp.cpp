@@ -535,11 +535,8 @@ void ToneMappingApp::OnUpdate()
 
 void ToneMappingApp::OnRender()
 {
-	DepthOnlyPass();
-
-	//RenderSkyBox();
-	HDRPass();
-
+	DepthOnlyPass();	// 그림자 매핑
+	HDRPass();			// Hdr를 위한 
 	DrawQuadPass();
 
 	// Debug Draw Test code ==============
@@ -599,50 +596,50 @@ void ToneMappingApp::HDRPass()
 	cb.exposure = this->exposure;
 
 	// skybox draw ====================================
-	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
-	m_pDeviceContext->OMSetDepthStencilState(m_pSkyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
 	
 	// 카메라용 뷰 행렬과, 투영행렬
 	Matrix m_skyboxProjection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, 0.1, m_Far);
 	
 	cb.cameraView = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
-	cb.cameraProjection = XMMatrixTranspose(m_skyboxProjection);
+	cb.cameraProjection = XMMatrixTranspose(m_skyboxProjection);	
 	
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	
-	m_pDeviceContext->IASetInputLayout(m_pSkyboxInputLayout.Get());
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pSkyboxVertexBuffer.GetAddressOf(), &m_SkyboxVertexBufferStride, &m_SkyboxVertexBufferOffset);
 	m_pDeviceContext->IASetIndexBuffer(m_pSkyboxIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pSkyboxVertexBuffer.GetAddressOf(), &m_SkyboxVertexBufferStride, &m_SkyboxVertexBufferOffset);
+	m_pDeviceContext->IASetInputLayout(m_pSkyboxInputLayout.Get());
+
 	m_pDeviceContext->VSSetShader(m_pSkyboxVS.Get(), nullptr, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+
 	m_pDeviceContext->RSSetState(m_pSkyRasterizerState.Get());
+	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
+
 	m_pDeviceContext->PSSetShader(m_pSkyboxPS.Get(), nullptr, 0);
 	m_pDeviceContext->PSSetShaderResources(5, 1, m_pSkyboxTexture.GetAddressOf());
 	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
 	
+	m_pDeviceContext->OMSetDepthStencilState(m_pSkyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
+
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
 	m_pDeviceContext->DrawIndexed(m_nSkyboxIndices, 0, 0);
 
 	// 텍스처 및 샘플링 설정 -> 초기화
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
 
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
 	m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
-
-	m_pDeviceContext->PSSetShader(m_pPBRPS.Get(), 0, 0);
-
-	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
-
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 
 	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
 
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_pDeviceContext->PSSetShader(m_pPBRPS.Get(), 0, 0);
 	m_pDeviceContext->PSSetShaderResources(4, 1, m_pShadowMapSRV.GetAddressOf());
+	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
+
+	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
+
+	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	// Draw 
 	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
@@ -748,43 +745,6 @@ void ToneMappingApp::DrawQuadPass()
 
 	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
 	m_pDeviceContext->PSSetShaderResources(11, 1, nullSRV);
-}
-
-void ToneMappingApp::RenderSkyBox()
-{
-#if USE_FLIPMODE == 1
-	// Flip 모드에서는 매프레임 설정해야한다.
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get()); // depthStencilView 사용
-#endif	
-	// 화면 칠하기.
-	Color color(0.1f, 0.2f, 0.3f, 1.0f);
-	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0); // 뎁스버퍼 1.0f로 초기화.
-
-	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
-	m_pDeviceContext->OMSetDepthStencilState(m_pSkyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
-
-	// 카메라용 뷰 행렬과, 투영행렬
-	Matrix m_skyboxProjection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, 0.1, m_Far);
-
-	ConstantBuffer cb;
-
-	cb.cameraView = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
-	cb.cameraProjection = XMMatrixTranspose(m_skyboxProjection);
-
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	m_pDeviceContext->IASetInputLayout(m_pSkyboxInputLayout.Get());
-	m_pDeviceContext->IASetIndexBuffer(m_pSkyboxIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pSkyboxVertexBuffer.GetAddressOf(), &m_SkyboxVertexBufferStride, &m_SkyboxVertexBufferOffset);
-	m_pDeviceContext->VSSetShader(m_pSkyboxVS.Get(), nullptr, 0);
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->RSSetState(m_pSkyRasterizerState.Get());
-	m_pDeviceContext->PSSetShader(m_pSkyboxPS.Get(), nullptr, 0);
-	m_pDeviceContext->PSSetShaderResources(5, 1, m_pSkyboxTexture.GetAddressOf());
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-
-	m_pDeviceContext->DrawIndexed(m_nSkyboxIndices, 0, 0);
 }
 
 bool ToneMappingApp::InitImGUI()
