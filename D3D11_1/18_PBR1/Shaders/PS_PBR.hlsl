@@ -119,6 +119,13 @@ float4 main(PS_INPUT input) : SV_TARGET
     }
     
     float finalRoughness = roughnessSample * Roughness;
+    
+    // ambient occlusion
+    float ambientOcclusionFactor = txAmbientOcclusion.Sample(samLinear, input.Tex).r;
+    if (!hasAmbientOcclusion)
+    {
+        ambientOcclusionFactor = ambientOcclusion;
+    }
 
     float3 directLighting = 0.0f;
     
@@ -176,7 +183,7 @@ float4 main(PS_INPUT input) : SV_TARGET
         // 쿡토런스 Spceular BRDF 근사식
         float3 specularIBL = PrefilteredColor * (F0 * specularBRDF.x + specularBRDF.y); // x : normal dot view, y : roughtness
         
-        inDirectLighting = (diffuseIBL + specularIBL); // * AmbientOcclusion;
+        inDirectLighting = (diffuseIBL + specularIBL) * ambientOcclusionFactor;
     }
     
     return float4(pow(float3(directLighting + inDirectLighting), 1.0 / 2.2), 1.0); // linear -> gamma 

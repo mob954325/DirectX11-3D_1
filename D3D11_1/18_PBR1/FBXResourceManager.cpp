@@ -121,6 +121,12 @@ Mesh FBXResourceManager::ProcessMesh(std::shared_ptr<FBXResourceAsset>& pAsset, 
 		{
 			textures.insert(textures.end(), shininessMap.begin(), shininessMap.end());
 		}
+
+		std::vector<Texture> AOMap = this->loadMaterialTextures(pAsset, material, aiTextureType_AMBIENT_OCCLUSION, TEXTURE_AMBIENTOCCLUSION, pScene);
+		if (!AOMap.empty())
+		{
+			textures.insert(textures.end(), AOMap.begin(), AOMap.end());
+		}
 	}
 
 	return Mesh(m_pDevice, vertices, indices, textures);

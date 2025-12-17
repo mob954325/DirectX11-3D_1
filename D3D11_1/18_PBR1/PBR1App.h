@@ -152,6 +152,7 @@ public:
 	ComPtr<ID3D11PixelShader> m_pPBRPS = nullptr;
 	float roughness = 0;
 	float metalness = 0;
+	float ambientOcclusion = 1;
 
 	bool useBaseColor = true; // NOTE: 텍스처 없는 오브젝트는 강제로 플래그 활성화되서 출력이 안될 수 있음.
 	bool useNormal = true;
