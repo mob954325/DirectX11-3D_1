@@ -39,7 +39,8 @@ struct ConstantBuffer
 
 	FLOAT metalness;	//  
 	FLOAT roughness;	//
-	Vector2 pad3;
+	FLOAT ambientOcclusion;
+	FLOAT pad3;
 };
 
 struct CubeVertex
@@ -484,6 +485,7 @@ void PBR1App::RenderPass()
 
 	cb.roughness = roughness;
 	cb.metalness = metalness;
+	cb.ambientOcclusion = ambientOcclusion;
 
 	// 텍스처 및 샘플링 설정 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -693,6 +695,7 @@ void PBR1App::RenderImGUI()
 
 	ImGui::DragFloat("Roughness", &roughness, 0.01f, 0, 1);
 	ImGui::DragFloat("Metalness", &metalness, 0.01f, 0, 1);
+	ImGui::DragFloat("AmbientOcclusion", &ambientOcclusion, 0.01f, 0, 1);
 
 	ImGui::Spacing();
 

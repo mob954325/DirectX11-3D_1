@@ -17,6 +17,7 @@ Texture2D txRoughness       : register(t7);   // roughness 텍스처
 TextureCube txIBLIrradiance : register(t8);   // IBL Irrandiance Map
 TextureCube txIBLSepcualar  : register(t9);   // IBL Specular Map
 Texture2D txIBLLookUpTable  : register(t10); // IBL LUT (Look Up Table)
+Texture2D txAmbientOcclusion: register(t11);  // ambient occlusion texture
 
 cbuffer ConstantBuffer : register(b0)   // PerFrame
 {
@@ -37,7 +38,8 @@ cbuffer ConstantBuffer : register(b0)   // PerFrame
     
     float Metalness;
     float Roughness;
-	float1 pad1;    
+    float ambientOcclusion;
+    float pad1;
 }
 
 cbuffer Material : register(b1) // PerMaterial
@@ -54,7 +56,7 @@ cbuffer Material : register(b1) // PerMaterial
     int hasMetalness;
     int hasRoughness;    
     int hasShininess;    
-    float pad2;
+    int hasAmbientOcclusion;
 };
 
 cbuffer ModelTransform : register(b2)

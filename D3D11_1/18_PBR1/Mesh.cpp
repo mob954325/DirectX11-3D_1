@@ -69,6 +69,10 @@ void Mesh::setupMesh()
         {
             material.hasShininess = true;
         }
+        else if (typeName == TEXTURE_AMBIENTOCCLUSION)
+        {
+            material.hasAmbientOcclusion = true;
+        }
     }
 }
 
@@ -102,7 +106,7 @@ void Mesh::ProcessTextureByType(ComPtr<ID3D11DeviceContext>& pDeviceContext, int
     }
     else if (typeName == TEXTURE_SHININESS)
     {
-        pDeviceContext->PSSetShaderResources(7, 1, textures[index].pTexture.GetAddressOf());
+        pDeviceContext->PSSetShaderResources(11, 1, textures[index].pTexture.GetAddressOf());
     }
 }
 
