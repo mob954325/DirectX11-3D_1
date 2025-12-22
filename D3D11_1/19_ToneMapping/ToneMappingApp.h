@@ -166,6 +166,9 @@ public:
 	// Tone Mapping - 
 	bool m_useHDRFormat = false; // hdr 포맷 사용 여부, 사용하면 DXGI_FORMAT_R10G10B10A2_UNORM, 안하면 DXGI_FORMAT_R8G8B8A8_UNORM ( LDR )
 	float exposure = 0.0f;
+	float lightIntensity = 1.0f;
+	bool useToneMapping = true;
+
 	DXGI_FORMAT m_HDRFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
 	ComPtr<IDXGIFactory2> m_pFactory;
 
