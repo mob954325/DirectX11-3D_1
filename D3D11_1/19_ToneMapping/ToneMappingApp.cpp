@@ -50,8 +50,7 @@ struct ConstantBuffer
 
 	FLOAT monitorMaxNit = 1000.0f; // 밝기 10%만 출력되게
 	FLOAT lightIntensity;
-	BOOL useToneMapping;
-	FLOAT pad3;
+	Vector2 pad3;
 };
 
 struct CubeVertex
@@ -597,7 +596,6 @@ void ToneMappingApp::HDRPass()
 	cb.isActiveHDR = IsHDRSettingOn();
 	cb.exposure = exposure;
 	cb.lightIntensity = lightIntensity;
-	cb.useToneMapping = useToneMapping;
 
 	// skybox draw ====================================
 	
@@ -912,8 +910,7 @@ void ToneMappingApp::RenderImGUI()
 	{
 		ImGui::Text(IsHDRSettingOn() ? "HDR : On" : "HDR : Off");
 		ImGui::DragFloat("exposure", &exposure, 0.01f, -5.0f, 5.0f);
-		ImGui::DragFloat("light intensity", &lightIntensity, 0.01f, 0.0f, 5.0f);
-		ImGui::Checkbox("useToneMapping", &useToneMapping);
+		ImGui::DragFloat("light intensity", &lightIntensity, 0.01f, 0.0f, 10000.0f);
 	}
 	ImGui::End();
 

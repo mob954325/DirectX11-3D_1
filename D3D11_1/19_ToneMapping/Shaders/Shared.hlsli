@@ -43,8 +43,7 @@ cbuffer ConstantBuffer : register(b0)   // PerFrame
     
     float monitorMaxNit = 100.0f;
     float lightIntensity;
-    int useToneMapping;
-    float pad;
+    float2 pad;
 }
 
 cbuffer Material : register(b1) // PerMaterial
