@@ -42,7 +42,7 @@ public:
 	ComPtr<ID3D11Device>			m_pDevice = nullptr;						// 디바이스
 	ComPtr<ID3D11DeviceContext>		m_pDeviceContext = nullptr;			// 디바이스 컨텍스트
 	ComPtr<IDXGISwapChain1>			m_pSwapChain = nullptr;					// 스왑체인 
-	ComPtr<ID3D11RenderTargetView>	m_pRenderTargetView = nullptr;	// 랜더 타겟
+	ComPtr<ID3D11RenderTargetView>	m_pBackbufferRTV = nullptr;	// 랜더 타겟
 	ComPtr<ID3D11DepthStencilView>	m_pDepthStencilView = nullptr;	// 깊이 값 처리를 위한 뎊스스텐실 뷰
 	ComPtr<ID3D11BlendState>		m_pBlendState = nullptr;				// 혼합 상태 객체 
 	ComPtr<ID3D11DepthStencilState> m_pDepthStencilStateAllMask = nullptr;
@@ -190,6 +190,21 @@ public:
 	void CreateHDRRenderTargetView();
 	void CreateQuad(); // toneMapping한 결과물 출력용 quad 생성
 	bool IsHDRSettingOn();
+
+	// Deferred Rendering
+
+	enum class EGbuffer
+	{
+		WorldPos = 0,
+		WorldNor,
+		Matal,
+		Rough,
+		BaseColor
+	};
+
+	ComPtr<ID3D11RenderTargetView> m_pGbufferRTV[5];
+	ComPtr<ID3D11ShaderResourceView> m_pGbufferSRV[5];
+	ComPtr<ID3D11Texture2D> m_pGbufferTextures[5];
 
 	// =============================================================
 	virtual bool OnInitialize();

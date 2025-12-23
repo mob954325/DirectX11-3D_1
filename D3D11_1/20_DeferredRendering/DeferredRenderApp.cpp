@@ -312,7 +312,7 @@ void DeferredRenderApp::CreateSwapchain()
 	// 텍스쳐와 영구적으로 연결되는 객체
 	ComPtr<ID3D11Texture2D> pBackBufferTexture;
 	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
-	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
+	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pBackbufferRTV.GetAddressOf()));
 
 	// ??
 	Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain3;
@@ -721,9 +721,9 @@ void DeferredRenderApp::DrawQuadPass()
 {
 	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
 
-	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr);
+	m_pDeviceContext->OMSetRenderTargets(1, m_pBackbufferRTV.GetAddressOf(), nullptr);
 	Color color(0.1f, 0.2f, 0.3f, 1.0f);
-	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
+	m_pDeviceContext->ClearRenderTargetView(m_pBackbufferRTV.Get(), color);
 
 	// 텍스처 및 샘플링 설정 
 	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
