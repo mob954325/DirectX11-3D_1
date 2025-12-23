@@ -49,7 +49,9 @@ struct ConstantBuffer
 	FLOAT exposure;
 
 	FLOAT monitorMaxNit = 1000.0f; // 밝기 10%만 출력되게
-	Vector3 pad3;
+	FLOAT lightIntensity;
+	BOOL useToneMapping;
+	FLOAT pad3;
 };
 
 struct CubeVertex
@@ -277,7 +279,7 @@ void ToneMappingApp::CreateSwapchain()
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 #if USE_FLIPMODE == 1
 	swapChainDesc.BufferCount = 2;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // ??
 #else
 	swapChainDesc.BufferCount = 1;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
@@ -593,7 +595,9 @@ void ToneMappingApp::HDRPass()
 	cb.roughness = roughness;
 	cb.metalness = metalness;
 	cb.isActiveHDR = IsHDRSettingOn();
-	cb.exposure = this->exposure;
+	cb.exposure = exposure;
+	cb.lightIntensity = lightIntensity;
+	cb.useToneMapping = useToneMapping;
 
 	// skybox draw ====================================
 	
@@ -908,6 +912,8 @@ void ToneMappingApp::RenderImGUI()
 	{
 		ImGui::Text(IsHDRSettingOn() ? "HDR : On" : "HDR : Off");
 		ImGui::DragFloat("exposure", &exposure, 0.01f, -5.0f, 5.0f);
+		ImGui::DragFloat("light intensity", &lightIntensity, 0.01f, 0.0f, 5.0f);
+		ImGui::Checkbox("useToneMapping", &useToneMapping);
 	}
 	ImGui::End();
 
