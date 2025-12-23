@@ -40,6 +40,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "18_PBR1", "18_PBR1\18_PBR1.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "19_ToneMapping", "19_ToneMapping\19_ToneMapping.vcxproj", "{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "20_DeferredRendering", "20_DeferredRendering\20_DeferredRendering.vcxproj", "{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -200,6 +202,14 @@ Global
 		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Release|x64.Build.0 = Release|x64
 		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Release|x86.ActiveCfg = Release|Win32
 		{F2DCAB1C-FDCA-4AD2-B991-69A822CAE458}.Release|x86.Build.0 = Release|Win32
+		{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}.Debug|x64.ActiveCfg = Debug|x64
+		{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}.Debug|x64.Build.0 = Debug|x64
+		{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}.Debug|x86.ActiveCfg = Debug|Win32
+		{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}.Debug|x86.Build.0 = Debug|Win32
+		{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}.Release|x64.ActiveCfg = Release|x64
+		{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}.Release|x64.Build.0 = Release|x64
+		{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}.Release|x86.ActiveCfg = Release|Win32
+		{76F5AE96-D8DE-46A7-8A9D-EA087F13F919}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
