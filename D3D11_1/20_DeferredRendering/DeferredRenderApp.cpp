@@ -27,12 +27,9 @@ struct ConstantBuffer
 	Matrix cameraView;
 	Matrix cameraProjection;
 
-	// light / shadow
-	Vector4 lightDirection;
+	// 
 	Matrix shadowView;
 	Matrix shadowProjection;
-
-	Color lightColor;
 
 	Vector4 ambient;	// 환경광
 	Vector4 diffuse;	// 난반사
@@ -43,20 +40,28 @@ struct ConstantBuffer
 	// PBR
 	FLOAT metalness;	//  
 	FLOAT roughness;	//
-
-	// tone mapping
-	BOOL  isActiveHDR;
-	FLOAT exposure;
-
-	FLOAT monitorMaxNit = 1000.0f; // 밝기 10%만 출력되게
 	FLOAT lightIntensity;
-	BOOL useToneMapping;
-	FLOAT pad3;
+	FLOAT pad1;
+};
+
+struct LightDirectionCB
+{
+	Vector4 lightDirection;
+	Color lightColor;
 };
 
 struct CubeVertex
 {
 	Vector3 position;
+};
+
+struct QuadVertex
+{
+	Vector3 position;
+	Vector2 uv;
+
+	QuadVertex(float x, float y, float z, float u, float v) : position(x, y, z), uv(u, v) {}
+	QuadVertex(Vector3 p, Vector2 u) : position(p), uv(u) {}
 };
 
 std::string WStringToUTF8(const std::wstring& wstr)
@@ -78,7 +83,7 @@ std::string WStringToUTF8(const std::wstring& wstr)
 DeferredRenderApp::DeferredRenderApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
-
+	gbufferCount = static_cast<int>(EGbuffer::Count);
 }
 
 DeferredRenderApp::~DeferredRenderApp()
@@ -88,10 +93,10 @@ DeferredRenderApp::~DeferredRenderApp()
 
 void DeferredRenderApp::InitDebugDraw()
 {
-	m_states = std::make_unique<CommonStates>(m_pDevice.Get());
-	m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(m_pDeviceContext.Get());
+	m_states = std::make_unique<CommonStates>(m_device.Get());
+	m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(m_deviceContext.Get());
 
-	m_effect = std::make_unique<BasicEffect>(m_pDevice.Get());
+	m_effect = std::make_unique<BasicEffect>(m_device.Get());
 	m_effect->SetVertexColorEnabled(true);
 	m_effect->SetView(m_shadowView);
 	m_effect->SetProjection(m_shadowProj);
@@ -103,10 +108,10 @@ void DeferredRenderApp::InitDebugDraw()
 		m_effect->GetVertexShaderBytecode(&shaderByteCode, &byteCodeLength); // ??
 
 		// https://github.com/Microsoft/DirectXTK/wiki/throwIfFailed -> 이거 문서에 있던건데 이거 결국 HRESULT 값을 반환한다는 소리임
-		HR_T(m_pDevice->CreateInputLayout(
+		HR_T(m_device->CreateInputLayout(
 			VertexPositionColor::InputElements, VertexPositionColor::InputElementCount,
 			shaderByteCode, byteCodeLength,
-			m_pDebugDrawInputLayout.ReleaseAndGetAddressOf()));
+			m_debugDrawInputLayout.ReleaseAndGetAddressOf()));
 	}
 }
 
@@ -123,20 +128,20 @@ void DeferredRenderApp::InitShdowMap()
 	texDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
-	HR_T(m_pDevice->CreateTexture2D(&texDesc, nullptr, m_pShadowMap.GetAddressOf()));
+	HR_T(m_device->CreateTexture2D(&texDesc, nullptr, m_shadowMap.GetAddressOf()));
 
 	// DSV
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
 	descDSV.Format = DXGI_FORMAT_D32_FLOAT;
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	HR_T(m_pDevice->CreateDepthStencilView(m_pShadowMap.Get(), &descDSV, m_pShadowMapDSV.GetAddressOf()));
+	HR_T(m_device->CreateDepthStencilView(m_shadowMap.Get(), &descDSV, m_shadowMapDSV.GetAddressOf()));
 
 	// SRV
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
-	HR_T(m_pDevice->CreateShaderResourceView(m_pShadowMap.Get(), &srvDesc, m_pShadowMapSRV.GetAddressOf()));
+	HR_T(m_device->CreateShaderResourceView(m_shadowMap.Get(), &srvDesc, m_shadowMapSRV.GetAddressOf()));
 
 	// 빛 계산 ( pov )
 	m_shadowProj = XMMatrixPerspectiveFovLH(m_shadowFrustumAngle, m_shadowViewport.width / (FLOAT)m_shadowViewport.height, m_shadowNear, m_shadowFar); // 그림자 절두체
@@ -192,7 +197,7 @@ bool DeferredRenderApp::InitSkyBox()
 
 	D3D11_SUBRESOURCE_DATA vbData = {};
 	vbData.pSysMem = skyboxVertices;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &vbData, m_pSkyboxVertexBuffer.GetAddressOf()));
+	HR_T(m_device->CreateBuffer(&bufferDesc, &vbData, m_skyboxVertexBuffer.GetAddressOf()));
 
 	m_SkyboxVertexBufferStride = sizeof(CubeVertex); 	// 버텍스 버퍼의 정보
 	m_SkyboxVertexBufferOffset = 0;
@@ -205,10 +210,10 @@ bool DeferredRenderApp::InitSkyBox()
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"Shaders\\VS_Skybox.hlsl", "main", "vs_5_0", &vertexShaderBuffer));
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pSkyboxInputLayout.GetAddressOf()));
+	HR_T(m_device->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_skyboxInputLayout.GetAddressOf()));
 
 	// 파이프 라인에 바인딩할 정점 셰이더 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pSkyboxVS.GetAddressOf()));
+	HR_T(m_device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_skyboxVS.GetAddressOf()));
 
 	// 인덱스 버퍼
 	WORD skyboxIndices[] =
@@ -239,12 +244,12 @@ bool DeferredRenderApp::InitSkyBox()
 
 	D3D11_SUBRESOURCE_DATA ibData = {};
 	ibData.pSysMem = skyboxIndices;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, &ibData, m_pSkyboxIndexBuffer.GetAddressOf()));
+	HR_T(m_device->CreateBuffer(&bufferDesc, &ibData, m_skyboxIndexBuffer.GetAddressOf()));
 
 	// 픽셀 셰이더
 	ComPtr<ID3DBlob> sbPixelShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_Skybox.hlsl", "main", "ps_5_0", &sbPixelShaderBuffer));
-	HR_T(m_pDevice->CreatePixelShader(sbPixelShaderBuffer->GetBufferPointer(), sbPixelShaderBuffer->GetBufferSize(), NULL, m_pSkyboxPS.GetAddressOf()));
+	HR_T(m_device->CreatePixelShader(sbPixelShaderBuffer->GetBufferPointer(), sbPixelShaderBuffer->GetBufferSize(), NULL, m_skyboxPS.GetAddressOf()));
 
 	// 래스터라이저
 	D3D11_RASTERIZER_DESC rasterizerState = {};
@@ -253,16 +258,16 @@ bool DeferredRenderApp::InitSkyBox()
 	rasterizerState.DepthClipEnable = true;
 	rasterizerState.FrontCounterClockwise = true;
 
-	HR_T(m_pDevice->CreateRasterizerState(&rasterizerState, m_pSkyRasterizerState.ReleaseAndGetAddressOf()));
+	HR_T(m_device->CreateRasterizerState(&rasterizerState, m_skyRasterizerState.ReleaseAndGetAddressOf()));
 
 	// 스카이 박스 뎊스 스텐실 상태 개체 추가
-	D3D11_DEPTH_STENCIL_DESC skyboxDsDesc;
-	ZeroMemory(&skyboxDsDesc, sizeof(skyboxDsDesc));
-	skyboxDsDesc.DepthEnable = false;
+	D3D11_DEPTH_STENCIL_DESC skyboxDsDesc{};
+	skyboxDsDesc.DepthEnable = true;
 	skyboxDsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;	// 깊이 버퍼 사용 X
-	// skyboxDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;		
+	skyboxDsDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;		
 	skyboxDsDesc.StencilEnable = false;
-	HR_T(m_pDevice->CreateDepthStencilState(&skyboxDsDesc, m_pSkyDepthStencilState.GetAddressOf()));
+
+	HR_T(m_device->CreateDepthStencilState(&skyboxDsDesc, m_skyDepthStencilState.GetAddressOf()));
 
 	return true;
 }
@@ -289,7 +294,7 @@ void DeferredRenderApp::CreateSwapchain()
 
 	// 하나의 픽셀이 채널 RGBA 각 8비트 형식으로 표현
 	// Unsigned Normalized Integer 8비트 정수(0~255)단계를 부동소수점으로 정규화한 0.0~1.0으로 매핑하여 표현한다.
-	swapChainDesc.Format = IsHDRSettingOn() ? m_HDRFormat : DXGI_FORMAT_B8G8R8A8_UNORM;
+	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 스왑 체인의 백 버퍼가 렌더링 파이프라인의 최종 출력 대상으로 사용
 	swapChainDesc.SampleDesc.Count = 1;	// 멀티 샘플링 사용 안함
 	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // 투명도 조작 무시 | recommand for flip mode ?
@@ -297,32 +302,26 @@ void DeferredRenderApp::CreateSwapchain()
 	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // 전체 화면 전환을 허용
 	swapChainDesc.Scaling = DXGI_SCALING_NONE; // 창의 크기와 백 버퍼의 크기가 다를 때. 백버퍼 크기에 맞게 스케일링 하지 않는다.
 
-	HR_T(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_pFactory)));
-	HR_T(m_pFactory->CreateSwapChainForHwnd
+	HR_T(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_factory)));
+	HR_T(m_factory->CreateSwapChainForHwnd
 	(
-		m_pDevice.Get(),
+		m_device.Get(),
 		m_hWnd,
 		&swapChainDesc,
 		nullptr,
 		nullptr,
-		&m_pSwapChain
+		&m_swapChain
 	));
 
 	// 3. 랜더타겟 뷰 생성. 랜더타겟 뷰는 "여기에 그림을 그려라"라고 GPU에게 알려주는 역할을 하는 객체
 	// 텍스쳐와 영구적으로 연결되는 객체
 	ComPtr<ID3D11Texture2D> pBackBufferTexture;
-	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
-	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pBackbufferRTV.GetAddressOf()));
+	HR_T(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
+	HR_T(m_device->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_backbufferRTV.GetAddressOf()));
 
 	// ??
 	Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain3;
-	HR_T(m_pSwapChain->QueryInterface(__uuidof(IDXGISwapChain3), (void**)&swapChain3));
-	if (IsHDRSettingOn())
-	{
-		// EOTF = PQ (ST.2084 / G2084)  , 색역(Primaries) = Rec.2020 , RGB Full Range
-		// 이 스왑체인의 0.0~1.0 값은 선형 RGB나 감마 값이 아니라 PQ로 인코딩된 HDR10 신호로 해석하라”
-		HR_T(swapChain3->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020));
-	}
+	HR_T(m_swapChain->QueryInterface(__uuidof(IDXGISwapChain3), (void**)&swapChain3));
 }
 
 void DeferredRenderApp::DrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proejctionMat,
@@ -342,14 +341,14 @@ void DeferredRenderApp::DrawFrustum(Matrix worldMat, Matrix viewMat, Matrix proe
 	m_effect->SetWorld(Matrix::Identity);	// 해당 그림 위치 설정
 	m_effect->SetView(m_View);				// 해당 그림을 어디 기준으로 그릴지 설정
 	m_effect->SetProjection(m_Projection);	// 해당 그림이 어디에 투영 될지 설정
-	m_effect->Apply(m_pDeviceContext.Get());
+	m_effect->Apply(m_deviceContext.Get());
 
 	// 문서에 따른 세팅 -> https://github.com/microsoft/DirectXTK/wiki/DebugDraw
-	m_pDeviceContext->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
-	m_pDeviceContext->OMSetDepthStencilState(m_states->DepthNone(), 0);
-	m_pDeviceContext->RSSetState(m_states->CullNone());
+	m_deviceContext->OMSetBlendState(m_states->Opaque(), nullptr, 0xFFFFFFFF);
+	m_deviceContext->OMSetDepthStencilState(m_states->DepthNone(), 0);
+	m_deviceContext->RSSetState(m_states->CullNone());
 
-	m_pDeviceContext->IASetInputLayout(m_pDebugDrawInputLayout.Get()); // 디버그용 InputLayout 적용
+	m_deviceContext->IASetInputLayout(m_debugDrawInputLayout.Get()); // 디버그용 InputLayout 적용
 
 	m_batch->Begin();
 	DX::Draw(m_batch.get(), frustum, color);
@@ -362,7 +361,7 @@ bool DeferredRenderApp::InitDxgi()
 	// ============================================
 	// 1. IDXGIDevice3 생성
 	// ============================================
-	HR_T(m_pDevice->QueryInterface(__uuidof(IDXGIDevice3), reinterpret_cast<void**>(dxgiDevice3.GetAddressOf())));
+	HR_T(m_device->QueryInterface(__uuidof(IDXGIDevice3), reinterpret_cast<void**>(dxgiDevice3.GetAddressOf())));
 
 
 	// ============================================
@@ -380,37 +379,8 @@ bool DeferredRenderApp::InitDxgi()
 	return true;
 }
 
-void DeferredRenderApp::CreateHDRRenderTargetView()
-{
-	// Create HDR Render target and view
-	D3D11_TEXTURE2D_DESC td = {};
-	td.Width = static_cast<UINT>(m_ClientWidth);
-	td.Height = static_cast<UINT>(m_ClientHeight);
-	td.MipLevels = 1;
-	td.ArraySize = 1;
-	td.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	td.SampleDesc.Count = 1;
-	td.SampleDesc.Quality = 0;
-	td.Usage = D3D11_USAGE_DEFAULT;
-	td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE; // https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ne-d3d11-d3d11_bind_flag
-
-	HR_T(m_pDevice->CreateTexture2D(&td, nullptr, m_HDRRendertarget.GetAddressOf()));
-	HR_T(m_pDevice->CreateRenderTargetView(m_HDRRendertarget.Get(), nullptr, m_HDRRenderTargetView.GetAddressOf()));
-	HR_T(m_pDevice->CreateShaderResourceView(m_HDRRendertarget.Get(), nullptr, m_HDRShaderResourceView.GetAddressOf()));
-}
-
 void DeferredRenderApp::CreateQuad()
 {
-
-	struct QuadVertex
-	{
-		Vector3 position;
-		Vector2 uv;
-
-		QuadVertex(float x, float y, float z, float u, float v) : position(x, y, z), uv(u, v) {}
-		QuadVertex(Vector3 p, Vector2 u) : position(p), uv(u) {}
-	};
-
 	QuadVertex QuadVertices[] =
 	{
 		QuadVertex(Vector3(-1.0f,  1.0f, 1.0f), Vector2(0.0f,0.0f)),	// Left Top 
@@ -425,7 +395,7 @@ void DeferredRenderApp::CreateQuad()
 	vbDesc.Usage = D3D11_USAGE_DEFAULT;
 	D3D11_SUBRESOURCE_DATA vbData = {};
 	vbData.pSysMem = QuadVertices;	// 배열 데이터 할당.
-	HR_T(m_pDevice->CreateBuffer(&vbDesc, &vbData, &m_quadVertexBuffer));
+	HR_T(m_device->CreateBuffer(&vbDesc, &vbData, &m_quadVertexBuffer));
 	m_quadVertexBufferStride = sizeof(QuadVertex);		// 버텍스 버퍼 정보
 	m_quadVertexBufferOffset = 0;
 
@@ -437,13 +407,11 @@ void DeferredRenderApp::CreateQuad()
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer{};
-	HR_T(CompileShaderFromFile(L"Shaders\\VS_Quad.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout),
-		vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_quadInputLayout.GetAddressOf()));
-
-	// 버텍스 셰이더 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(),
-		vertexShaderBuffer->GetBufferSize(), NULL, m_quadVertexShader.GetAddressOf()));
+	// Light Pass
+	vertexShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_DirectionalLight.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(m_device->CreateInputLayout(layout, ARRAYSIZE(layout),vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_quadInputLayout.GetAddressOf()));
+	HR_T(m_device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_directionalLightVS.GetAddressOf()));
 
 	// 인덱스 버퍼 생성
 	WORD indices[] =
@@ -458,33 +426,48 @@ void DeferredRenderApp::CreateQuad()
 	ibDesc.Usage = D3D11_USAGE_DEFAULT;
 	D3D11_SUBRESOURCE_DATA ibData = {};
 	ibData.pSysMem = indices;
-	HR_T(m_pDevice->CreateBuffer(&ibDesc, &ibData, m_quadIndexBuffer.GetAddressOf()));
+	HR_T(m_device->CreateBuffer(&ibDesc, &ibData, m_quadIndexBuffer.GetAddressOf()));
 }
 
-bool DeferredRenderApp::IsHDRSettingOn()
+void DeferredRenderApp::CreateGbuffers()
 {
-	// 디스플레이 관련 정보 가져오기
-	ComPtr<IDXGIOutput> output{};
-	HR_T(dxgiAdapter3->EnumOutputs(0, output.GetAddressOf()));
-
-	ComPtr<IDXGIOutput6> output6{};
-	HR_T(output.As(&output6));
-
-	DXGI_OUTPUT_DESC1 desc;
-	HR_T(output6->GetDesc1(&desc));
-
-	if (desc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 ||
-		desc.ColorSpace == DXGI_COLOR_SPACE_RGB_STUDIO_G2084_NONE_P2020)
+	// gbuffer
+	m_gBufferRTV.assign(gbufferCount, {});
+	m_gBufferSRV.assign(gbufferCount, {});
+	m_gBufferTextures.assign(gbufferCount, {});
+	struct RTDesc
 	{
-		return true;
-	}
+		DXGI_FORMAT format;
+	};
 
-	return false;
+	vector<RTDesc> formats
+	{
+		{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },	// BaseColor
+		{ DXGI_FORMAT_R8G8B8A8_UNORM },			// Normal
+		{ DXGI_FORMAT_R16G16B16A16_FLOAT },		// PositionWS 
+	};
+
+
+	for (int i = 0; i < gbufferCount; i++)
+	{
+		D3D11_TEXTURE2D_DESC ds{};
+		ds.Width = m_ClientWidth;
+		ds.Height = m_ClientHeight;
+		ds.MipLevels = 1;
+		ds.ArraySize = 1;
+		ds.Format = formats[i].format;
+		ds.SampleDesc.Count = 1;
+		ds.Usage = D3D11_USAGE_DEFAULT;
+		ds.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+
+		HR_T(m_device->CreateTexture2D(&ds, nullptr, m_gBufferTextures[i].GetAddressOf()));
+		HR_T(m_device->CreateShaderResourceView(m_gBufferTextures[i].Get(), nullptr, m_gBufferSRV[i].GetAddressOf()));
+		HR_T(m_device->CreateRenderTargetView(m_gBufferTextures[i].Get(), nullptr, m_gBufferRTV[i].GetAddressOf()));
+	}
 }
 
 bool DeferredRenderApp::OnInitialize()
 {
-
 	if (!InitD3D())
 		return false;
 
@@ -507,8 +490,8 @@ bool DeferredRenderApp::OnInitialize()
 	InitShdowMap();
 	InitDebugDraw();
 	ResetValues();
-	CreateHDRRenderTargetView();
 	CreateQuad();
+	CreateGbuffers();
 
 	return true;
 }
@@ -524,10 +507,10 @@ void DeferredRenderApp::OnUpdate()
 	// Camera
 	m_Camera.GetCameraViewMatrix(m_View);
 
-	m_pChara->Update();
-	m_pGround->Update();
-	m_pGround->m_Scale = m_GroundScale;
-	m_pSphere->Update();
+	m_chara->Update();
+	m_ground->Update();
+	m_ground->m_Scale = m_GroundScale;
+	m_sphere->Update();
 
 	for (auto& e : m_models)
 	{
@@ -537,51 +520,40 @@ void DeferredRenderApp::OnUpdate()
 
 void DeferredRenderApp::OnRender()
 {
-	DepthOnlyPass();	// 그림자 매핑
-	HDRPass();			// Hdr를 위한 
-	DrawQuadPass();
+	// clear
+	Color color(0.0f, 0.0f, 0.0f, 0.0f);
+	m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	m_deviceContext->ClearRenderTargetView(m_backbufferRTV.Get(), color);
 
-	// Debug Draw Test code ==============
+	// GBuffer 초기화
+	int gbufferCount = static_cast<int>(EGbuffer::Count);
+	float clearValue[4] = { 0,0,0,0 };
+	for (int i = 0; i < gbufferCount; i++)
+	{
+		m_deviceContext->ClearRenderTargetView(m_gBufferRTV[i].Get(), clearValue);
+	}
 
-	// 디버그를 위한 회전값 구하기
-	Matrix shadowWorldMat = Matrix::CreateTranslation(m_shadowPos);
+	DepthOnlyPass();
+	RenderPassGBuffer();
+	RenderPassDirectionalLight();
+	SkyboxPass(); 
 
-	DrawFrustum(shadowWorldMat, m_shadowView, m_shadowProj,
-		m_shadowFrustumAngle,
-		m_shadowViewport.width / (FLOAT)m_shadowViewport.height,
-		m_shadowNear, m_shadowFar); // -> 제대로 출력 안됨
-
-	// Debug Draw Test code END ==============
-
-	// Render ImGui
 	RenderImGUI();
 
 	// 스왑체인 교체
-	m_pSwapChain->Present(0, 0);
+	m_swapChain->Present(0, 0);
 }
 
 bool isplayed = false;
 
-void DeferredRenderApp::HDRPass()
+void DeferredRenderApp::RenderPassGBuffer()
 {
-	// claer
-	Color color(0.1f, 0.2f, 0.3f, 1.0f);
-	m_pDeviceContext->ClearRenderTargetView(m_HDRRenderTargetView.Get(), color);
-	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
-	m_pDeviceContext->OMSetRenderTargets(1, m_HDRRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
-
-	// IBL 텍스처 리소스 넘겨주기
-	m_pDeviceContext->PSSetShaderResources(8, 1, m_pIBLIrradiance.GetAddressOf());		// Irradiance
-	m_pDeviceContext->PSSetShaderResources(9, 1, m_pIBLSpecular.GetAddressOf());		// Sepcular
-	m_pDeviceContext->PSSetShaderResources(10, 1, m_pIBLLookUpTable.GetAddressOf());	// LUT
+	m_deviceContext->OMSetRenderTargets(gbufferCount, m_gBufferRTV.data()->GetAddressOf(), m_depthStencilView.Get());
 
 	// Update Constant Values
 	ConstantBuffer cb;
 	cb.cameraView = XMMatrixTranspose(m_View);
 	cb.cameraProjection = XMMatrixTranspose(m_Projection);
-	cb.lightDirection = m_LightDirection;
-	cb.lightDirection.Normalize();
-	cb.lightColor = m_LightColor;
 	cb.shadowView = XMMatrixTranspose(m_shadowView);
 	cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
 
@@ -594,85 +566,148 @@ void DeferredRenderApp::HDRPass()
 
 	cb.roughness = roughness;
 	cb.metalness = metalness;
-	cb.isActiveHDR = IsHDRSettingOn();
-	cb.exposure = exposure;
 	cb.lightIntensity = lightIntensity;
-	cb.useToneMapping = useToneMapping;
-
-	// skybox draw ====================================
-
-	// 카메라용 뷰 행렬과, 투영행렬
-	Matrix m_skyboxProjection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, 0.1, m_Far);
-
-	cb.cameraView = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
-	cb.cameraProjection = XMMatrixTranspose(m_skyboxProjection);
-
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_pSkyboxVertexBuffer.GetAddressOf(), &m_SkyboxVertexBufferStride, &m_SkyboxVertexBufferOffset);
-	m_pDeviceContext->IASetIndexBuffer(m_pSkyboxIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetInputLayout(m_pSkyboxInputLayout.Get());
-
-	m_pDeviceContext->VSSetShader(m_pSkyboxVS.Get(), nullptr, 0);
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-
-	m_pDeviceContext->RSSetState(m_pSkyRasterizerState.Get());
-	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
-
-	m_pDeviceContext->PSSetShader(m_pSkyboxPS.Get(), nullptr, 0);
-	m_pDeviceContext->PSSetShaderResources(5, 1, m_pSkyboxTexture.GetAddressOf());
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-
-	m_pDeviceContext->OMSetDepthStencilState(m_pSkyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
-
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-
-	m_pDeviceContext->DrawIndexed(m_nSkyboxIndices, 0, 0);
+	m_deviceContext->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	// 텍스처 및 샘플링 설정 -> 초기화
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	m_deviceContext->IASetInputLayout(m_inputLayout.Get());
+	m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	m_pDeviceContext->VSSetShader(m_pSkinnedMeshVertexShader.Get(), 0, 0);
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
+	m_deviceContext->VSSetShader(m_skinnedMeshVertexShader.Get(), 0, 0);
+	m_deviceContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 
-	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
+	m_deviceContext->RSSetState(m_rasterizerState.Get());
+	m_deviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
 
-	m_pDeviceContext->PSSetShader(m_pPBRPS.Get(), 0, 0);
-	m_pDeviceContext->PSSetShaderResources(4, 1, m_pShadowMapSRV.GetAddressOf());
-	m_pDeviceContext->PSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetConstantBuffers(1, 1, m_pMaterialBuffer.GetAddressOf());
+	m_deviceContext->PSSetShader(m_PBRPS.Get(), 0, 0);
+	m_deviceContext->PSSetShaderResources(4, 1, m_shadowMapSRV.GetAddressOf());
+	m_deviceContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+	m_deviceContext->PSSetConstantBuffers(1, 1, m_materialBuffer.GetAddressOf());
+	m_deviceContext->PSSetSamplers(0, 1, m_samplerLinear.GetAddressOf());
+	m_deviceContext->PSSetSamplers(1, 1, m_samplerPoint.GetAddressOf());
 
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
 
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_deviceContext->OMSetDepthStencilState(m_depthStencilStateWriteOn.Get(), 1);
+
 
 	// Draw 
-	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pSphere->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_chara->Draw(m_deviceContext, m_materialBuffer);
+	m_ground->Draw(m_deviceContext, m_materialBuffer);
+	m_tree->Draw(m_deviceContext, m_materialBuffer);
+	m_sphere->Draw(m_deviceContext, m_materialBuffer);
 
 	for (auto& e : m_models)
 	{
-		e->Draw(m_pDeviceContext, m_pMaterialBuffer);
+		e->Draw(m_deviceContext, m_materialBuffer);
 	}
+
+	// RTV Unbind 	
+	vector<ID3D11RenderTargetView*> nullRTVs(m_gBufferRTV.size(), {});
+	m_deviceContext->OMSetRenderTargets(gbufferCount, nullRTVs.data(), nullptr);
+}
+
+void DeferredRenderApp::RenderPassDirectionalLight()
+{
+	LightDirectionCB cb;
+	m_LightDirection.Normalize();
+	cb.lightDirection = Vector4(m_LightDirection.x, m_LightDirection.y, m_LightDirection.z, lightIntensity);
+	cb.lightColor = m_LightColor;
+
+	// 11, 12, 13 -> color, normal, worldpos
+	// 4 shadow depth
+
+	// 처음 빛을 추가할 때 백버퍼 초기화
+	float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	m_deviceContext->OMSetBlendState(m_additiveBlendState.Get(), blendFactor, 0xffffffff);
+	m_deviceContext->OMSetRenderTargets(1, m_backbufferRTV.GetAddressOf(), m_depthStencilView.Get());
+	m_deviceContext->OMSetDepthStencilState(m_depthStencilStateWriteOff.Get(), 0); // Depth test OFF, write OFF
+	m_deviceContext->ClearDepthStencilView(m_shadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+	vector<ID3D11ShaderResourceView*> SRVs =
+	{
+		m_gBufferSRV[0].Get(),
+		m_gBufferSRV[1].Get(),
+		m_gBufferSRV[2].Get()
+	};
+
+	m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_deviceContext->IASetVertexBuffers(0, 1, m_quadVertexBuffer.GetAddressOf(), &m_quadVertexBufferStride, &m_quadVertexBufferOffset);
+	m_deviceContext->IASetIndexBuffer(m_quadIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	m_deviceContext->IASetInputLayout(m_quadInputLayout.Get());
+
+	m_deviceContext->VSSetShader(m_directionalLightVS.Get(), nullptr, 0);
+
+	m_deviceContext->UpdateSubresource(m_lightDirectionBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_deviceContext->PSSetConstantBuffers(5, 1, m_lightDirectionBuffer.GetAddressOf());
+
+	m_deviceContext->PSSetShaderResources(11, SRVs.size(), SRVs.data());			// gbuffer texture 바인드
+	m_deviceContext->PSSetShaderResources(4, 1, m_shadowMapSRV.GetAddressOf());	// shadow map 바인드
+
+	m_deviceContext->PSSetSamplers(0, 1, m_samplerLinear.GetAddressOf());
+	m_deviceContext->PSSetSamplers(1, 1, m_samplerLinear.GetAddressOf());
+	m_deviceContext->PSSetShader(m_directionalLightPS.Get(), nullptr, 0); 
+	m_deviceContext->DrawIndexed(m_quadIndicesCount, 0, 0);
+
+	m_deviceContext->OMSetBlendState(nullptr, blendFactor, 0xffffffff);
+	
+	// srv unbind
+	vector<ID3D11ShaderResourceView*> nullSRVs(SRVs.size(), nullptr);
+	m_deviceContext->PSSetShaderResources(11, SRVs.size(), nullSRVs.data());	// gbuffer tex
+
+	vector<ID3D11ShaderResourceView*> nullSRVs2(1, nullptr);
+	m_deviceContext->PSSetShaderResources(4, 1, nullSRVs2.data());				// shadow map
+}
+
+void DeferredRenderApp::SkyboxPass()
+{
+	// 카메라용 뷰 행렬과, 투영행렬
+	Matrix m_skyboxProjection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, 0.1, m_Far);
+
+	// Update Constant Values
+	ConstantBuffer cb;
+	cb.cameraView = XMMatrixTranspose(m_View); // 쉐이더 코드 내부에서 이동 성분 제거함
+	cb.cameraProjection = XMMatrixTranspose(m_skyboxProjection);
+	cb.shadowView = XMMatrixTranspose(m_shadowView);
+	cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
+
+
+	m_deviceContext->IASetVertexBuffers(0, 1, m_skyboxVertexBuffer.GetAddressOf(), &m_SkyboxVertexBufferStride, &m_SkyboxVertexBufferOffset);
+	m_deviceContext->IASetIndexBuffer(m_skyboxIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_deviceContext->IASetInputLayout(m_skyboxInputLayout.Get());
+
+	m_deviceContext->VSSetShader(m_skyboxVS.Get(), nullptr, 0);
+	m_deviceContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+
+	m_deviceContext->RSSetState(m_skyRasterizerState.Get());
+	m_deviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
+
+	m_deviceContext->PSSetShader(m_skyboxPS.Get(), nullptr, 0);
+	m_deviceContext->PSSetShaderResources(5, 1, m_skyboxTexture.GetAddressOf());
+	m_deviceContext->PSSetSamplers(0, 1, m_samplerLinear.GetAddressOf());
+	m_deviceContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+
+	m_deviceContext->OMSetRenderTargets(1, m_backbufferRTV.GetAddressOf(), m_depthStencilView.Get());
+	m_deviceContext->OMSetDepthStencilState(m_skyDepthStencilState.Get(), 1); // 뎊스 스텐실 설정
+
+	m_deviceContext->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+
+	m_deviceContext->DrawIndexed(m_nSkyboxIndices, 0, 0);
 }
 
 void DeferredRenderApp::DepthOnlyPass()
 {
 	// 바인딩 해제
 	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	m_pDeviceContext->VSSetShaderResources(4, 1, nullSRV);
-	m_pDeviceContext->PSSetShaderResources(4, 1, nullSRV);
+	m_deviceContext->VSSetShaderResources(4, 1, nullSRV);
+	m_deviceContext->PSSetShaderResources(4, 1, nullSRV);
 
 	//상수 버퍼 갱신
 	ConstantBuffer cb;
 	cb.cameraView = XMMatrixTranspose(m_View);
 	cb.cameraProjection = XMMatrixTranspose(m_Projection);
-	cb.lightDirection = m_LightDirection;
-	cb.lightDirection.Normalize();
 	cb.shadowView = XMMatrixTranspose(m_shadowView);
 	cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
-	cb.lightColor = m_LightColor;
 
 	cb.ambient = m_LightAmbient;
 	cb.diffuse = m_LightDiffuse;
@@ -688,67 +723,33 @@ void DeferredRenderApp::DepthOnlyPass()
 		m_shadowViewport.width, m_shadowViewport.height,
 		m_shadowViewport.minDepth, m_shadowViewport.maxDepth
 	};
-	m_pDeviceContext->RSSetViewports(1, &viewport);
-	m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilStateAllMask.Get(), 1);
-	m_pDeviceContext->OMSetRenderTargets(0, nullptr, m_pShadowMapDSV.Get());
-	m_pDeviceContext->ClearDepthStencilView(m_pShadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	m_deviceContext->RSSetViewports(1, &viewport);
+	m_deviceContext->OMSetDepthStencilState(m_depthStencilStateWriteOn.Get(), 1);
+	m_deviceContext->OMSetRenderTargets(0, nullptr, m_shadowMapDSV.Get());
+	m_deviceContext->ClearDepthStencilView(m_shadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	// 렌더 파이프라인 설정
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetInputLayout(m_pInputLayout.Get());
+	m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_deviceContext->IASetInputLayout(m_inputLayout.Get());
 
-	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb, 0, 0);
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
+	m_deviceContext->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_deviceContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+	m_deviceContext->PSSetSamplers(0, 1, m_samplerLinear.GetAddressOf());
 
-	m_pDeviceContext->VSSetShader(m_pShadowMapVS.Get(), 0, 0);
+	m_deviceContext->VSSetShader(m_shadowMapVS.Get(), 0, 0);
 	// m_pDeviceContext->PSSetShader(NULL, NULL, 0); // 렌더 타겟에 기록할 RGBA가 없으므로 실행하지 않는다.
-	m_pDeviceContext->PSSetShader(m_pShadowMapPS.Get(), NULL, 0); // 
+	m_deviceContext->PSSetShader(m_shadowMapPS.Get(), NULL, 0); // 
 
 	// 모델 draw 호출
-	m_pGround->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pChara->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pTree->Draw(m_pDeviceContext, m_pMaterialBuffer);
-	m_pSphere->Draw(m_pDeviceContext, m_pMaterialBuffer);
+	m_ground->Draw(m_deviceContext, m_materialBuffer);
+	m_chara->Draw(m_deviceContext, m_materialBuffer);
+	m_tree->Draw(m_deviceContext, m_materialBuffer);
+	m_sphere->Draw(m_deviceContext, m_materialBuffer);
 
 	for (auto& e : m_models)
 	{
-		if (!e->isRemoved) e->Draw(m_pDeviceContext, m_pMaterialBuffer);
+		if (!e->isRemoved) e->Draw(m_deviceContext, m_materialBuffer);
 	}
-}
-
-void DeferredRenderApp::DrawQuadPass()
-{
-	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport); // 뷰포트 되돌리기
-
-	m_pDeviceContext->OMSetRenderTargets(1, m_pBackbufferRTV.GetAddressOf(), nullptr);
-	Color color(0.1f, 0.2f, 0.3f, 1.0f);
-	m_pDeviceContext->ClearRenderTargetView(m_pBackbufferRTV.Get(), color);
-
-	// 텍스처 및 샘플링 설정 
-	m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_pDeviceContext->IASetInputLayout(m_quadInputLayout.Get());
-	m_pDeviceContext->IASetVertexBuffers(0, 1, m_quadVertexBuffer.GetAddressOf(), &m_quadVertexBufferStride, &m_quadVertexBufferOffset);
-	m_pDeviceContext->IASetIndexBuffer(m_quadIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-	m_pDeviceContext->VSSetShader(m_quadVertexShader.Get(), 0, 0);
-
-	if (IsHDRSettingOn())
-	{
-		m_pDeviceContext->PSSetShader(m_toneMappingPS_HDR.Get(), 0, 0);
-	}
-	else
-	{
-		m_pDeviceContext->PSSetShader(m_toneMappingPS_LDR.Get(), 0, 0);
-	}
-
-	m_pDeviceContext->PSSetShaderResources(11, 1, m_HDRShaderResourceView.GetAddressOf());
-	m_pDeviceContext->PSSetSamplers(0, 1, m_pSamplerLinear.GetAddressOf());
-	m_pDeviceContext->DrawIndexed(m_quadIndicesCount, 0, 0);
-
-
-	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	m_pDeviceContext->PSSetShaderResources(11, 1, nullSRV);
 }
 
 bool DeferredRenderApp::InitImGUI()
@@ -769,7 +770,7 @@ bool DeferredRenderApp::InitImGUI()
 	isSetupSuccess = ImGui_ImplWin32_Init(m_hWnd);
 	if (!isSetupSuccess) return false;
 
-	isSetupSuccess = ImGui_ImplDX11_Init(m_pDevice.Get(), m_pDeviceContext.Get());
+	isSetupSuccess = ImGui_ImplDX11_Init(m_device.Get(), m_deviceContext.Get());
 	if (!isSetupSuccess) return false;
 
 	return true;
@@ -785,20 +786,20 @@ void DeferredRenderApp::RenderImGUI()
 	ImGui::SetNextWindowPos(ImVec2(800, 10), ImGuiCond_Once);
 	ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_Once);
 
-	if (m_pChara->modelAsset->animations.size() > 0)
+	if (m_chara->modelAsset->animations.size() > 0)
 	{
 		ImGui::Begin("Middle Model Animation info");
 		{
-			ImGui::Text(std::to_string(m_pChara->m_progressAnimationTime).c_str());
-			ImGui::Checkbox("isPlay", &m_pChara->isAnimPlay);
-			ImGui::SliderFloat("Animation Duration", &m_pChara->m_progressAnimationTime, 0.0f, m_pChara->modelAsset->animations[m_pChara->m_animationIndex].m_duration);
+			ImGui::Text(std::to_string(m_chara->m_progressAnimationTime).c_str());
+			ImGui::Checkbox("isPlay", &m_chara->isAnimPlay);
+			ImGui::SliderFloat("Animation Duration", &m_chara->m_progressAnimationTime, 0.0f, m_chara->modelAsset->animations[m_chara->m_animationIndex].m_duration);
 		}
 		ImGui::End();
 	}
 
 	ImGui::Begin("ShadowMap");
 	{
-		ImTextureID img = (ImTextureID)(intptr_t)(m_pShadowMapSRV.Get());
+		ImTextureID img = (ImTextureID)(intptr_t)(m_shadowMapSRV.Get());
 		ImGui::Image(img, ImVec2(256, 256));
 		ImGui::DragFloat("m_shadowForwardDistFromCamera", &m_shadowForwardDistFromCamera);
 		ImGui::DragFloat3("m_shadowUpDistFromLookAt", &m_shadowUpDistFromLookAt.x);
@@ -841,9 +842,9 @@ void DeferredRenderApp::RenderImGUI()
 		m_charaScale.y = m_charaScale.x;
 		m_charaScale.z = m_charaScale.x;
 
-		m_pChara->m_Position = m_charaPosition;
-		m_pChara->m_Rotation = m_charaRotation;
-		m_pChara->m_Scale = m_charaScale;
+		m_chara->m_Position = m_charaPosition;
+		m_chara->m_Rotation = m_charaRotation;
+		m_chara->m_Scale = m_charaScale;
 	}
 
 	ImGui::NewLine();
@@ -881,7 +882,7 @@ void DeferredRenderApp::RenderImGUI()
 	ImGui::Checkbox("Enable hasMatalness", &useMetalness);
 	ImGui::Checkbox("Enable hasRoughness", &useRoughness);
 
-	for (auto& mesh : m_pChara->modelAsset->meshes)
+	for (auto& mesh : m_chara->modelAsset->meshes)
 	{
 		mesh.GetMaterial().hasDiffuse = useBaseColor;
 		mesh.GetMaterial().hasNormal = useNormal;
@@ -897,6 +898,7 @@ void DeferredRenderApp::RenderImGUI()
 
 	ImGui::DragFloat("Roughness", &roughness, 0.01f, 0, 1);
 	ImGui::DragFloat("Metalness", &metalness, 0.01f, 0, 1);
+	ImGui::DragFloat("Lightintensity", &lightIntensity, 0.01f, 0, 1);
 
 	ImGui::Spacing();
 
@@ -908,12 +910,14 @@ void DeferredRenderApp::RenderImGUI()
 
 	ImGui::End();
 
-	ImGui::Begin("Info");
+	ImGui::Begin("Deferred Info");
 	{
-		ImGui::Text(IsHDRSettingOn() ? "HDR : On" : "HDR : Off");
-		ImGui::DragFloat("exposure", &exposure, 0.01f, -5.0f, 5.0f);
-		ImGui::DragFloat("light intensity", &lightIntensity, 0.01f, 0.0f, 5.0f);
-		ImGui::Checkbox("useToneMapping", &useToneMapping);
+		int size = static_cast<int>(EGbuffer::Count);
+		for (int i = 0; i < size; i++)
+		{
+			ImTextureID img = (ImTextureID)(intptr_t)(m_gBufferSRV[i].Get());
+			ImGui::Image(img, ImVec2(256, 256));
+		}
 	}
 	ImGui::End();
 
@@ -958,9 +962,9 @@ bool DeferredRenderApp::InitD3D()
 		featureLevels,
 		ARRAYSIZE(featureLevels),
 		D3D11_SDK_VERSION,
-		&m_pDevice,
+		&m_device,
 		&actualFeatureLevel,
-		&m_pDeviceContext
+		&m_deviceContext
 	));
 
 #if !USE_FLIPMODE
@@ -975,7 +979,7 @@ bool DeferredRenderApp::InitD3D()
 	m_RenderViewport.Height = (float)m_ClientHeight;
 	m_RenderViewport.MinDepth = 0.0f;
 	m_RenderViewport.MaxDepth = 1.0f;
-	m_pDeviceContext->RSSetViewports(1, &m_RenderViewport);
+	m_deviceContext->RSSetViewports(1, &m_RenderViewport);
 
 	// 5. 뎊스 스텐실 뷰 설정
 	D3D11_TEXTURE2D_DESC descDepth = {};
@@ -993,12 +997,12 @@ bool DeferredRenderApp::InitD3D()
 
 	// 뎊스 스탠실 상태 설정
 	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
-	depthStencilDesc.DepthEnable = TRUE;                // 깊이 테스트 활성화
+	depthStencilDesc.DepthEnable = FALSE;                // 깊이 테스트 활성화
 	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 깊이 버퍼 업데이트 허용
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
 
-	m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilStateZeroMask);
+	m_device->CreateDepthStencilState(&depthStencilDesc, &m_depthStencilStateWriteOff);
 
 	depthStencilDesc = {};
 	depthStencilDesc.DepthEnable = TRUE;                // 깊이 테스트 활성화
@@ -1006,38 +1010,33 @@ bool DeferredRenderApp::InitD3D()
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
 
-	m_pDevice->CreateDepthStencilState(&depthStencilDesc, &m_pDepthStencilStateAllMask);
+	m_device->CreateDepthStencilState(&depthStencilDesc, &m_depthStencilStateWriteOn);
 
 	// create depthStencil texture
 	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
-	HR_T(m_pDevice->CreateTexture2D(&descDepth, nullptr, pTextureDepthStencil.GetAddressOf()));
+	HR_T(m_device->CreateTexture2D(&descDepth, nullptr, pTextureDepthStencil.GetAddressOf()));
 
 	// create the depth stencil view
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
 	descDSV.Format = descDepth.Format;
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D; // 사용되는 리소스 엑세스 방식 설정 : https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ne-d3d11-d3d11_dsv_dimension 
 	descDSV.Texture2D.MipSlice = 0;
-	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
+	HR_T(m_device->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_depthStencilView.GetAddressOf()));
 
 	// create blending state https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ns-d3d11-d3d11_blend_desc
 	// Color = SrcAlpha * SrcColor + (1 - SrcAlpha) * DestColor 
 	// Alpha = SrcAlpha
-	D3D11_BLEND_DESC descBlend = {};
-	descBlend.RenderTarget[0].BlendEnable = true;						// blend 사용 여부
+	D3D11_BLEND_DESC blendDesc = {};
+	blendDesc.RenderTarget[0].BlendEnable			= TRUE;						
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-	// SrcBlend -> 소스 텍스처의 색상
-	// DestBlend -> 이미 해당 자리에 그려져있는 색상
-	descBlend.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;			// D3D11_BLEND_SRC_ALPHA -> 픽셀 셰이더 결과 값의 알파 데이터 값
-	descBlend.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;	// D3D11_BLEND_INV_SRC_ALPHA -> D3D11_BLEND_SRC_ALPHA의 반전 값 ( 1 - 값 )
-	descBlend.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;				// SrcBlend 및 DestBlend 작업을 결합하는 방법을 정의, D3D11_BLEND_OP_ADD -> Add source 1 and source 2
-
-	descBlend.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;			// D3D11_BLEND_ONE -> (1,1,1,1)
-	descBlend.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;		// D3D11_BLEND_ZERO -> (0,0,0,0)
-	descBlend.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;		// 
-
-	descBlend.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;  // 모든 색 전부 사용
-
-	m_pDevice->CreateBlendState(&descBlend, m_pBlendState.GetAddressOf());
+	m_device->CreateBlendState(&blendDesc, m_additiveBlendState.GetAddressOf());
 
 	// material buffer
 	D3D11_BUFFER_DESC mbd = {};
@@ -1045,7 +1044,7 @@ bool DeferredRenderApp::InitD3D()
 	mbd.ByteWidth = sizeof(Material);
 	mbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	mbd.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&mbd, nullptr, m_pMaterialBuffer.GetAddressOf()));
+	HR_T(m_device->CreateBuffer(&mbd, nullptr, m_materialBuffer.GetAddressOf()));
 
 	return true;
 }
@@ -1060,7 +1059,14 @@ bool DeferredRenderApp::InitScene()
 	bufferDesc.ByteWidth = sizeof(ConstantBuffer);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pConstantBuffer.GetAddressOf()));
+	HR_T(m_device->CreateBuffer(&bufferDesc, nullptr, m_constantBuffer.GetAddressOf()));
+
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(LightDirectionCB);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_device->CreateBuffer(&bufferDesc, nullptr, m_lightDirectionBuffer.GetAddressOf()));
 
 	// 쉐이더에 상수버퍼에 전달할 시스템 메모리 데이터 초기화
 	m_World = XMMatrixIdentity();
@@ -1080,7 +1086,20 @@ bool DeferredRenderApp::InitScene()
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;	// 샘플링된 데이터를 기존 데이터와 확인하는 방법
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_pSamplerLinear.GetAddressOf()));
+	HR_T(m_device->CreateSamplerState(&sampDesc, m_samplerLinear.GetAddressOf()));
+
+	sampDesc = {};
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.MipLODBias = 0.0f;
+	sampDesc.MaxAnisotropy = 1;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	sampDesc.BorderColor[0] = sampDesc.BorderColor[1] = sampDesc.BorderColor[2] = sampDesc.BorderColor[3] = 0.0f;
+	sampDesc.MinLOD = 0.0f;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	HR_T(m_device->CreateSamplerState(&sampDesc, m_samplerPoint.GetAddressOf()));
 
 	// 래스터라이저
 	D3D11_RASTERIZER_DESC rasterizerDesc = {};
@@ -1089,7 +1108,7 @@ bool DeferredRenderApp::InitScene()
 	rasterizerDesc.DepthClipEnable = true;
 	rasterizerDesc.FrontCounterClockwise = true;
 
-	m_pDevice->CreateRasterizerState(&rasterizerDesc, &m_pRasterizerState);
+	m_device->CreateRasterizerState(&rasterizerDesc, &m_rasterizerState);
 
 	rasterizerDesc = {};
 	rasterizerDesc.CullMode = D3D11_CULL_FRONT;
@@ -1097,7 +1116,7 @@ bool DeferredRenderApp::InitScene()
 	rasterizerDesc.DepthClipEnable = true;
 	rasterizerDesc.FrontCounterClockwise = true;
 
-	m_pDevice->CreateRasterizerState(&rasterizerDesc, &m_pTransparentRasterizerState);
+	m_device->CreateRasterizerState(&rasterizerDesc, &m_transparentRasterizerState);
 
 	// 모델들이 사용할 버퍼 만들기
 	// 트랜스폼 상수 버퍼 만들기
@@ -1106,7 +1125,7 @@ bool DeferredRenderApp::InitScene()
 	bufferDesc.ByteWidth = sizeof(TransformBuffer);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pTransformBuffer.GetAddressOf()));
+	HR_T(m_device->CreateBuffer(&bufferDesc, nullptr, m_transformBuffer.GetAddressOf()));
 
 	// 본 포즈 버퍼 만들기
 	bufferDesc = {};
@@ -1114,7 +1133,7 @@ bool DeferredRenderApp::InitScene()
 	bufferDesc.ByteWidth = sizeof(BonePoseBuffer);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBonePoseBuffer.GetAddressOf()));
+	HR_T(m_device->CreateBuffer(&bufferDesc, nullptr, m_bonePoseBuffer.GetAddressOf()));
 
 	// 본 오프셋 버퍼 만들기
 	bufferDesc = {};
@@ -1122,53 +1141,53 @@ bool DeferredRenderApp::InitScene()
 	bufferDesc.ByteWidth = sizeof(BoneOffsetBuffer);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
-	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_pBoneOffsetBuffer.GetAddressOf()));
+	HR_T(m_device->CreateBuffer(&bufferDesc, nullptr, m_boneOffsetBuffer.GetAddressOf()));
 
 	// 모델 생성
-	m_pChara = make_unique<SkeletalModel>();
-	if (!m_pChara->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\char.fbx"))
+	m_chara = make_unique<SkeletalModel>();
+	if (!m_chara->Load(m_hWnd, m_device, m_deviceContext, "..\\Resource\\char.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-	m_pChara->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
-	m_pChara->m_Position = { 0, 100, 0 };
+	m_chara->GetBuffer(m_transformBuffer, m_bonePoseBuffer, m_boneOffsetBuffer);
+	m_chara->m_Position = { 0, 100, 0 };
 
-	m_pGround = make_unique<SkeletalModel>();
-	if (!m_pGround->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Ground.fbx"))
+	m_ground = make_unique<SkeletalModel>();
+	if (!m_ground->Load(m_hWnd, m_device, m_deviceContext, "..\\Resource\\Ground.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-	m_pGround->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
-	m_pGround->m_Position = { 0, -100, 0 };
+	m_ground->GetBuffer(m_transformBuffer, m_bonePoseBuffer, m_boneOffsetBuffer);
+	m_ground->m_Position = { 0, -100, 0 };
 
-	m_pTree = make_unique<SkeletalModel>();
-	if (!m_pTree->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\Tree.fbx"))
+	m_tree = make_unique<SkeletalModel>();
+	if (!m_tree->Load(m_hWnd, m_device, m_deviceContext, "..\\Resource\\Tree.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-	m_pTree->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
-	m_pTree->m_Scale = { 100, 100, 100 };
-	m_pTree->m_Position = { 0, 0, 300 };
+	m_tree->GetBuffer(m_transformBuffer, m_bonePoseBuffer, m_boneOffsetBuffer);
+	m_tree->m_Scale = { 100, 100, 100 };
+	m_tree->m_Position = { 0, 0, 300 };
 
-	m_pSphere = make_unique<SkeletalModel>();
-	if (!m_pSphere->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\sphere.fbx"))
+	m_sphere = make_unique<SkeletalModel>();
+	if (!m_sphere->Load(m_hWnd, m_device, m_deviceContext, "..\\Resource\\sphere.fbx"))
 	{
 		MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 	}
-	m_pSphere->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
-	m_pSphere->m_Position = { 200, 100, 100 };
+	m_sphere->GetBuffer(m_transformBuffer, m_bonePoseBuffer, m_boneOffsetBuffer);
+	m_sphere->m_Position = { 200, 100, 100 };
 
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxEnvHDR.dds", nullptr, m_pSkyboxTexture.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxDiffuseHDR.dds", nullptr, m_pIBLIrradiance.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxSpecularHDR.dds", nullptr, m_pIBLSpecular.GetAddressOf()));
-	HR_T(CreateDDSTextureFromFile(m_pDevice.Get(), L"..\\Resource\\skyboxBrdf.dds", nullptr, m_pIBLLookUpTable.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_device.Get(), L"..\\Resource\\skyboxEnvHDR.dds", nullptr, m_skyboxTexture.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_device.Get(), L"..\\Resource\\skyboxDiffuseHDR.dds", nullptr, m_IBLIrradiance.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_device.Get(), L"..\\Resource\\skyboxSpecularHDR.dds", nullptr, m_IBLSpecular.GetAddressOf()));
+	HR_T(CreateDDSTextureFromFile(m_device.Get(), L"..\\Resource\\skyboxBrdf.dds", nullptr, m_IBLLookUpTable.GetAddressOf()));
 
 	return true;
 }
 
 bool DeferredRenderApp::InitEffect()
 {
-	// 2. 파이프라인에 바인딩할 InputLayout 생성
+	// Geometry Pass
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -1181,37 +1200,31 @@ bool DeferredRenderApp::InitEffect()
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\VS_SkinnedMesh.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_ModelMesh.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(m_device->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_inputLayout.GetAddressOf()));
 
-	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pSkinnedMeshVertexShader.GetAddressOf()));
-
-	vertexShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\VS_RigidMesh.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pRigidMeshVertexShader.GetAddressOf()));
+	HR_T(m_device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_skinnedMeshVertexShader.GetAddressOf()));
 
 	vertexShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\VS_DepthOnlyPass.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_pShadowMapVS.GetAddressOf()));
+	HR_T(m_device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_shadowMapVS.GetAddressOf()));
 
-	// 5. 파이프라인에 바인딩할 픽셀 셰이더 생성
+	// Light Pass
+	// ....
+
+	// Ps
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_DepthOnlyPass.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pShadowMapPS.GetAddressOf()));
+	HR_T(m_device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_shadowMapPS.GetAddressOf()));
 
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_PBR.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_pPBRPS.GetAddressOf()));
+	HR_T(m_device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_PBRPS.GetAddressOf()));
 
 	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_ToneMappingLDR.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_toneMappingPS_LDR.GetAddressOf()));
-
-	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_ToneMappingHDR.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
-	HR_T(m_pDevice->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_toneMappingPS_HDR.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_DirectionalLight.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_directionalLightPS.GetAddressOf()));
 
 	return true;
 }
@@ -1258,12 +1271,12 @@ void DeferredRenderApp::OnInputProcess(const Keyboard::State& KeyState, const Ke
 	if(KeyState.O)
 	{
 		auto model = make_unique<SkeletalModel>();
-		if (!model->Load(m_hWnd, m_pDevice, m_pDeviceContext, "..\\Resource\\SillyDancing.fbx"))
+		if (!model->Load(m_hWnd, m_device, m_deviceContext, "..\\Resource\\SillyDancing.fbx"))
 		{
 			MessageBox(m_hWnd, L"FBX file is invaild at path", NULL, MB_ICONERROR | MB_OK);
 		}
 
-		model->GetBuffer(m_pTransformBuffer, m_pBonePoseBuffer, m_pBoneOffsetBuffer);
+		model->GetBuffer(m_transformBuffer, m_bonePoseBuffer, m_boneOffsetBuffer);
 
 		Vector3 pos = m_Camera.m_Position;
 		model->m_Position = pos;

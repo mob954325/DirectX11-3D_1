@@ -3,6 +3,7 @@
 //--------------------------------------------------------------------------------------
 
 SamplerState samLinear      : register(s0);
+SamplerState samPoint       : register(s1);
 
 Texture2D txDiffuse         : register(t0);   // 
 Texture2D txEmission        : register(t1);   // Emission 
@@ -16,19 +17,19 @@ Texture2D txRoughness       : register(t7);   // roughness 텍스처
 
 TextureCube txIBLIrradiance : register(t8);   // IBL Irrandiance Map
 TextureCube txIBLSepcualar  : register(t9);   // IBL Specular Map
-Texture2D txIBLLookUpTable  : register(t10); // IBL LUT (Look Up Table)
-Texture2D txSceneHDR        : register(t11);  // HDR texture
+Texture2D txIBLLookUpTable  : register(t10);  // IBL LUT (Look Up Table)
+
+Texture2D geoBufferBaseColor: register(t11);  // gbuffer basecolor texture
+Texture2D geoBufferNormal   : register(t12);  // gbuffer normal texture
+Texture2D geoBufferPosition : register(t13);  // gbuffer worldSpace position texture
 
 cbuffer ConstantBuffer : register(b0)   // PerFrame
 {
     matrix View;
     matrix Projection;
     
-    float4 LightDirection;
     matrix ShadowView;
-    matrix ShadowProjection;
-    
-    float4 LightColor;        
+    matrix ShadowProjection;    
     
     float4 LightAmbient;    // 환경광
     float4 LightDiffuse;    // 난반사
@@ -38,13 +39,7 @@ cbuffer ConstantBuffer : register(b0)   // PerFrame
     
     float Metalness;
     float Roughness;
-    int isActiveHDR;        // 디스플레이 hdr 활성화 여부
-    float exposure;
-    
-    float monitorMaxNit = 100.0f;
-    float lightIntensity;
-    int useToneMapping;
-    float pad;
+    float2 pad;
 }
 
 cbuffer Material : register(b1) // PerMaterial
@@ -84,15 +79,23 @@ cbuffer BoneOffsetMatrix : register(b4)
     matrix boneOffset[256]; // model transform
 }
 
+cbuffer DirectionalLightCB : register(b5)
+{
+    float4 LightDirection;
+    float4 LightColor; 
+}
+
 // Basic Shader Struct =============================================================
 
-struct VS_INPUT
+struct VS_INPUT_MODEL
 {
     float4 Pos : POSITION;
-    float2 Tex : TEXCOORD;    
+    float2 Tex : TEXCOORD;   
+    
     float3 Tangent : TANGENT;
     float3 Bitangent : BINORMAL;    
     float3 Norm : NORMAL;
+    
     int4 BlendIndices : BLENDINDICES;
     float4 BlendWeights : BLENDWEIGHTS;
 };
@@ -100,6 +103,7 @@ struct VS_INPUT
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;   // 투영한 위치 좌표
+    
     float3 Norm : NORMAL;       // 노멀 값
     float2 Tex : TEXCOORD;      // 텍스처 UV좌표
     float3 World : TEXCOORD2;   // 월드 좌표
@@ -121,13 +125,13 @@ struct PS_INPUT_Sky
     float3 Pos : POSITION;
 };
 
-struct VS_QuadInput
+struct VS_INPUT_QUAD
 {
     float3 position : POSITION; // ndc
     float2 tex : TEXCOORD;
 };
 
-struct PS_QuadInput
+struct PS_INPUT_QUAD
 {
     float4 position : SV_POSITION;
     float2 tex : TEXCOORD;

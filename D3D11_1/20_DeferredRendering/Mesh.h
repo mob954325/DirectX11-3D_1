@@ -85,14 +85,14 @@ public:
 	vector<UINT> indices;
 	vector<Texture> textures;
 
-	ComPtr<ID3D11Device> m_pDevice;
+	ComPtr<ID3D11Device> m_device;
 	int refBoneIndex = -1;
 
 	Mesh(ComPtr<ID3D11Device>& dev, const std::vector<BoneWeightVertex>& vertices, const std::vector<UINT>& indices, const std::vector<Texture>& textures) :
 		vertices(vertices),
 		indices(indices),
 		textures(textures),
-		m_pDevice(dev),
+		m_device(dev),
 		m_pVertexBuffer(nullptr),
 		m_pIndexBuffer(nullptr)
 	{

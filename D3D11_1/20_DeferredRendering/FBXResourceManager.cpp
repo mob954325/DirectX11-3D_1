@@ -123,7 +123,7 @@ Mesh FBXResourceManager::ProcessMesh(std::shared_ptr<FBXResourceAsset>& pAsset, 
 		}
 	}
 
-	return Mesh(m_pDevice, vertices, indices, textures);
+	return Mesh(m_device, vertices, indices, textures);
 }
 
 void FBXResourceManager::ProcessBoneWeight(std::shared_ptr<FBXResourceAsset>& pAsset, aiMesh* pMesh)
@@ -190,13 +190,13 @@ std::vector<Texture> FBXResourceManager::loadMaterialTextures(std::shared_ptr<FB
 					ComPtr<ID3D11Resource> tgaTexture{};
 
 					HR_T(DirectX::LoadFromTGAFile(filenamews.c_str(), DirectX::TGA_FLAGS_NONE, nullptr, image)); // Load the TGA data
-					HR_T(DirectX::CreateTexture(m_pDevice.Get(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), tgaTexture.GetAddressOf())); // convert image to texture
+					HR_T(DirectX::CreateTexture(m_device.Get(), image.GetImages(), image.GetImageCount(), image.GetMetadata(), tgaTexture.GetAddressOf())); // convert image to texture
 
-					HR_T(m_pDevice.Get()->CreateShaderResourceView(tgaTexture.Get(), nullptr, texture.pTexture.GetAddressOf()));
+					HR_T(m_device.Get()->CreateShaderResourceView(tgaTexture.Get(), nullptr, texture.pTexture.GetAddressOf()));
 				}
 				else
 				{
-					HR_T(CreateWICTextureFromFile(m_pDevice.Get(), m_pDeviceContext.Get(), filenamews.c_str(), nullptr, texture.pTexture.GetAddressOf())); 
+					HR_T(CreateWICTextureFromFile(m_device.Get(), m_deviceContext.Get(), filenamews.c_str(), nullptr, texture.pTexture.GetAddressOf())); 
 				}
 			}
 
@@ -233,16 +233,16 @@ void FBXResourceManager::loadEmbeddedTexture(const aiTexture* embeddedTexture, C
 		subresourceData.SysMemSlicePitch = embeddedTexture->mWidth * embeddedTexture->mHeight * 4;
 
 		ID3D11Texture2D* texture2D = nullptr;
-		HR_T(m_pDevice->CreateTexture2D(&desc, &subresourceData, &texture2D));
+		HR_T(m_device->CreateTexture2D(&desc, &subresourceData, &texture2D));
 
-		HR_T(m_pDevice->CreateShaderResourceView(texture2D, nullptr, outTexture.GetAddressOf()));
+		HR_T(m_device->CreateShaderResourceView(texture2D, nullptr, outTexture.GetAddressOf()));
 	}
 	else
 	{
 		// mHeight is 0, so try to load a compressed texture of mWidth bytes
 		const size_t size = embeddedTexture->mWidth;
 
-		HR_T(CreateWICTextureFromMemory(m_pDevice.Get(), m_pDeviceContext.Get(), reinterpret_cast<const unsigned char*>(embeddedTexture->pcData), size, nullptr, outTexture.GetAddressOf()));
+		HR_T(CreateWICTextureFromMemory(m_device.Get(), m_deviceContext.Get(), reinterpret_cast<const unsigned char*>(embeddedTexture->pcData), size, nullptr, outTexture.GetAddressOf()));
 	}
 }
 
@@ -279,8 +279,8 @@ std::shared_ptr<FBXResourceAsset> FBXResourceManager::LoadFBXByPath(ComPtr<ID3D1
 
 	assert(pScene && ".fbx not found");
 
-	this->m_pDevice = pDevice;
-	this->m_pDeviceContext = pDeviceContext;
+	this->m_device = pDevice;
+	this->m_deviceContext = pDeviceContext;
 
 	// 없으면 load후 map에 추가 
 	auto sharedAsset = make_shared<FBXResourceAsset>();

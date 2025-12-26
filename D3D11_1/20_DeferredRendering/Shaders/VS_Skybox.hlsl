@@ -13,6 +13,7 @@ PS_INPUT_Sky main(VS_INPUT_sky input)
     
     pos = mul(pos, ViewWithoutTranlation);
     pos = mul(pos, Projection);    
+    pos.z = pos.w; // 항상 뒤에서 그리기 (fixed depth)
     
     output.PosClipSpace = pos;
     output.Pos = normalize(input.Pos);     

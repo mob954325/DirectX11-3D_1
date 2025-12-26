@@ -64,8 +64,8 @@ public:
 	void GetBuffer(ComPtr<ID3D11Buffer>& pTransform, ComPtr<ID3D11Buffer>& pBonePose, ComPtr<ID3D11Buffer>& pBoneOffset);
 
 private:
-	ComPtr<ID3D11Device> m_pDevice = nullptr;
-	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;
+	ComPtr<ID3D11Device> m_device = nullptr;
+	ComPtr<ID3D11DeviceContext> m_deviceContext = nullptr;
 	HWND hwnd{};
 
 	// 인스턴스 데이터
@@ -76,9 +76,9 @@ private:
 	BonePoseBuffer m_BonePoses{};
 
 	// 버퍼들 -> App에서 참조
-	ComPtr<ID3D11Buffer> m_pTransformBuffer{};
-	ComPtr<ID3D11Buffer> m_pBonePoseBuffer{};
-	ComPtr<ID3D11Buffer> m_pBoneOffsetBuffer{};
+	ComPtr<ID3D11Buffer> m_transformBuffer{};
+	ComPtr<ID3D11Buffer> m_bonePoseBuffer{};
+	ComPtr<ID3D11Buffer> m_boneOffsetBuffer{};
 
 	// 기능 함수
 	void CreateBoneInfos();

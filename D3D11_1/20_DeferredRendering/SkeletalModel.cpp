@@ -13,8 +13,8 @@ SkeletalModel::~SkeletalModel()
 bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11DeviceContext>& pDeviceContext, std::string filename)
 {
 	this->directory = filename.substr(0, filename.find_last_of("/\\"));
-	this->m_pDevice = pDevice;
-	this->m_pDeviceContext = pDeviceContext;
+	this->m_device = pDevice;
+	this->m_deviceContext = pDeviceContext;
 	this->hwnd = hwnd;
 
 	// 리소스 매니저에서 FBX 정보 가져오기 -> 어디서?
@@ -28,11 +28,11 @@ bool SkeletalModel::Load(HWND hwnd, ComPtr<ID3D11Device>& pDevice, ComPtr<ID3D11
 
 void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3D11Buffer>& pMatBuffer)
 {
-	m_pDeviceContext->UpdateSubresource(m_pBonePoseBuffer.Get(), 0, nullptr, &m_BonePoses, 0, 0);
-	m_pDeviceContext->UpdateSubresource(m_pBoneOffsetBuffer.Get(), 0, nullptr, &modelAsset->m_BoneOffsets, 0, 0);
+	m_deviceContext->UpdateSubresource(m_bonePoseBuffer.Get(), 0, nullptr, &m_BonePoses, 0, 0);
+	m_deviceContext->UpdateSubresource(m_boneOffsetBuffer.Get(), 0, nullptr, &modelAsset->m_BoneOffsets, 0, 0);
 
-	m_pDeviceContext->VSSetConstantBuffers(3, 1, m_pBonePoseBuffer.GetAddressOf());
-	m_pDeviceContext->VSSetConstantBuffers(4, 1, m_pBoneOffsetBuffer.GetAddressOf());
+	m_deviceContext->VSSetConstantBuffers(3, 1, m_bonePoseBuffer.GetAddressOf());
+	m_deviceContext->VSSetConstantBuffers(4, 1, m_boneOffsetBuffer.GetAddressOf());
 
 	TransformBuffer tb = {};
 
@@ -46,13 +46,13 @@ void SkeletalModel::Draw(ComPtr<ID3D11DeviceContext>& pDeviceContext, ComPtr<ID3
 	for (size_t i = 0; i < size; i++)
 	{
 		Material meshMaterial = modelAsset->meshes[i].GetMaterial();
-		m_pDeviceContext->UpdateSubresource(pMatBuffer.Get(), 0, nullptr, &meshMaterial, 0, 0);		
+		m_deviceContext->UpdateSubresource(pMatBuffer.Get(), 0, nullptr, &meshMaterial, 0, 0);		
 
 		tb.refBoneIndex = modelAsset->meshes[i].refBoneIndex;
 		
-		m_pDeviceContext->UpdateSubresource(m_pTransformBuffer.Get(), 0, nullptr, &tb, 0, 0);
-		m_pDeviceContext->VSSetConstantBuffers(2, 1, m_pTransformBuffer.GetAddressOf());
-		m_pDeviceContext->PSSetConstantBuffers(1, 1, pMatBuffer.GetAddressOf());
+		m_deviceContext->UpdateSubresource(m_transformBuffer.Get(), 0, nullptr, &tb, 0, 0);
+		m_deviceContext->VSSetConstantBuffers(2, 1, m_transformBuffer.GetAddressOf());
+		m_deviceContext->PSSetConstantBuffers(1, 1, pMatBuffer.GetAddressOf());
 
 		modelAsset->meshes[i].Draw(pDeviceContext);
 	}
@@ -104,9 +104,9 @@ void SkeletalModel::Close()
 
 void SkeletalModel::GetBuffer(ComPtr<ID3D11Buffer>& pTransform, ComPtr<ID3D11Buffer>& pBonePose, ComPtr<ID3D11Buffer>& pBoneOffset)
 {
-	m_pTransformBuffer = pTransform;
-	m_pBonePoseBuffer = pBonePose;
-	m_pBoneOffsetBuffer = pBoneOffset;
+	m_transformBuffer = pTransform;
+	m_bonePoseBuffer = pBonePose;
+	m_boneOffsetBuffer = pBoneOffset;
 }
 
 void SkeletalModel::CreateBoneInfos()

@@ -37,8 +37,8 @@ class FBXResourceManager
 	std::map<std::string, std::weak_ptr<FBXResourceAsset>> assets;
 
 	// texture 불러오기 위한 device, deviceContext
-	ComPtr<ID3D11Device> m_pDevice = nullptr;
-	ComPtr<ID3D11DeviceContext> m_pDeviceContext = nullptr;
+	ComPtr<ID3D11Device> m_device = nullptr;
+	ComPtr<ID3D11DeviceContext> m_deviceContext = nullptr;
 
 	// 에셋 내용 로드 함수들
 	void ProcessNode(std::shared_ptr<FBXResourceAsset>& pAsset, aiNode* pNode, const aiScene* pScene);
