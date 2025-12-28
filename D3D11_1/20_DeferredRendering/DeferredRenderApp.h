@@ -67,7 +67,7 @@ public:
 	Matrix m_View;				// 뷰 좌표계 공간으로 변환을 위한 행렬.
 	Matrix m_Projection;		// 단위 장치 좌표계 ( Normalized Device Coordinate) 공간으로 변환을 위한 행렬.
 
-	Vector4 m_LightDirection;				// Directional Light의 방향
+	Vector4 m_LightDirection{};				// Directional Light의 방향
 	Color m_LightColor{ 1,1,1,1 };			// Directional Light의 색
 
 	// imgui 컨트롤 변수
@@ -80,7 +80,7 @@ public:
 	Vector3 m_CameraRotation{};
 
 	// 빛
-	Vector4 m_LightDirectionInitial{ 0.0f, -1.0f, 1.0f, 1.0f };
+	Vector4 m_LightDirectionInitial{ 0.0f, -1.0f, 0.0f, 1.0f };
 	Vector4 m_LightAmbient{ 0.1f, 0.1f, 0.1f, 0.1f }; // 환경광 반사 계수
 	Vector4 m_LightDiffuse{ 0.9f, 0.9f, 0.9f, 1.0f }; // 난반사 계수
 	Vector4 m_LightSpecular{ 0.9f, 0.9f, 0.9f, 1.0f }; // 정반사 계수
@@ -118,7 +118,7 @@ public:
 	unique_ptr<PrimitiveBatch<VertexPositionColor>> m_batch; // vertexPositionColor : proivde input layout
 	unique_ptr<DirectX::BasicEffect> m_effect;	// BasicEffect : provide the vertex and pixel shader progrmas
 
-	Vector3 m_shadowUpDistFromLookAt{ 0, 1000, 0 };
+	Vector3 m_shadowUpDistFromLookAt{ 1000, 1000, 1000 };
 	Vector3 m_GroundScale{ 20,1,20 };
 
 	// model buffer
@@ -149,8 +149,8 @@ public:
 
 	// PBR
 	ComPtr<ID3D11PixelShader> m_PBRPS = nullptr;
-	float roughness = 0;
-	float metalness = 0;
+	float roughness = 0.1;
+	float metalness = 0.5;
 	float lightIntensity = 1.0f;
 
 	bool useBaseColor = true; // NOTE: 텍스처 없는 오브젝트는 강제로 플래그 활성화되서 출력이 안될 수 있음.
@@ -185,8 +185,10 @@ public:
 		BaseColor = 0,
 		Normal,
 		WorldPos,
-		// Matal,
-		//Rough,
+		Matal,
+		Rough,
+		Specular,
+		Emission,
 		Count
 	};
 

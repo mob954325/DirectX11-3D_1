@@ -1,8 +1,8 @@
 #include <Shared.hlsli>
 
-PS_INPUT main(VS_INPUT_MODEL input)
+PS_INPUT_MODEL main(VS_INPUT_MODEL input)
 {
-    PS_INPUT output = (PS_INPUT) 0;
+    PS_INPUT_MODEL output = (PS_INPUT_MODEL) 0;
     
     Matrix ModelToWorld;
     if (isRigid == 0)
@@ -31,18 +31,15 @@ PS_INPUT main(VS_INPUT_MODEL input)
     
     // model -> world space    
     float4 worldPos = mul(input.Pos, ModelToWorld);
-    output.World = worldPos.xyz;
-    output.Pos = mul(worldPos, View);
-    output.Pos = mul(output.Pos, Projection);
+    output.PosWS = worldPos.xyz;
+    float4 PosVS = mul(worldPos, View); // view space
+    output.PosCS = mul(PosVS, Projection);
 
-    output.Norm = normalize(mul(input.Norm, (float3x3) ModelToWorld));
+    output.NormWS = normalize(mul(input.Norm, (float3x3) ModelToWorld));
     output.Tangent = normalize(mul(input.Tangent, (float3x3) ModelToWorld));
     output.Bitangent = normalize(mul(input.Bitangent, (float3x3) ModelToWorld));
 
     output.Tex = input.Tex;
-
-    output.PositionShadow = mul(float4(output.World, 1.0f), ShadowView);
-    output.PositionShadow = mul(output.PositionShadow, ShadowProjection);
     
     return output;
 } 

@@ -445,6 +445,10 @@ void DeferredRenderApp::CreateGbuffers()
 		{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },	// BaseColor
 		{ DXGI_FORMAT_R8G8B8A8_UNORM },			// Normal
 		{ DXGI_FORMAT_R16G16B16A16_FLOAT },		// PositionWS 
+		{ DXGI_FORMAT_R8_UNORM },			// Metal
+		{ DXGI_FORMAT_R8_UNORM },			// rough
+		{ DXGI_FORMAT_R8_UNORM },			// specular
+		{ DXGI_FORMAT_R8G8B8A8_UNORM },			// emission
 	};
 
 
@@ -608,11 +612,15 @@ void DeferredRenderApp::RenderPassGBuffer()
 
 void DeferredRenderApp::RenderPassDirectionalLight()
 {
-	LightDirectionCB cb;
-	m_LightDirection.Normalize();
-	cb.lightDirection = Vector4(m_LightDirection.x, m_LightDirection.y, m_LightDirection.z, lightIntensity);
-	cb.lightColor = m_LightColor;
+	LightDirectionCB lightdirCB;
+	//m_LightDirection.Normalize();
+	lightdirCB.lightDirection = Vector4(m_LightDirection.x, m_LightDirection.y, m_LightDirection.z, lightIntensity);
+	lightdirCB.lightColor = m_LightColor;
 
+	ConstantBuffer cb;
+	cb.CameraPos = m_Camera.m_Position;
+	cb.shadowView = XMMatrixTranspose(m_shadowView);
+	cb.shadowProjection = XMMatrixTranspose(m_shadowProj);
 	// 11, 12, 13 -> color, normal, worldpos
 	// 4 shadow depth
 
@@ -621,13 +629,14 @@ void DeferredRenderApp::RenderPassDirectionalLight()
 	m_deviceContext->OMSetBlendState(m_additiveBlendState.Get(), blendFactor, 0xffffffff);
 	m_deviceContext->OMSetRenderTargets(1, m_backbufferRTV.GetAddressOf(), m_depthStencilView.Get());
 	m_deviceContext->OMSetDepthStencilState(m_depthStencilStateWriteOff.Get(), 0); // Depth test OFF, write OFF
-	m_deviceContext->ClearDepthStencilView(m_shadowMapDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	vector<ID3D11ShaderResourceView*> SRVs =
 	{
 		m_gBufferSRV[0].Get(),
 		m_gBufferSRV[1].Get(),
-		m_gBufferSRV[2].Get()
+		m_gBufferSRV[2].Get(),
+		m_gBufferSRV[3].Get(),
+		m_gBufferSRV[4].Get()
 	};
 
 	m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -637,11 +646,16 @@ void DeferredRenderApp::RenderPassDirectionalLight()
 
 	m_deviceContext->VSSetShader(m_directionalLightVS.Get(), nullptr, 0);
 
-	m_deviceContext->UpdateSubresource(m_lightDirectionBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_deviceContext->UpdateSubresource(m_lightDirectionBuffer.Get(), 0, nullptr, &lightdirCB, 0, 0);
 	m_deviceContext->PSSetConstantBuffers(5, 1, m_lightDirectionBuffer.GetAddressOf());
+	m_deviceContext->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+	m_deviceContext->PSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 
 	m_deviceContext->PSSetShaderResources(11, SRVs.size(), SRVs.data());			// gbuffer texture 바인드
 	m_deviceContext->PSSetShaderResources(4, 1, m_shadowMapSRV.GetAddressOf());	// shadow map 바인드
+	m_deviceContext->PSSetShaderResources(8, 1, m_IBLIrradiance.GetAddressOf());		// Irradiance
+	m_deviceContext->PSSetShaderResources(9, 1, m_IBLSpecular.GetAddressOf());		// Sepcular
+	m_deviceContext->PSSetShaderResources(10, 1, m_IBLLookUpTable.GetAddressOf());	// LUT
 
 	m_deviceContext->PSSetSamplers(0, 1, m_samplerLinear.GetAddressOf());
 	m_deviceContext->PSSetSamplers(1, 1, m_samplerLinear.GetAddressOf());
@@ -847,6 +861,7 @@ void DeferredRenderApp::RenderImGUI()
 		m_chara->m_Scale = m_charaScale;
 	}
 
+	ImGui::ColorEdit3("Light Color", &m_LightColor.x);
 	ImGui::NewLine();
 
 	// 카메라 위치 및 회전 설정
@@ -896,7 +911,7 @@ void DeferredRenderApp::RenderImGUI()
 
 	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
 
-	ImGui::DragFloat("Roughness", &roughness, 0.01f, 0, 1);
+	ImGui::DragFloat("Roughness", &roughness, 0.01f, 0.01f, 1);
 	ImGui::DragFloat("Metalness", &metalness, 0.01f, 0, 1);
 	ImGui::DragFloat("Lightintensity", &lightIntensity, 0.01f, 0, 1);
 
@@ -912,11 +927,46 @@ void DeferredRenderApp::RenderImGUI()
 
 	ImGui::Begin("Deferred Info");
 	{
+		static const char* GBufferNames[] =
+		{
+			"BaseColor",
+			"Normal",
+			"WorldPos",
+			"Metal",
+			"Rough",
+			"Specular",
+			"Emission"
+		};
+
 		int size = static_cast<int>(EGbuffer::Count);
+
 		for (int i = 0; i < size; i++)
 		{
+			// 카드 하나 시작
+			ImGui::BeginGroup();
+
+			// 카드 박스 (Child)
+			ImGui::BeginChild(
+				GBufferNames[i],
+				ImVec2(150, 170),   // 카드 크기 (텍스처 + 여백)
+				true,               // 테두리 표시
+				ImGuiWindowFlags_NoScrollbar
+			);
+
+			// 텍스처 이름
+			ImGui::Text("%s", GBufferNames[i]);
+			ImGui::Separator();
+
+			// 이미지 출력
 			ImTextureID img = (ImTextureID)(intptr_t)(m_gBufferSRV[i].Get());
-			ImGui::Image(img, ImVec2(256, 256));
+			ImGui::Image(img, ImVec2(128, 128));
+
+			ImGui::EndChild();
+			ImGui::EndGroup();
+
+			// 2개씩 배치
+			if (i % 2 == 0)
+				ImGui::SameLine();
 		}
 	}
 	ImGui::End();

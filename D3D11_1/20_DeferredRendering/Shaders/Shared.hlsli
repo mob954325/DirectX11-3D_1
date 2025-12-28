@@ -22,6 +22,11 @@ Texture2D txIBLLookUpTable  : register(t10);  // IBL LUT (Look Up Table)
 Texture2D geoBufferBaseColor: register(t11);  // gbuffer basecolor texture
 Texture2D geoBufferNormal   : register(t12);  // gbuffer normal texture
 Texture2D geoBufferPosition : register(t13);  // gbuffer worldSpace position texture
+Texture2D geoBufferMetal    : register(t14);  // gbuffer metalness
+Texture2D geoBufferRough    : register(t15);  // gbuffer roughness
+Texture2D geoBufferShadow   : register(t16);  // gbuffer shadow
+Texture2D geoBufferSpecular : register(t17);  // gbuffer specular
+Texture2D geoBufferEmission : register(t18);  // gbuffer emission
 
 cbuffer ConstantBuffer : register(b0)   // PerFrame
 {
@@ -100,18 +105,16 @@ struct VS_INPUT_MODEL
     float4 BlendWeights : BLENDWEIGHTS;
 };
 
-struct PS_INPUT
+struct PS_INPUT_MODEL
 {
-    float4 Pos : SV_POSITION;   // 투영한 위치 좌표
+    float4 PosCS : SV_POSITION;   // clip space position    
     
-    float3 Norm : NORMAL;       // 노멀 값
+    float3 NormWS : NORMAL;       // world space normal
     float2 Tex : TEXCOORD;      // 텍스처 UV좌표
-    float3 World : TEXCOORD2;   // 월드 좌표
+    float3 PosWS : TEXCOORD2;   // world space position
     
     float3 Tangent : TANGENT;
-    float3 Bitangent : BINORMAL;
-    
-    float4 PositionShadow : TEXCOORD3; // 그림자 위치
+    float3 Bitangent : BINORMAL;    
 }; 
 
 struct VS_INPUT_sky
@@ -134,7 +137,7 @@ struct VS_INPUT_QUAD
 struct PS_INPUT_QUAD
 {
     float4 position : SV_POSITION;
-    float2 tex : TEXCOORD;
+    float2 tex : TEXCOORD;    
 };
 
 // Functions =======================================================================
