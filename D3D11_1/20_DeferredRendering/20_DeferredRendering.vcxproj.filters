@@ -19,9 +19,9 @@
     <FxCompile Include="Shaders\PS_Skybox.hlsl" />
     <FxCompile Include="Shaders\PS_Solid.hlsl" />
     <FxCompile Include="Shaders\VS_DepthOnlyPass.hlsl" />
-    <FxCompile Include="Shaders\VS_ModelMesh.hlsl" />
+    <FxCompile Include="Shaders\VS_GBuffer.hlsl" />
     <FxCompile Include="Shaders\VS_Skybox.hlsl" />
-    <FxCompile Include="Shaders\PS_PBR.hlsl" />
+    <FxCompile Include="Shaders\PS_GBuffer.hlsl" />
     <FxCompile Include="Shaders\VS_DirectionalLight.hlsl" />
     <FxCompile Include="Shaders\PS_DirectionalLight.hlsl" />
   </ItemGroup>

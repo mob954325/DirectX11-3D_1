@@ -1250,7 +1250,7 @@ bool DeferredRenderApp::InitEffect()
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\VS_ModelMesh.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_GBuffer.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_device->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_inputLayout.GetAddressOf()));
 
 	HR_T(m_device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_skinnedMeshVertexShader.GetAddressOf()));
@@ -1269,7 +1269,7 @@ bool DeferredRenderApp::InitEffect()
 	HR_T(m_device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_shadowMapPS.GetAddressOf()));
 
 	pixelShaderBuffer.Reset();
-	HR_T(CompileShaderFromFile(L"Shaders\\PS_PBR.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_Gbuffer.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_PBRPS.GetAddressOf()));
 
 	pixelShaderBuffer.Reset();
