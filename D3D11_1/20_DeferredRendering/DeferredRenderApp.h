@@ -153,6 +153,7 @@ public:
 	float metalness = 0.5;
 	float lightIntensity = 1.0f;
 
+	Color BaseColor{ 0,0,0,1 };
 	bool useBaseColor = true; // NOTE: 텍스처 없는 오브젝트는 강제로 플래그 활성화되서 출력이 안될 수 있음.
 	bool useNormal = true;
 	bool useMetalness = true;

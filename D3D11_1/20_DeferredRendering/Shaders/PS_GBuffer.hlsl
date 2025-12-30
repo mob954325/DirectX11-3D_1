@@ -21,7 +21,7 @@ GBufferOut main(PS_INPUT_MODEL input)
     float4 albedo = txDiffuse.Sample(samLinear, input.Tex);
     if (!hasDiffuse)
     {
-        albedo = float4(1.0f, 1.0f, 1.0f, 1.0f);
+        albedo = BaseColor;
     }
     
     if (albedo.a < 0.5f) // alpha cliping

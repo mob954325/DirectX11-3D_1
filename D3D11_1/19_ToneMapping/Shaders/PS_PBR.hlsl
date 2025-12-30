@@ -165,10 +165,13 @@ float4 main(PS_INPUT input) : SV_TARGET
         float3 diffuseIBL = kd * (float3)albedo * irradiance / PI; // irradiance map이 1/pi가 포함되어있으면 제거 있으면 1/pi 추가하기
     
         // IBL specular        
-        uint specularTexureLevels, width, height;        
+        uint specularTexureLevels, width, height;
         txIBLSepcualar.GetDimensions(0, width, height, specularTexureLevels);
         
-        float3 PrefilteredColor = txIBLSepcualar.SampleLevel(samLinear, reflect(-Lo, norm), finalRoughness * specularTexureLevels).rgb;
+        float3 R = reflect(-Lo, finalNorm);
+        
+        float lodLevel = finalRoughness * (float) (specularTexureLevels) - 1;
+        float3 PrefilteredColor = txIBLSepcualar.SampleLevel(samLinear, R, lodLevel).rgb;
         
         // dot(Normal,View) , roughness를 텍셀좌표로 미리계산된 F*G , G 평균값을 샘플링한다  
         float2 specularBRDF = txIBLLookUpTable.Sample(samLinear, float2(NdotO, finalRoughness)).rg;

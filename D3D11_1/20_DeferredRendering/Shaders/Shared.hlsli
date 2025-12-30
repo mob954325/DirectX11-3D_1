@@ -45,6 +45,8 @@ cbuffer ConstantBuffer : register(b0)   // PerFrame
     float Metalness;
     float Roughness;
     float2 pad;
+    
+    float4 BaseColor;
 }
 
 cbuffer Material : register(b1) // PerMaterial

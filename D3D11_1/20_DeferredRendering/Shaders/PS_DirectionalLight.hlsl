@@ -53,6 +53,7 @@ float4 main(PS_INPUT_QUAD input) : SV_TARGET
     float4 emission = geoBufferEmission.Sample(samPoint, uv); // emission
     
     float3 finalNorm = normalize(DecodeNormal(normalEncoded));
+    float finalRoughness = max(0.1, rough);
     
     float3 lightDirWorld = normalize(-LightDirection.xyz);
     float intensity = LightDirection.w;
@@ -104,9 +105,9 @@ float4 main(PS_INPUT_QUAD input) : SV_TARGET
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), (float3) baseColor, metal);
     
     {   
-        float D = NDFGGXTR(finalNorm, Lh, max(0.001, rough));
+        float D = NDFGGXTR(finalNorm, Lh, finalRoughness);
         float3 F = FresnelSchlick(F0, max(0, dot(Lh, Lo)));
-        float G = GSmithMethod(finalNorm, Lo, Li, rough);
+        float G = GSmithMethod(finalNorm, Lo, Li, finalRoughness);
     
         // 표면 산란
         float3 kd = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metal);
@@ -138,10 +139,11 @@ float4 main(PS_INPUT_QUAD input) : SV_TARGET
         
         float3 R = reflect(-Lo, finalNorm);
         
-        float3 PrefilteredColor = txIBLSepcualar.SampleLevel(samLinear, R, rough * specularTexureLevels).rgb;
+        float lodLevel = finalRoughness * (float)(specularTexureLevels) - 1;
+        float3 PrefilteredColor = txIBLSepcualar.SampleLevel(samLinear, R, lodLevel).rgb;
         
         // dot(Normal,View) , roughness를 텍셀좌표로 미리계산된 F*G , G 평균값을 샘플링한다  
-        float2 specularBRDF = txIBLLookUpTable.Sample(samLinear, float2(NdotO, rough)).rg;
+        float2 specularBRDF = txIBLLookUpTable.Sample(samLinear, float2(NdotO, finalRoughness)).rg;
         
         // 쿡토런스 Spceular BRDF 근사식
         float3 specularIBL = PrefilteredColor * (F0 * specularBRDF.x + specularBRDF.y); // x : normal dot view, y : roughtness

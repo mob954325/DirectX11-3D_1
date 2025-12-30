@@ -42,6 +42,8 @@ struct ConstantBuffer
 	FLOAT roughness;	//
 	FLOAT lightIntensity;
 	FLOAT pad1;
+
+	Color baseColor;
 };
 
 struct LightDirectionCB
@@ -571,6 +573,8 @@ void DeferredRenderApp::RenderPassGBuffer()
 	cb.roughness = roughness;
 	cb.metalness = metalness;
 	cb.lightIntensity = lightIntensity;
+	cb.baseColor = BaseColor;
+
 	m_deviceContext->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
 	// 텍스처 및 샘플링 설정 -> 초기화
@@ -911,9 +915,10 @@ void DeferredRenderApp::RenderImGUI()
 
 	ImGui::DragFloat3("Light Direction", &m_LightDirection.x, 0.1f, -1.0f, 1.0f);
 
-	ImGui::DragFloat("Roughness", &roughness, 0.01f, 0.01f, 1);
+	ImGui::DragFloat("Roughness", &roughness, 0.01f, 0, 1);
 	ImGui::DragFloat("Metalness", &metalness, 0.01f, 0, 1);
 	ImGui::DragFloat("Lightintensity", &lightIntensity, 0.01f, 0, 1);
+	ImGui::ColorEdit3("BaseColor", &BaseColor.x);
 
 	ImGui::Spacing();
 
