@@ -62,7 +62,7 @@ Vcpkg 설치하기 및 vcpkg로 소스 다운
 ```
 vcpkg install directxtk:x64-windows-static-md
 vcpkg install directxtex[dx11]:x64-windows-static-md
-vcpkg install imgui[dx11-binding]:x64-windows-static-md
+vcpkg install imgui[dx11-binding]:x64-windows-static-md --recurse
 vcpkg install imgui[win32-binding]:x64-windows-static-md --recurse 
 vcpkg install assimp:x64-windows        
 ```
