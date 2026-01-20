@@ -1,4 +1,4 @@
-#include "DrawMeshApp.h"
+#include "Draw2DUIApp.h"
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
@@ -12,6 +12,9 @@
 #pragma comment(lib, "d3dcompiler.lib")
 
 #include <string>
+
+#undef min
+#undef max
 
 using namespace DirectX::SimpleMath;
 using namespace DirectX;
@@ -36,18 +39,20 @@ struct ConstantBuffer
 	Matrix projection;
 };
 
-DrawMeshApp::DrawMeshApp(HINSTANCE hInstance)
+Draw2DUIApp::Draw2DUIApp(HINSTANCE hInstance)
 	: GameApp(hInstance)
 {
 
 }
 
-DrawMeshApp::~DrawMeshApp()
+Draw2DUIApp::~Draw2DUIApp()
 {
+	if(m_D2DDeviceContext)
+		m_D2DDeviceContext->SetTarget(nullptr);
 	UninitImGUI();
 }
 
-bool DrawMeshApp::OnInitialize()
+bool Draw2DUIApp::OnInitialize()
 {
 	if (!InitD3D())
 		return false;
@@ -58,21 +63,18 @@ bool DrawMeshApp::OnInitialize()
 	if (!InitImGUI())
 		return false;
 
+	InitD2D();
 	ResetValues();
+	CreateStates();
+	CreateD2DEffect();
 
 	return true;
 }
 
-void DrawMeshApp::OnUpdate()
+void Draw2DUIApp::OnUpdate()
 {
 	float delta = GameTimer::m_Instance->DeltaTime();
 
-	bool useSimpleFunc = true;
-	if (!useSimpleFunc)
-	{
-		CalcMatrix();
-	}
-	else
 	{
 		Matrix scale = Matrix::Identity;
 		Matrix rotate = Matrix::Identity;
@@ -107,7 +109,7 @@ void DrawMeshApp::OnUpdate()
 	m_Camera.GetCameraViewMatrix(m_View);
 }
 
-void DrawMeshApp::OnRender()
+void Draw2DUIApp::OnRender()
 {
 #if USE_FLIPMODE == 1
 	// Flip 모드에서는 매프레임 설정해야한다.
@@ -153,7 +155,7 @@ void DrawMeshApp::OnRender()
 	cb1.projection = XMMatrixTranspose(m_Projection);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
-	m_pDeviceContext->DrawIndexed(m_nIndices, 0, 0);
+	RenderText(L"Hello World");
 
 	// Render ImGui
 	RenderImGUI();
@@ -162,7 +164,7 @@ void DrawMeshApp::OnRender()
 	m_pSwapChain->Present(0, 0);
 }
 
-bool DrawMeshApp::InitImGUI()
+bool Draw2DUIApp::InitImGUI()
 {
 	bool isSetupSuccess = false;
 
@@ -186,7 +188,7 @@ bool DrawMeshApp::InitImGUI()
 	return true;
 }
 
-void DrawMeshApp::RenderImGUI()
+void Draw2DUIApp::RenderImGUI()
 {
 	// Start the Dear ImGui frame
 	ImGui_ImplDX11_NewFrame();
@@ -241,7 +243,7 @@ void DrawMeshApp::RenderImGUI()
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-void DrawMeshApp::UninitImGUI()
+void Draw2DUIApp::UninitImGUI()
 {
 	// Cleanup
 	ImGui_ImplDX11_Shutdown();
@@ -249,7 +251,7 @@ void DrawMeshApp::UninitImGUI()
 	ImGui::DestroyContext();
 }
 
-bool DrawMeshApp::InitD3D()
+bool Draw2DUIApp::InitD3D()
 {
 	HRESULT hr = S_OK;
 
@@ -364,9 +366,9 @@ bool DrawMeshApp::InitD3D()
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
 
-	ID3D11DepthStencilState* depthStencilState = nullptr;
-	m_pDevice->CreateDepthStencilState(&depthStencilDesc, &depthStencilState);
-	m_pDeviceContext->OMSetDepthStencilState(depthStencilState, 1);
+	ComPtr<ID3D11DepthStencilState> depthStencilState;
+	m_pDevice->CreateDepthStencilState(&depthStencilDesc, depthStencilState.GetAddressOf());
+	m_pDeviceContext->OMSetDepthStencilState(depthStencilState.Get(), 1);
 
 	// create depthStencil texture
 	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
@@ -382,7 +384,7 @@ bool DrawMeshApp::InitD3D()
 	return true;
 }
 
-bool DrawMeshApp::InitScene()
+bool Draw2DUIApp::InitScene()
 {
 	HRESULT hr = S_OK;
 
@@ -485,7 +487,7 @@ bool DrawMeshApp::InitScene()
 	return true;
 }
 
-void DrawMeshApp::ResetValues()
+void Draw2DUIApp::ResetValues()
 {
 	m_World1Position = m_World1PositionInitial;
 	m_World2Position = m_World2PositionInitial;
@@ -502,115 +504,270 @@ void DrawMeshApp::ResetValues()
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 }
 
+void Draw2DUIApp::InitD2D()
+{
+	D3D11_TEXTURE2D_DESC tex2Ddesc{};
+	tex2Ddesc.Width = m_ClientWidth;
+	tex2Ddesc.Height = m_ClientHeight;
+	tex2Ddesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	tex2Ddesc.MipLevels = 1;
+	tex2Ddesc.ArraySize = 1;
+	tex2Ddesc.SampleDesc.Count = 1;
+	tex2Ddesc.Usage = D3D11_USAGE_DEFAULT;
+	tex2Ddesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+
+	HR_T(m_pDevice->CreateTexture2D(&tex2Ddesc, nullptr, m_SharedTex11.GetAddressOf()));
+
+	// options
+	D2D1_FACTORY_OPTIONS options{};
+	HR_T(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1), &options, (void**)m_D2DFactory.GetAddressOf()));
+
+	ComPtr<IDXGIDevice> dxgiDevice;
+	HR_T(m_pDevice->QueryInterface(__uuidof(IDXGIDevice), (void**)dxgiDevice.GetAddressOf()));
+
+	HR_T(m_D2DFactory->CreateDevice(dxgiDevice.Get(), m_D2DDevice.GetAddressOf()));
+
+	HR_T(m_D2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, m_D2DDeviceContext.GetAddressOf()));
+
+	ComPtr<IDXGISurface> surface;
+	HR_T(m_SharedTex11->QueryInterface(__uuidof(IDXGISurface), (void**)surface.GetAddressOf()));
+
+	D2D1_BITMAP_PROPERTIES1 bitmapProps{};
+	bitmapProps.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;		// 비트맵 만들 dxgi 형식
+	bitmapProps.pixelFormat.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED;	// 알파를 미리 곱해진 값으로 처리하지 않는다? 
+	bitmapProps.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET;
+
+	// 비트맵의 물리적 픽셀을 어떻게 논리적 스크린 좌표에 넣을지? map할지
+	// default 값은 96.0f
+	bitmapProps.dpiX = 96.0f;	// x 방향 비트맵 dpi (dots-per-inch)
+	bitmapProps.dpiY = 96.0f;	// y 방향 비트맵 dpi
+
+	//HR_T(m_D2DDeviceContext->CreateBitmapFromDxgiSurface(surface.Get(), &bitmapProps, m_D2DTargetBitmap.GetAddressOf()));
+
+	// 이미지를 줄 비트맵 적용?
+	m_D2DDeviceContext->SetTarget(m_D2DTargetBitmap.Get());
+	HR_T(m_D2DDeviceContext->CreateSolidColorBrush(D2D1::ColorF(1, 1, 0, 1), &m_Brush));
+	HR_T(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(m_DWriteFactory.GetAddressOf())));
+
+	// Text 포맷 설정
+	HR_T(m_DWriteFactory->CreateTextFormat(L"Script",
+		nullptr,
+		DWRITE_FONT_WEIGHT_REGULAR,
+		DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL,
+		24.0f,
+		L"en-us",
+		&m_TextFormat)
+	);
+
+	m_TextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+	m_TextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+	// 이미지 생성하기
+	CreateD2DBitmapFromFile(L"..\\Resource\\neruThumpUp.png", m_TestBitmap);
+
+	// 상수 버퍼
+	D3D11_BUFFER_DESC bufferDesc;
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(ConstantBuffer);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_perObjCB.GetAddressOf()));
+
+	// 정점 버퍼 만들기
+	// D2D screen quad + SRV
+	// Quad in clip space (WVP = Identity)
+	CubeVertex v[] = {
+		{ Vector3(-1.0f, -1.0f, 0.0f),	Vector2(0.0f, 1.0f) },
+		{ Vector3(-1.0f,  1.0f, 0.0f),	Vector2(0.0f, 0.0f) },
+		{ Vector3(1.0f,  1.0f, 0.0f),	Vector2(1.0f, 0.0f) },
+		{ Vector3(1.0f, -1.0f, 0.0f),	Vector2(1.0f, 1.0f) },
+	};
+
+	D3D11_BUFFER_DESC d2dVertexBufferDesc = {};
+	d2dVertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	d2dVertexBufferDesc.ByteWidth = sizeof(CubeVertex) * 4;
+	d2dVertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA d2dVinit = {};
+	d2dVinit.pSysMem = v;
+	HR_T(m_pDevice->CreateBuffer(&d2dVertexBufferDesc, &d2dVinit, &m_D2DVertBuffer));
+
+	DWORD indices[] = { 0, 1, 2, 0, 2, 3 };
+
+	D3D11_BUFFER_DESC d2dIndexBufferDesc = {};
+	d2dIndexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	d2dIndexBufferDesc.ByteWidth = sizeof(DWORD) * 6;
+	d2dIndexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA d2dIinit = {};
+	d2dIinit.pSysMem = indices;
+	HR_T(m_pDevice->CreateBuffer(&d2dIndexBufferDesc, &d2dIinit, &m_D2DIndexBuffer));
+
+	HR_T(m_pDevice->CreateShaderResourceView(m_SharedTex11.Get(), nullptr, &m_D2DTexture));
+}
+
+void Draw2DUIApp::CreateD2DEffect()
+{
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	ComPtr<ID3DBlob> vsbuffer{};
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_2D.hlsl", "main", "vs_5_0", &vsbuffer));
+	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vsbuffer->GetBufferPointer(), vsbuffer->GetBufferSize(), m_D2DInputLayaout.GetAddressOf()));
+
+	HR_T(m_pDevice->CreateVertexShader(vsbuffer->GetBufferPointer(), vsbuffer->GetBufferSize(), NULL, m_d2dVertexShader.GetAddressOf()));
+
+	ComPtr<ID3DBlob> psbuffer{};
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_2D.hlsl", "main", "ps_5_0", &psbuffer));
+	HR_T(m_pDevice->CreatePixelShader(psbuffer->GetBufferPointer(), psbuffer->GetBufferSize(), NULL, m_d2dPixelShader.GetAddressOf()));
+}
+
+void Draw2DUIApp::CreateD2DBitmapFromFile(const wchar_t* fileName, ComPtr<ID2D1Bitmap1>& outBitmap) const
+{
+	if (!m_D2DDeviceContext) return;
+
+	ComPtr<IWICImagingFactory>		wicFactory{};	// 
+	ComPtr<IWICBitmapDecoder>		decoder{};
+	ComPtr<IWICBitmapFrameDecode>	frame{};
+	ComPtr<IWICFormatConverter>		converter{};
+
+	HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wicFactory.GetAddressOf()));
+	if (FAILED(hr))
+	{
+		HR_T(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wicFactory.GetAddressOf())));
+	}
+
+	// 디코더 생성
+	HR_T(wicFactory->CreateDecoderFromFilename(fileName, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &decoder));
+
+	// 첫 프레임 획득
+	HR_T(decoder->GetFrame(0, frame.GetAddressOf()));
+
+	// 포맷 변환기 생성
+	HR_T(wicFactory->CreateFormatConverter(converter.GetAddressOf()));
+
+	// GUID_WICPixelFormat32bppPBGRA로 변환
+	HR_T(converter->Initialize(
+		frame.Get(),
+		GUID_WICPixelFormat32bppPBGRA,
+		WICBitmapDitherTypeNone,
+		nullptr,
+		0.0,
+		WICBitmapPaletteTypeMedianCut));
+
+	// Direct2D 비트맵 속성 설정 - nullptr에 넣으면됨
+	//D2D1_BITMAP_PROPERTIES1 bmpProps = D2D1::BitmapProperties1(
+	//	D2D1_BITMAP_OPTIONS_NONE,
+	//	D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
+	//);
+	HR_T(m_D2DDeviceContext->CreateBitmapFromWicBitmap(converter.Get(), nullptr, m_TestBitmap.ReleaseAndGetAddressOf())); // todo : 이거 터지는거 해결하기
+}
+
+void Draw2DUIApp::CreateStates()
+{
+	// Blend state for overlay
+	D3D11_BLEND_DESC blendDesc = {};
+	D3D11_RENDER_TARGET_BLEND_DESC rtbd = {};
+	rtbd.BlendEnable = true;
+	rtbd.SrcBlend = D3D11_BLEND_ONE;
+	rtbd.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	rtbd.BlendOp = D3D11_BLEND_OP_ADD;
+	rtbd.SrcBlendAlpha = D3D11_BLEND_ONE;
+	rtbd.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+	rtbd.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	rtbd.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	blendDesc.RenderTarget[0] = rtbd;
+
+	HR_T(m_pDevice->CreateBlendState(&blendDesc, m_TransparencyBS.GetAddressOf()));
+
+	// Rasterizer
+	D3D11_RASTERIZER_DESC cmdesc = {};
+	cmdesc.FillMode = D3D11_FILL_SOLID;
+	cmdesc.CullMode = D3D11_CULL_BACK;
+	cmdesc.FrontCounterClockwise = false;
+	HR_T(m_pDevice->CreateRasterizerState(&cmdesc, m_CWcullModeRS.GetAddressOf()));
+
+	D3D11_SAMPLER_DESC sampDesc = {};
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	HR_T(m_pDevice->CreateSamplerState(&sampDesc, m_SamplerState.GetAddressOf()));
+}
+
+void Draw2DUIApp::RenderText(std::wstring str)
+{
+	ID3D11ShaderResourceView* nullSRV = nullptr;
+	m_pDeviceContext->PSSetShaderResources(0, 1, &nullSRV);
+
+	m_D2DDeviceContext->BeginDraw();
+	m_D2DDeviceContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+
+	//if (m_TestBitmap)
+	//{
+	//	D2D1_SIZE_F size = m_TestBitmap->GetSize();
+	//	const float maxDim = 128.0f;
+	//	const float sx = (size.width > 0.0f) ? (maxDim / size.width) : 1.0f;
+	//	const float sy = (size.height > 0.0f) ? (maxDim / size.height) : 1.0f;
+	//	const float scale = std::min(1.0f, std::min(sx, sy));
+	//	const float drawW = std::min(size.width * scale, (float)m_ClientWidth);
+	//	const float drawH = std::min(size.height * scale, (float)m_ClientHeight);
+	//	D2D1_RECT_F dest = D2D1::RectF(10.0f, 10.0f, 10.0f + drawW, 10.0f + drawH);
+	//	m_D2DDeviceContext->DrawBitmap(m_TestBitmap.Get(), dest, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+	//}
+
+	m_Brush->SetColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
+	D2D1_RECT_F layoutRect = D2D1::RectF(0, 0, (FLOAT)m_ClientWidth, (FLOAT)m_ClientHeight);
+
+	m_D2DDeviceContext->DrawText(
+		str.c_str(),
+		static_cast<UINT32>(str.length()),
+		m_TextFormat.Get(),
+		layoutRect,
+		m_Brush.Get());
+
+	m_D2DDeviceContext->EndDraw();
+
+	m_pDeviceContext->OMSetBlendState(m_TransparencyBS.Get(), nullptr, 0xffffffff);	//
+
+	m_pDeviceContext->IASetInputLayout(m_D2DInputLayaout.Get());
+	m_pDeviceContext->IASetIndexBuffer(m_D2DIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+	UINT stride = sizeof(CubeVertex);
+	UINT offset = 0;
+	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_D2DVertBuffer, &stride, &offset);
+
+	Matrix mat = XMMatrixIdentity();
+	m_perObjData.WVP = XMMatrixTranspose(mat);
+	m_pDeviceContext->UpdateSubresource(m_perObjCB.Get(), 0, nullptr, &m_perObjData, 0, 0);
+	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_perObjCB.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(0, 1, m_D2DTexture.GetAddressOf()); // 
+	m_pDeviceContext->PSSetSamplers(0, 1, m_SamplerState.GetAddressOf());		// 
+	m_pDeviceContext->RSSetState(m_CWcullModeRS.Get());						//
+
+	m_pDeviceContext->VSSetShader(m_d2dVertexShader.Get(), nullptr, 0);
+	m_pDeviceContext->PSSetShader(m_d2dPixelShader.Get(), nullptr, 0);
+
+	m_pDeviceContext->DrawIndexed(6, 0, 0);
+
+	// Restore opaque blend state for next frame
+	m_pDeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+}
+
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-LRESULT DrawMeshApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT Draw2DUIApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
 
 	return __super::WndProc(hWnd, message, wParam, lParam);
-}
-
-void DrawMeshApp::CalcMatrix()
-{
-	float t = GameTimer::m_Instance->TotalTime();
-	// 1st Cube: Rotate around the origin
-	float fSinAngle1 = sin(t);
-	float fCosAngle1 = cos(t);
-
-	Matrix m_World1Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World1Rotation =
-	{
-		1.0f * fCosAngle1, 0.0f, -fSinAngle1      , 0.0f,
-		0.0f             , 1.0f, 0.0f             , 0.0f,
-		fSinAngle1       , 0.0f, 1.0f * fCosAngle1, 0.0f,
-		0.0f            , 0.0f, 0.0f              , 1.0f
-	};
-
-	Vector3 scale1 = { 1.0f,1.0f,1.0f };
-	Matrix m_World1Scale =
-	{
-		scale1.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale1.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale1.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	//s->r->t
-	Matrix m_World1FinalMatrix = m_World1Scale * m_World1Rotation * m_World1Transform;
-	m_World1 = m_World1FinalMatrix;
-
-	// 2nd Cube: Rotate around 1st cube and rotate self
-	float speedScale = -5.0f;
-	float fCosAngle2 = cos(t * speedScale);
-	float fSinAngle2 = sin(t * speedScale);
-
-	Matrix m_World2Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-	   -4.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World2Rotation =
-	{
-		1.0f * fCosAngle2, 0.0f, -fSinAngle2      , 0.0f,
-		0.0f             , 1.0f, 0.0f             , 0.0f,
-		fSinAngle2       , 0.0f, 1.0f * fCosAngle2, 0.0f,
-		0.0f            , 0.0f, 0.0f              , 1.0f
-	};
-
-	Vector3 scale2 = { 0.9f,0.9f,0.9f };
-	Matrix m_World2Scale =
-	{
-		scale2.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale2.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale2.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	Matrix m_World2FinalMatrix = m_World2Scale * m_World2Rotation * m_World2Transform;
-	m_World2 = m_World2FinalMatrix * m_World1;
-
-	// 3nd Cube: Rotate around 2nd cube
-	float fCosAngle3 = cos(t);
-	float fSinAngle3 = sin(t);
-
-	Matrix m_World3Transform =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		-10.0f, 2.0f, 0.0f, 1.0f
-	};
-
-	Matrix m_World3Rotation =
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	Vector3 scale3 = { 0.7f,0.7f,0.7f };
-	Matrix m_World3Scale =
-	{
-		scale3.x, 0.0f    , 0.0f    , 0.0f,
-		0.0f    , scale3.y, 0.0f    , 0.0f,
-		0.0f    , 0.0f    , scale3.z, 0.0f,
-		0.0f    , 0.0f    , 0.0f    , 1.0f
-	};
-
-	Matrix m_World3FinalMatrix = m_World3Scale * m_World3Rotation * m_World3Transform;
-	m_World3 = m_World3FinalMatrix * m_World2;
 }

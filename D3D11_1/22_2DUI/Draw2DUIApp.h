@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 // DirectX11 
 #include <d3d11.h>
@@ -14,14 +15,38 @@
 // other files
 #include "../Common/GameApp.h"
 
+// DirectX11 2D
+#include <d2d1_1.h>
+#pragma comment(lib, "d2d1.lib")
+
+#include <dwrite.h> // ??
+#pragma comment(lib, "dwrite.lib")
+
+#include <wincodec.h>	// ??
+#pragma comment(lib, "windowscodecs.lib")
+
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
 
-class DrawMeshApp : public GameApp
+struct CubeVertex
+{
+	Vector4 pos;
+
+	Vector2 tex;
+	Vector2 pad2{};
+	CubeVertex(Vector3 pos, Vector2 tex) : pos(pos), tex(tex) {}
+};
+
+struct PerObjectCB
+{
+	Matrix WVP; // ??View Projection
+};
+
+class Draw2DUIApp : public GameApp
 {
 public:
-	DrawMeshApp(HINSTANCE hInstance);
-	~DrawMeshApp();
+	Draw2DUIApp(HINSTANCE hInstance);
+	~Draw2DUIApp();
 
 	// 렌더링 파이프라인을 구성하는 필수 객체 인터페이스
 	ComPtr<ID3D11Device> m_pDevice = nullptr;						// 디바이스
@@ -84,7 +109,43 @@ public:
 
 	void ResetValues();
 
-	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	// d2d ui
+	ComPtr<ID3D11InputLayout>			m_D2DInputLayaout{};
+	ComPtr<ID2D1Factory1>				m_D2DFactory{};
+	ComPtr<ID2D1Device>					m_D2DDevice{};
+	ComPtr<ID2D1DeviceContext>			m_D2DDeviceContext{};
+	ComPtr<ID2D1Bitmap1>				m_D2DTargetBitmap{}; // ??
+	ComPtr<ID2D1SolidColorBrush>		m_Brush{};
+	ComPtr<IDWriteFactory>				m_DWriteFactory{};
+	ComPtr<IDWriteTextFormat>			m_TextFormat{};
 
-	void CalcMatrix();
+	ComPtr<ID2D1Bitmap1>				m_TestBitmap{}; // 이건 텍스처 리소스인듯?
+
+	ComPtr<ID3D11Texture2D>				m_SharedTex11{};	// ??
+	ComPtr<ID3D11ShaderResourceView>	m_D2DTexture{};		// ??
+
+	ComPtr<ID3D11Buffer>				m_D2DVertBuffer{};
+	ComPtr<ID3D11Buffer>				m_D2DIndexBuffer{};
+
+	ComPtr<ID3D11Buffer>				m_perObjCB{};
+
+	ComPtr<ID3D11BlendState>			m_TransparencyBS{};
+	ComPtr<ID3D11RasterizerState>		m_CWcullModeRS{};
+	ComPtr<ID3D11SamplerState>			m_SamplerState{};
+
+	ComPtr<ID3D11VertexShader>			m_d2dVertexShader{};
+	ComPtr<ID3D11PixelShader>			m_d2dPixelShader{};
+
+	PerObjectCB m_perObjData{};
+	Matrix m_WVP{};
+	
+	void InitD2D();
+	void CreateD2DEffect();
+	void CreateQuad();
+	void CreateD2DBitmapFromFile(const wchar_t* fileName, ComPtr<ID2D1Bitmap1>& outBitmap) const;
+	void CreateStates();
+
+	void RenderText(std::wstring str);
+
+	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
