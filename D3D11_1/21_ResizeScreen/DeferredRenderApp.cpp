@@ -473,54 +473,54 @@ void DeferredRenderApp::CreateGbuffers()
 	}
 }
 
-//void DeferredRenderApp::ResizeScreen(int width, int height)
-//{
-//	if (m_hWnd) return;
-//
-//	m_ClientWidth = max(width, 1);
-//	m_ClientHeight = max(height, 1);
-//
-//	ResizeResource();
-//}
-//
-//void DeferredRenderApp::ResizeResource()
-//{
-//	// Clear
-//	m_deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
-//	m_backbufferRTV.Reset();
-//	m_depthStencilView.Reset();
-//	m_deviceContext->Flush();		 // ??
-//
-//	const UINT backBufferWidth = static_cast<UINT>(m_ClientWidth);
-//	const UINT backBufferHeight = static_cast<UINT>(m_ClientHeight);
-//	const DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-//	const DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-//	constexpr UINT backBufferCount = 2;
-//
-//	if (m_swapChain) // check swapchain exist
-//	{
-//		// 스왑체인 리사이즈
-//		HR_T(m_swapChain->ResizeBuffers(backBufferCount, backBufferWidth, backBufferHeight, backBufferFormat, 0));
-//	}
-//	else
-//	{
-//		return; // -> 해당 함수 사용시 스왑체인이 있다고 가정한다.
-//	}
-//
-//	// 백버퍼 생성
-//	ComPtr<ID3D11Texture2D> backBuffer;
-//	HR_T(m_swapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
-//
-//	// 백버퍼 rtv 생성
-//	HR_T(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_backbufferRTV.GetAddressOf()));
-//
-//	// dsv 생성
-//	CD3D11_TEXTURE2D_DESC dsDesc(depthBufferFormat, backBufferWidth, backBufferHeight, 1, 1, D3D11_BIND_DEPTH_STENCIL);
-//	ComPtr<ID3D11Texture2D> depthStencil;
-//
-//	HR_T(m_device->CreateTexture2D(&dsDesc, nullptr, depthStencil.GetAddressOf()));
-//	HR_T(m_device->CreateDepthStencilView(depthStencil.Get(), nullptr, m_depthStencilView.ReleaseAndGetAddressOf()));
-//}
+void DeferredRenderApp::ResizeScreen(int width, int height)
+{
+	if (m_hWnd) return;
+
+	m_ClientWidth = max(width, 1);
+	m_ClientHeight = max(height, 1);
+
+	ResizeResource();
+}
+
+void DeferredRenderApp::ResizeResource()
+{
+	// Clear
+	m_deviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+	m_backbufferRTV.Reset();
+	m_depthStencilView.Reset();
+	m_deviceContext->Flush();		 // ??
+
+	const UINT backBufferWidth = static_cast<UINT>(m_ClientWidth);
+	const UINT backBufferHeight = static_cast<UINT>(m_ClientHeight);
+	const DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+	const DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	constexpr UINT backBufferCount = 2;
+
+	if (m_swapChain) // check swapchain exist
+	{
+		// 스왑체인 리사이즈
+		HR_T(m_swapChain->ResizeBuffers(backBufferCount, backBufferWidth, backBufferHeight, backBufferFormat, 0));
+	}
+	else
+	{
+		return; // -> 해당 함수 사용시 스왑체인이 있다고 가정한다.
+	}
+
+	// 백버퍼 생성
+	ComPtr<ID3D11Texture2D> backBuffer;
+	HR_T(m_swapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf())));
+
+	// 백버퍼 rtv 생성
+	HR_T(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, m_backbufferRTV.GetAddressOf()));
+
+	// dsv 생성
+	CD3D11_TEXTURE2D_DESC dsDesc(depthBufferFormat, backBufferWidth, backBufferHeight, 1, 1, D3D11_BIND_DEPTH_STENCIL);
+	ComPtr<ID3D11Texture2D> depthStencil;
+
+	HR_T(m_device->CreateTexture2D(&dsDesc, nullptr, depthStencil.GetAddressOf()));
+	HR_T(m_device->CreateDepthStencilView(depthStencil.Get(), nullptr, m_depthStencilView.ReleaseAndGetAddressOf()));
+}
 
 bool DeferredRenderApp::OnInitialize()
 {
@@ -1366,23 +1366,23 @@ LRESULT DeferredRenderApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
 
-	//switch (message)
-	//{
-	//case WM_ENTERSIZEMOVE:
-	//	screenIsSizeMove = true;
-	//	break;
-	//case WM_EXITSIZEMOVE:
-	//	screenIsSizeMove = false;
-	//	if (m_pInstance)
-	//	{
-	//		RECT rc;
-	//		GetClientRect(hWnd, &rc);
-	//		ResizeScreen(rc.right - rc.left, rc.bottom - rc.top);
-	//	}
-	//	break;
-	//default:
-	//	break;
-	//}
+	switch (message)
+	{
+	case WM_ENTERSIZEMOVE:
+		screenIsSizeMove = true;
+		break;
+	case WM_EXITSIZEMOVE:
+		screenIsSizeMove = false;
+		if (m_pInstance)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			ResizeScreen(rc.right - rc.left, rc.bottom - rc.top);
+		}
+		break;
+	default:
+		break;
+	}
 
 	return __super::WndProc(hWnd, message, wParam, lParam);
 }
