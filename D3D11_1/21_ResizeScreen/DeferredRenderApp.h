@@ -212,6 +212,7 @@ public:
 	bool screenIsSizeMove = false;
 	void ResizeScreen(int width, int height); // 스크린 리사이즈 이벤트시 호출
 	void ResizeResource();
+	void ResetGBuffers();
 
 
 	// =============================================================

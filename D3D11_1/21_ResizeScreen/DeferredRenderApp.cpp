@@ -473,9 +473,11 @@ void DeferredRenderApp::CreateGbuffers()
 	}
 }
 
+
+
 void DeferredRenderApp::ResizeScreen(int width, int height)
 {
-	if (m_hWnd) return;
+	if (!m_hWnd) return;
 
 	m_ClientWidth = max(width, 1);
 	m_ClientHeight = max(height, 1);
@@ -520,6 +522,36 @@ void DeferredRenderApp::ResizeResource()
 
 	HR_T(m_device->CreateTexture2D(&dsDesc, nullptr, depthStencil.GetAddressOf()));
 	HR_T(m_device->CreateDepthStencilView(depthStencil.Get(), nullptr, m_depthStencilView.ReleaseAndGetAddressOf()));
+
+	// viewport 재설정
+	m_RenderViewport = {};
+	m_RenderViewport.TopLeftX = 0;
+	m_RenderViewport.TopLeftY = 0;
+	m_RenderViewport.Width = (float)m_ClientWidth;
+	m_RenderViewport.Height = (float)m_ClientHeight;
+	m_RenderViewport.MinDepth = 0.0f;
+	m_RenderViewport.MaxDepth = 1.0f;
+	m_deviceContext->RSSetViewports(1, &m_RenderViewport);
+
+	// 기존 gbuffer 초기화
+	ResetGBuffers();
+
+	// 사이즈에 맞는 gbuffer 생성
+	CreateGbuffers();
+
+	// 사이즈에 맞는 투영값 갱신
+	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
+}
+
+void DeferredRenderApp::ResetGBuffers()
+{
+
+	for (int i = 0; i < gbufferCount; i++)
+	{
+		m_gBufferRTV[i].Reset();
+		m_gBufferSRV[i].Reset();
+		m_gBufferTextures[i].Reset();
+	}
 }
 
 bool DeferredRenderApp::OnInitialize()
