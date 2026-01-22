@@ -454,7 +454,7 @@ bool DrawTextureApp::InitScene()
 	};
 
 	ComPtr<ID3DBlob> vertexShaderBuffer = nullptr;
-	HR_T(CompileShaderFromFile(L"Shaders\\BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer)); // TODO 오류 해결
+	HR_T(CompileShaderFromFile(L"Shaders\\BasicVertexShader.hlsl", "main", "vs_4_0", &vertexShaderBuffer));
 	HR_T(m_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), m_pInputLayout.GetAddressOf()));
 
 	// 3. 파이프 라인에 바인딩할 정점 셰이더 생성

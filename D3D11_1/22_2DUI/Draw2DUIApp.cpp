@@ -118,7 +118,7 @@ void Draw2DUIApp::OnRender()
 	// m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), NULL); // depthStencilView X
 #endif	
 
-	Color color(0.1f, 0.2f, 0.3f, 1.0f);
+	Color color(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// 화면 칠하기.
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView.Get(), color);
@@ -329,7 +329,8 @@ bool Draw2DUIApp::InitD3D()
 	// 3. 랜더타겟 뷰 생성. 랜더타겟 뷰는 "여기에 그림을 그려라"라고 GPU에게 알려주는 역할을 하는 객체
 	// 텍스쳐와 영구적으로 연결되는 객체
 	ComPtr<ID3D11Texture2D> pBackBufferTexture;
-	HR_T(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBufferTexture));
+	HR_T(m_pSwapChain->GetBuffer(
+		0, IID_PPV_ARGS(pBackBufferTexture.ReleaseAndGetAddressOf())));
 	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
 
 #if !USE_FLIPMODE
@@ -520,17 +521,21 @@ void Draw2DUIApp::InitD2D()
 
 	// options
 	D2D1_FACTORY_OPTIONS options{};
-	HR_T(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1), &options, (void**)m_D2DFactory.GetAddressOf()));
+#ifdef _DEBUG
+	options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+#endif
+	HR_T(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
+		IID_PPV_ARGS(m_D2DFactory.ReleaseAndGetAddressOf())));
 
 	ComPtr<IDXGIDevice> dxgiDevice;
-	HR_T(m_pDevice->QueryInterface(__uuidof(IDXGIDevice), (void**)dxgiDevice.GetAddressOf()));
+	HR_T(m_pDevice.As(&dxgiDevice));
 
 	HR_T(m_D2DFactory->CreateDevice(dxgiDevice.Get(), m_D2DDevice.GetAddressOf()));
 
 	HR_T(m_D2DDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, m_D2DDeviceContext.GetAddressOf()));
 
 	ComPtr<IDXGISurface> surface;
-	HR_T(m_SharedTex11->QueryInterface(__uuidof(IDXGISurface), (void**)surface.GetAddressOf()));
+	HR_T(m_SharedTex11.As(&surface)); // Comptr은 QueryInterface 대신 .As() 사용하는게 정석
 
 	D2D1_BITMAP_PROPERTIES1 bitmapProps{};
 	bitmapProps.pixelFormat.format = DXGI_FORMAT_B8G8R8A8_UNORM;		// 비트맵 만들 dxgi 형식
@@ -542,12 +547,17 @@ void Draw2DUIApp::InitD2D()
 	bitmapProps.dpiX = 96.0f;	// x 방향 비트맵 dpi (dots-per-inch)
 	bitmapProps.dpiY = 96.0f;	// y 방향 비트맵 dpi
 
-	//HR_T(m_D2DDeviceContext->CreateBitmapFromDxgiSurface(surface.Get(), &bitmapProps, m_D2DTargetBitmap.GetAddressOf()));
+	HR_T(m_D2DDeviceContext->CreateBitmapFromDxgiSurface(surface.Get(), 
+		&bitmapProps, 
+		m_D2DTargetBitmap.GetAddressOf())); // 타겟 비트맵 만들기
 
 	// 이미지를 줄 비트맵 적용?
 	m_D2DDeviceContext->SetTarget(m_D2DTargetBitmap.Get());
 	HR_T(m_D2DDeviceContext->CreateSolidColorBrush(D2D1::ColorF(1, 1, 0, 1), &m_Brush));
-	HR_T(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(m_DWriteFactory.GetAddressOf())));
+	HR_T(DWriteCreateFactory(
+		DWRITE_FACTORY_TYPE_SHARED,
+		__uuidof(IDWriteFactory),
+		reinterpret_cast<IUnknown**>(m_DWriteFactory.ReleaseAndGetAddressOf())));
 
 	// Text 포맷 설정
 	HR_T(m_DWriteFactory->CreateTextFormat(L"Script",
@@ -557,20 +567,20 @@ void Draw2DUIApp::InitD2D()
 		DWRITE_FONT_STRETCH_NORMAL,
 		24.0f,
 		L"en-us",
-		&m_TextFormat)
+		m_TextFormat.ReleaseAndGetAddressOf())
 	);
 
 	m_TextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
 	m_TextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
 	// 이미지 생성하기
-	CreateD2DBitmapFromFile(L"..\\Resource\\neruThumpUp.png", m_TestBitmap);
+	m_TestBitmap = CreateD2DBitmapFromFile(L"..\\Resource\\neruThumpUp.png");
 
 	// 상수 버퍼
 	D3D11_BUFFER_DESC bufferDesc;
 	bufferDesc = {};
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(ConstantBuffer);
+	bufferDesc.ByteWidth = sizeof(PerObjectCB);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = 0;
 	HR_T(m_pDevice->CreateBuffer(&bufferDesc, nullptr, m_perObjCB.GetAddressOf()));
@@ -605,7 +615,7 @@ void Draw2DUIApp::InitD2D()
 	d2dIinit.pSysMem = indices;
 	HR_T(m_pDevice->CreateBuffer(&d2dIndexBufferDesc, &d2dIinit, &m_D2DIndexBuffer));
 
-	HR_T(m_pDevice->CreateShaderResourceView(m_SharedTex11.Get(), nullptr, &m_D2DTexture));
+	HR_T(m_pDevice->CreateShaderResourceView(m_SharedTex11.Get(), nullptr, m_D2DTexture.ReleaseAndGetAddressOf()));
 }
 
 void Draw2DUIApp::CreateD2DEffect()
@@ -627,29 +637,32 @@ void Draw2DUIApp::CreateD2DEffect()
 	HR_T(m_pDevice->CreatePixelShader(psbuffer->GetBufferPointer(), psbuffer->GetBufferSize(), NULL, m_d2dPixelShader.GetAddressOf()));
 }
 
-void Draw2DUIApp::CreateD2DBitmapFromFile(const wchar_t* fileName, ComPtr<ID2D1Bitmap1>& outBitmap) const
+ComPtr<ID2D1Bitmap1> Draw2DUIApp::CreateD2DBitmapFromFile(std::wstring path) const
 {
-	if (!m_D2DDeviceContext) return;
+	ComPtr<ID2D1Bitmap1> outBitmap{};
+
+	if (!m_D2DDeviceContext) return outBitmap;
+
 
 	ComPtr<IWICImagingFactory>		wicFactory{};	// 
 	ComPtr<IWICBitmapDecoder>		decoder{};
 	ComPtr<IWICBitmapFrameDecode>	frame{};
 	ComPtr<IWICFormatConverter>		converter{};
 
-	HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wicFactory.GetAddressOf()));
+	HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wicFactory.ReleaseAndGetAddressOf()));
 	if (FAILED(hr))
 	{
-		HR_T(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wicFactory.GetAddressOf())));
+		HR_T(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wicFactory.ReleaseAndGetAddressOf())));
 	}
 
 	// 디코더 생성
-	HR_T(wicFactory->CreateDecoderFromFilename(fileName, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &decoder));
+	HR_T(wicFactory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, decoder.ReleaseAndGetAddressOf()));
 
 	// 첫 프레임 획득
-	HR_T(decoder->GetFrame(0, frame.GetAddressOf()));
+	HR_T(decoder->GetFrame(0, frame.ReleaseAndGetAddressOf()));
 
 	// 포맷 변환기 생성
-	HR_T(wicFactory->CreateFormatConverter(converter.GetAddressOf()));
+	HR_T(wicFactory->CreateFormatConverter(converter.ReleaseAndGetAddressOf()));
 
 	// GUID_WICPixelFormat32bppPBGRA로 변환
 	HR_T(converter->Initialize(
@@ -660,12 +673,16 @@ void Draw2DUIApp::CreateD2DBitmapFromFile(const wchar_t* fileName, ComPtr<ID2D1B
 		0.0,
 		WICBitmapPaletteTypeMedianCut));
 
-	// Direct2D 비트맵 속성 설정 - nullptr에 넣으면됨
-	//D2D1_BITMAP_PROPERTIES1 bmpProps = D2D1::BitmapProperties1(
-	//	D2D1_BITMAP_OPTIONS_NONE,
-	//	D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
-	//);
-	HR_T(m_D2DDeviceContext->CreateBitmapFromWicBitmap(converter.Get(), nullptr, m_TestBitmap.ReleaseAndGetAddressOf())); // todo : 이거 터지는거 해결하기
+	// 문제 회피용 명시적 props 선언
+	D2D1_BITMAP_PROPERTIES1 props = D2D1::BitmapProperties1(
+		D2D1_BITMAP_OPTIONS_NONE,
+		D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
+	);
+
+	// NOTE : ComPtrfh
+	HR_T(m_D2DDeviceContext->CreateBitmapFromWicBitmap(converter.Get(), &props, outBitmap.ReleaseAndGetAddressOf()));
+
+	return outBitmap;
 }
 
 void Draw2DUIApp::CreateStates()
@@ -711,18 +728,18 @@ void Draw2DUIApp::RenderText(std::wstring str)
 	m_D2DDeviceContext->BeginDraw();
 	m_D2DDeviceContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
 
-	//if (m_TestBitmap)
-	//{
-	//	D2D1_SIZE_F size = m_TestBitmap->GetSize();
-	//	const float maxDim = 128.0f;
-	//	const float sx = (size.width > 0.0f) ? (maxDim / size.width) : 1.0f;
-	//	const float sy = (size.height > 0.0f) ? (maxDim / size.height) : 1.0f;
-	//	const float scale = std::min(1.0f, std::min(sx, sy));
-	//	const float drawW = std::min(size.width * scale, (float)m_ClientWidth);
-	//	const float drawH = std::min(size.height * scale, (float)m_ClientHeight);
-	//	D2D1_RECT_F dest = D2D1::RectF(10.0f, 10.0f, 10.0f + drawW, 10.0f + drawH);
-	//	m_D2DDeviceContext->DrawBitmap(m_TestBitmap.Get(), dest, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-	//}
+	if (m_TestBitmap)
+	{
+		D2D1_SIZE_F size = m_TestBitmap->GetSize();
+		const float maxDim = 128.0f;
+		const float sx = (size.width > 0.0f) ? (maxDim / size.width) : 1.0f;
+		const float sy = (size.height > 0.0f) ? (maxDim / size.height) : 1.0f;
+		const float scale = std::min(1.0f, std::min(sx, sy));
+		const float drawW = std::min(size.width * scale, (float)m_ClientWidth);
+		const float drawH = std::min(size.height * scale, (float)m_ClientHeight);
+		D2D1_RECT_F dest = D2D1::RectF(10.0f, 10.0f, 10.0f + drawW, 10.0f + drawH);
+		m_D2DDeviceContext->DrawBitmap(m_TestBitmap.Get(), dest, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+	}
 
 	m_Brush->SetColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
 	D2D1_RECT_F layoutRect = D2D1::RectF(0, 0, (FLOAT)m_ClientWidth, (FLOAT)m_ClientHeight);
@@ -734,7 +751,7 @@ void Draw2DUIApp::RenderText(std::wstring str)
 		layoutRect,
 		m_Brush.Get());
 
-	m_D2DDeviceContext->EndDraw();
+	HR_T(m_D2DDeviceContext->EndDraw()); // 반드시 체크하기
 
 	m_pDeviceContext->OMSetBlendState(m_TransparencyBS.Get(), nullptr, 0xffffffff);	//
 
@@ -742,13 +759,13 @@ void Draw2DUIApp::RenderText(std::wstring str)
 	m_pDeviceContext->IASetIndexBuffer(m_D2DIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 	UINT stride = sizeof(CubeVertex);
 	UINT offset = 0;
-	m_pDeviceContext->IASetVertexBuffers(0, 1, &m_D2DVertBuffer, &stride, &offset);
+	m_pDeviceContext->IASetVertexBuffers(0, 1, m_D2DVertBuffer.GetAddressOf(), &stride, &offset);
 
 	Matrix mat = XMMatrixIdentity();
 	m_perObjData.WVP = XMMatrixTranspose(mat);
 	m_pDeviceContext->UpdateSubresource(m_perObjCB.Get(), 0, nullptr, &m_perObjData, 0, 0);
-	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_perObjCB.GetAddressOf());
-	m_pDeviceContext->PSSetShaderResources(0, 1, m_D2DTexture.GetAddressOf()); // 
+	m_pDeviceContext->VSSetConstantBuffers(1, 1, m_perObjCB.GetAddressOf());
+	m_pDeviceContext->PSSetShaderResources(10, 1, m_D2DTexture.GetAddressOf()); // 
 	m_pDeviceContext->PSSetSamplers(0, 1, m_SamplerState.GetAddressOf());		// 
 	m_pDeviceContext->RSSetState(m_CWcullModeRS.Get());						//
 

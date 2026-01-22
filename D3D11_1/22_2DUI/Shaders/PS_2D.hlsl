@@ -1,5 +1,5 @@
-Texture2D ObjTexture;
-SamplerState ObjSamplerState;
+Texture2D ObjTexture : register(t10);
+SamplerState ObjSamplerState : register(s0);
 
 struct VS_OUTPUT
 {

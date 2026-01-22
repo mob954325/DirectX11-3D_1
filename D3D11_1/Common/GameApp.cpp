@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "GameApp.h"
+#include "Helper.h"
 
 // Debug 모듈관련 헤더 파일 및 라이브러리
 // #include "Helper.h"
@@ -76,12 +77,13 @@ GameApp::GameApp(HINSTANCE hInstance)
 
 GameApp::~GameApp()
 {
-
+	CoUninitialize(); // D2D 사용을 위한 coinitialize 해제
 }
 
 
 bool GameApp::Initialize(UINT Width, UINT Height)
 {
+	HR_T(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)); // D2D 사용을 위한 CoinitializeEx 사용
 	SetUnhandledExceptionFilter(CustomExceptionHandler);
 
 	m_ClientWidth = Width;

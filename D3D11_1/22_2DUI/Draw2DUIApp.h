@@ -34,7 +34,7 @@ struct CubeVertex
 
 	Vector2 tex;
 	Vector2 pad2{};
-	CubeVertex(Vector3 pos, Vector2 tex) : pos(pos), tex(tex) {}
+	CubeVertex(Vector3 p, Vector2 t) : pos(p.x, p.y, p.z, 1.0f), tex(t) {}
 };
 
 struct PerObjectCB
@@ -141,8 +141,7 @@ public:
 	
 	void InitD2D();
 	void CreateD2DEffect();
-	void CreateQuad();
-	void CreateD2DBitmapFromFile(const wchar_t* fileName, ComPtr<ID2D1Bitmap1>& outBitmap) const;
+	ComPtr<ID2D1Bitmap1> CreateD2DBitmapFromFile(std::wstring path) const;
 	void CreateStates();
 
 	void RenderText(std::wstring str);
