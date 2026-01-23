@@ -19,10 +19,10 @@
 #include <d2d1_1.h>
 #pragma comment(lib, "d2d1.lib")
 
-#include <dwrite.h> // ??
+#include <dwrite.h>		// DirectWrite 사용 : 문자 관련 렌더링 및 설정
 #pragma comment(lib, "dwrite.lib")
 
-#include <wincodec.h>	// ??
+#include <wincodec.h>	// WIC 디코더 : 이미지 구성요소에 대한 설정 
 #pragma comment(lib, "windowscodecs.lib")
 
 using namespace DirectX::SimpleMath;
