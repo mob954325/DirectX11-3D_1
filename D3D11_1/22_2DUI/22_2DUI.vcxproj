@@ -126,10 +126,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Draw2DUIApp.cpp" />
+    <ClCompile Include="UIComps\Image.cpp" />
+    <ClCompile Include="UIComps\Transform.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Draw2DUIApp.h" />
+    <ClInclude Include="UIComps\Image.h" />
+    <ClInclude Include="UIComps\RectTransform.h" />
+    <ClInclude Include="UIComps\Transform.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\BasicPixelShader.hlsl">

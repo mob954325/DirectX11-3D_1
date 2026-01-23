@@ -231,6 +231,14 @@ void Draw2DUIApp::RenderImGUI()
 
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 
+	ImGui::Begin("image");
+	{
+		ImGui::DragFloat3("pos", &img.rect.pos.x);
+		ImGui::DragFloat("width", &img.rect.width);
+		ImGui::DragFloat("height", &img.rect.height);
+	}
+	ImGui::End();
+
 	// 리셋 버튼
 	if (ImGui::Button("Reset", { 50, 20 }))
 	{
@@ -574,7 +582,7 @@ void Draw2DUIApp::InitD2D()
 	m_TextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
 	// 이미지 생성하기
-	m_TestBitmap = CreateD2DBitmapFromFile(L"..\\Resource\\neruThumpUp.png");
+	img.imageBitmap = CreateD2DBitmapFromFile(L"..\\Resource\\neruThumpUp.png");
 
 	// 상수 버퍼
 	D3D11_BUFFER_DESC bufferDesc;
@@ -728,17 +736,17 @@ void Draw2DUIApp::RenderText(std::wstring str)
 	m_D2DDeviceContext->BeginDraw();
 	m_D2DDeviceContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
 
-	if (m_TestBitmap)
+	if (img.imageBitmap)
 	{
-		D2D1_SIZE_F size = m_TestBitmap->GetSize();
+		D2D1_SIZE_F size = img.imageBitmap->GetSize();
 		const float maxDim = 128.0f;
-		const float sx = (size.width > 0.0f) ? (maxDim / size.width) : 1.0f;
-		const float sy = (size.height > 0.0f) ? (maxDim / size.height) : 1.0f;
+		const float sx = (img.rect.width > 0.0f) ? (maxDim / img.rect.width) : 1.0f;
+		const float sy = (img.rect.height > 0.0f) ? (maxDim / img.rect.height) : 1.0f;
 		const float scale = std::min(1.0f, std::min(sx, sy));
-		const float drawW = std::min(size.width * scale, (float)m_ClientWidth);
-		const float drawH = std::min(size.height * scale, (float)m_ClientHeight);
-		D2D1_RECT_F dest = D2D1::RectF(10.0f, 10.0f, 10.0f + drawW, 10.0f + drawH);
-		m_D2DDeviceContext->DrawBitmap(m_TestBitmap.Get(), dest, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+		const float drawW = std::min(img.rect.pos.x + img.rect.width * scale, (float)m_ClientWidth);
+		const float drawH = std::min(img.rect.pos.y + img.rect.height * scale, (float)m_ClientHeight);
+		D2D1_RECT_F dest = D2D1::RectF(img.rect.pos.x + 10.0f, img.rect.pos.y + 10.0f, 10.0f + drawW, 10.0f + drawH);
+		m_D2DDeviceContext->DrawBitmap(img.imageBitmap.Get(), dest, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
 	}
 
 	m_Brush->SetColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));

@@ -25,6 +25,8 @@
 #include <wincodec.h>	// WIC 디코더 : 이미지 구성요소에 대한 설정 
 #pragma comment(lib, "windowscodecs.lib")
 
+#include "UIComps/Image.h"
+
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
 
@@ -119,7 +121,7 @@ public:
 	ComPtr<IDWriteFactory>				m_DWriteFactory{};
 	ComPtr<IDWriteTextFormat>			m_TextFormat{};
 
-	ComPtr<ID2D1Bitmap1>				m_TestBitmap{}; // 이건 텍스처 리소스인듯?
+	//ComPtr<ID2D1Bitmap1>				m_TestBitmap{}; // 이건 텍스처 리소스인듯?
 
 	ComPtr<ID3D11Texture2D>				m_SharedTex11{};	// ??
 	ComPtr<ID3D11ShaderResourceView>	m_D2DTexture{};		// ??
@@ -145,6 +147,8 @@ public:
 	void CreateStates();
 
 	void RenderText(std::wstring str);
+
+	Image img;
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
