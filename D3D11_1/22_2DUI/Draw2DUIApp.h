@@ -26,6 +26,7 @@
 #pragma comment(lib, "windowscodecs.lib")
 
 #include "UIComps/Image.h"
+#include "UIComps/Canvas.h"
 
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
@@ -148,6 +149,7 @@ public:
 
 	void RenderText(std::wstring str);
 
+	Canvas canvas;
 	Image img;
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);

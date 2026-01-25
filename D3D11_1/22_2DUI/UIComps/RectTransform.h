@@ -4,6 +4,8 @@
 class RectTransform : public Transform
 {
 public:
+
+
 	/// <summary>
 	/// 앵커를 기준으로 하는 사각형 피벗 포지션
 	/// </summary>

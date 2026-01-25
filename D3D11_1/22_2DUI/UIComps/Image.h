@@ -1,6 +1,8 @@
 #pragma once
 #include "../../Common/pch.h"
 #include "RectTransform.h"
+#include "Canvas.h"
+
 // DirectX11 2D
 #include <d2d1_1.h>
 #pragma comment(lib, "d2d1.lib")
@@ -14,6 +16,8 @@
 class Image
 {
 public:
+	Canvas* canvas;
+
 	RectTransform rect;
 
 	ComPtr<ID2D1Bitmap1> imageBitmap;

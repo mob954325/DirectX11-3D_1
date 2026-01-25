@@ -107,6 +107,9 @@ void Draw2DUIApp::OnUpdate()
 
 	// Camera
 	m_Camera.GetCameraViewMatrix(m_View);
+
+	// UI test Update
+	img.rect.OnUpdate(delta);
 }
 
 void Draw2DUIApp::OnRender()
@@ -236,6 +239,12 @@ void Draw2DUIApp::RenderImGUI()
 		ImGui::DragFloat3("pos", &img.rect.pos.x);
 		ImGui::DragFloat("width", &img.rect.width);
 		ImGui::DragFloat("height", &img.rect.height);
+
+		Vector3 rot = img.rect.GetEuler();
+		ImGui::DragFloat3("rotate", &rot.x);
+		img.rect.SetEuler(rot);
+
+		ImGui::DragFloat2("pivot", &img.rect.pivot.x, 0.01f, 0.0f, 1.0f);
 	}
 	ImGui::End();
 
@@ -288,7 +297,7 @@ bool Draw2DUIApp::InitD3D()
 		ARRAYSIZE(featureLevels),
 		D3D11_SDK_VERSION,
 		&m_pDevice,
-		&actualFeatureLevel,
+		&actualFeatureLevel, 
 		&m_pDeviceContext
 	));
 
@@ -736,17 +745,42 @@ void Draw2DUIApp::RenderText(std::wstring str)
 	m_D2DDeviceContext->BeginDraw();
 	m_D2DDeviceContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
 
+	// NOTE : 이미지 update
 	if (img.imageBitmap)
 	{
 		D2D1_SIZE_F size = img.imageBitmap->GetSize();
-		const float maxDim = 128.0f;
-		const float sx = (img.rect.width > 0.0f) ? (maxDim / img.rect.width) : 1.0f;
-		const float sy = (img.rect.height > 0.0f) ? (maxDim / img.rect.height) : 1.0f;
-		const float scale = std::min(1.0f, std::min(sx, sy));
-		const float drawW = std::min(img.rect.pos.x + img.rect.width * scale, (float)m_ClientWidth);
-		const float drawH = std::min(img.rect.pos.y + img.rect.height * scale, (float)m_ClientHeight);
-		D2D1_RECT_F dest = D2D1::RectF(img.rect.pos.x + 10.0f, img.rect.pos.y + 10.0f, 10.0f + drawW, 10.0f + drawH);
-		m_D2DDeviceContext->DrawBitmap(img.imageBitmap.Get(), dest, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+		RectTransform rect = img.rect;
+
+		// 1. DirectX2D 식 좌표 ( 좌측 상단이 0,0 인 위치)
+		float left = -rect.pivot.x * rect.width;
+		float right = (1 - rect.pivot.x) * rect.width;
+		float top = (1 - rect.pivot.y) * rect.height;
+		float bottom = -rect.pivot.y * rect.height;
+
+		D2D1_RECT_F localRect = D2D1::RectF(left, top, right, bottom);
+
+		// 2. 최종 스케일 
+		float sx = rect.GetScale().x;
+		float sy = rect.GetScale().y;
+		float rotDeg = rect.GetEuler().z; // z회전만 고려
+
+		auto world =
+			D2D1::Matrix3x2F::Scale(sx, sy) *
+			D2D1::Matrix3x2F::Rotation(rotDeg) *
+			D2D1::Matrix3x2F::Translation(img.rect.pos.x + 10.0f, img.rect.pos.y + 10.0f);
+
+		// 3. 그리기
+		D2D1_MATRIX_3X2_F old;
+		m_D2DDeviceContext->GetTransform(&old);		// ?
+		m_D2DDeviceContext->SetTransform(world);	// 위 계산 결과로 set하기
+		m_D2DDeviceContext->DrawBitmap(
+			img.imageBitmap.Get(),	// 이미지
+			localRect,				// rect
+			1.0f,					// 투명도
+			D2D1_BITMAP_INTERPOLATION_MODE_LINEAR // 보간 모드
+		);
+
+		m_D2DDeviceContext->SetTransform(old); // ??
 	}
 
 	m_Brush->SetColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
