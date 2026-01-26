@@ -561,49 +561,49 @@ void ObjectPickingApp::ResetGBuffers()
 	}
 }
 
-//void ObjectPickingApp::CreatePickingStagingTex()
-//{
-//	D3D11_TEXTURE2D_DESC desc = {};
-//	desc.Width = m_ClientWidth;
-//	desc.Height = m_ClientHeight;
-//	desc.MipLevels = 1;
-//	desc.ArraySize = 1;
-//	desc.Format = DXGI_FORMAT_R32_UINT;
-//	desc.SampleDesc.Count = 1;          // 
-//	desc.SampleDesc.Quality = 0;
-//	desc.Usage = D3D11_USAGE_STAGING;
-//	desc.BindFlags = 0;          // 
-//	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-//	desc.MiscFlags = 0;
-//
-//	HR_T(m_device->CreateTexture2D(&desc, nullptr, m_pPickingStagingTex.GetAddressOf()));
-//}
+void ObjectPickingApp::CreatePickingStagingTex()
+{
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = m_ClientWidth;
+	desc.Height = m_ClientHeight;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R32_UINT;
+	desc.SampleDesc.Count = 1;          // 
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = D3D11_USAGE_STAGING;
+	desc.BindFlags = 0;          // 
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	desc.MiscFlags = 0;
 
-//void ObjectPickingApp::CheckObjectPicking()
-//{
-//	isMouseLeftClick = false;
-//	auto mouse = DirectX::Mouse::Get().GetState();
-//	static bool lastMouseLeft = false;
-//
-//	bool currMouseLeft = mouse.leftButton;
-//	isMouseLeftClick = (!lastMouseLeft && currMouseLeft);
-//	lastMouseLeft = currMouseLeft;
-//
-//	mouseXY = { mouse.x, mouse.y };
-//
-//	if (isMouseLeftClick)
-//	{
-//		m_deviceContext->CopyResource(m_pPickingStagingTex.Get(), m_gBufferTextures[7].Get()); // 기록된 값 가져오기
-//
-//		D3D11_MAPPED_SUBRESOURCE mapped;
-//		m_deviceContext->Map(m_pPickingStagingTex.Get(), 0, D3D11_MAP_READ, 0, &mapped); // Map : 하위 리소스에 대한 포인터 가져오기
-//
-//		uint32_t* row = (uint32_t*)((uint8_t*)mapped.pData + mouseXY.y * mapped.RowPitch); // 마우스값의 row 
-//		currPickedID = row[mouseXY.x] - 1;	// x, y 좌표에 있는 ID 찾기
-//
-//		m_deviceContext->Unmap(m_pPickingStagingTex.Get(), 0);
-//	}
-//}
+	HR_T(m_device->CreateTexture2D(&desc, nullptr, m_pPickingStagingTex.GetAddressOf()));
+}
+
+void ObjectPickingApp::CheckObjectPicking()
+{
+	isMouseLeftClick = false;
+	auto mouse = DirectX::Mouse::Get().GetState();
+	static bool lastMouseLeft = false;
+
+	bool currMouseLeft = mouse.leftButton;
+	isMouseLeftClick = (!lastMouseLeft && currMouseLeft);
+	lastMouseLeft = currMouseLeft;
+
+	mouseXY = { mouse.x, mouse.y };
+
+	if (isMouseLeftClick)
+	{
+		m_deviceContext->CopyResource(m_pPickingStagingTex.Get(), m_gBufferTextures[7].Get()); // 기록된 값 가져오기
+
+		D3D11_MAPPED_SUBRESOURCE mapped;
+		m_deviceContext->Map(m_pPickingStagingTex.Get(), 0, D3D11_MAP_READ, 0, &mapped); // Map : 하위 리소스에 대한 포인터 가져오기
+
+		uint32_t* row = (uint32_t*)((uint8_t*)mapped.pData + mouseXY.y * mapped.RowPitch); // 마우스값의 row 
+		currPickedID = row[mouseXY.x] - 1;	// x, y 좌표에 있는 ID 찾기
+
+		m_deviceContext->Unmap(m_pPickingStagingTex.Get(), 0);
+	}
+}
 
 bool ObjectPickingApp::OnInitialize()
 {
@@ -631,7 +631,7 @@ bool ObjectPickingApp::OnInitialize()
 	ResetValues();
 	CreateQuad();
 	CreateGbuffers();
-	//CreatePickingStagingTex();
+	CreatePickingStagingTex();
 
 	return true;
 }
@@ -674,7 +674,7 @@ void ObjectPickingApp::OnRender()
 	RenderPassGBuffer();
 	RenderPassDirectionalLight();
 	SkyboxPass();
-	//CheckObjectPicking();
+	CheckObjectPicking();
 
 	RenderImGUI();
 
@@ -730,34 +730,35 @@ void ObjectPickingApp::RenderPassGBuffer()
 	m_deviceContext->OMSetDepthStencilState(m_depthStencilStateWriteOn.Get(), 1);
 
 
-	//m_deviceContext->PSSetConstantBuffers(6, 1, m_pickingCB.GetAddressOf());
-	//D3D11_MAPPED_SUBRESOURCE mapped{};
-	//PickingCB _picking{};
-	//// set picking id each model
-	//{
-	//	for (int i = 0; i < m_models.size(); i++)
-	//	{
-	//		auto& model = m_models[i];
-	//		Matrix worldMat = Matrix::CreateScale(model->m_Scale) *
-	//						Matrix::CreateFromYawPitchRoll(model->m_Rotation) *
-	//						Matrix::CreateTranslation(model->m_Position);
-	//
-	//		_picking.pickID = static_cast<UINT>(i + 1);
-	//
-	//		m_deviceContext->Map(
-	//			m_pickingCB.Get(),
-	//			0,
-	//			D3D11_MAP_WRITE_DISCARD,
-	//			0,
-	//			&mapped
-	//		);
-	//		memcpy(mapped.pData, &_picking, sizeof(PickingCB));
-	//		m_deviceContext->Unmap(m_pickingCB.Get(), 0);
-	//
-	//		m_models[i]->Draw(m_deviceContext, m_materialBuffer);
-	//	}
-	//}
-	 
+	m_deviceContext->PSSetConstantBuffers(6, 1, m_pickingCB.GetAddressOf());
+	D3D11_MAPPED_SUBRESOURCE mapped{};
+	PickingCB _picking{};
+	// set picking id each model
+	{
+		for (int i = 0; i < m_models.size(); i++)
+		{
+			auto& model = m_models[i];
+			Matrix worldMat = Matrix::CreateScale(model->m_Scale) *
+							Matrix::CreateFromYawPitchRoll(model->m_Rotation) *
+							Matrix::CreateTranslation(model->m_Position);
+
+			_picking.pickID = static_cast<UINT>(i + 1);
+
+			m_deviceContext->Map(
+				m_pickingCB.Get(),
+				0,
+				D3D11_MAP_WRITE_DISCARD,
+				0,
+				&mapped
+			);
+			memcpy(mapped.pData, &_picking, sizeof(PickingCB));
+			m_deviceContext->Unmap(m_pickingCB.Get(), 0);
+
+			m_models[i]->Draw(m_deviceContext, m_materialBuffer);
+		}
+	}
+
+
 	// Draw 
 	for (auto& e : m_models)
 	{
@@ -1127,10 +1128,10 @@ void ObjectPickingApp::RenderImGUI()
 	}
 	ImGui::End();
 
-	//ImGui::Begin("Picking debug");
-	//{
-	//	ImGui::Text("%d", currPickedID);
-	//}
+	ImGui::Begin("Picking debug");
+	{
+		ImGui::Text("%d", currPickedID);
+	}
 	ImGui::End();
 
 	// rendering
@@ -1356,12 +1357,12 @@ bool ObjectPickingApp::InitScene()
 	HR_T(m_device->CreateBuffer(&bufferDesc, nullptr, m_boneOffsetBuffer.GetAddressOf()));
 
 	// picking cb
-	//bufferDesc = {};
-	//bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	//bufferDesc.ByteWidth = sizeof(PickingCB);
-	//bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	//bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	//HR_T(m_device->CreateBuffer(&bufferDesc, nullptr, m_pickingCB.GetAddressOf()));
+	bufferDesc = {};
+	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	bufferDesc.ByteWidth = sizeof(PickingCB);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	HR_T(m_device->CreateBuffer(&bufferDesc, nullptr, m_pickingCB.GetAddressOf()));
 
 	// 모델 생성
 	m_models.emplace_back(make_unique<SkeletalModel>());

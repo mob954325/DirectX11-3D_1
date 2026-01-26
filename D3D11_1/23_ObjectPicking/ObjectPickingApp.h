@@ -217,14 +217,14 @@ public:
 	void ResetGBuffers();
 
 	// picking debug
-	//void CreatePickingStagingTex();
-	//void CheckObjectPicking(); // 이거 업데이트 안함
-	//
-	//ComPtr<ID3D11Texture2D> m_pPickingStagingTex{};
-	//bool isMouseLeftClick = false;
-	//XMINT2 mouseXY{};
-	//uint32_t currPickedID = -1;
-	//ComPtr<ID3D11Buffer> m_pickingCB{};
+	void CreatePickingStagingTex();
+	void CheckObjectPicking(); // 이거 업데이트 안함
+
+	ComPtr<ID3D11Texture2D> m_pPickingStagingTex{};
+	bool isMouseLeftClick = false;
+	XMINT2 mouseXY{};
+	uint32_t currPickedID = -1;
+	ComPtr<ID3D11Buffer> m_pickingCB{};
 
 
 	// =============================================================
