@@ -48,7 +48,6 @@ public:
 	ComPtr<ID3D11DepthStencilState> m_depthStencilStateWriteOn = nullptr;
 	ComPtr<ID3D11DepthStencilState> m_depthStencilStateWriteOff = nullptr;
 	ComPtr<ID3D11RasterizerState>	m_rasterizerState = nullptr;
-	ComPtr<ID3D11RasterizerState>	m_transparentRasterizerState = nullptr;
 
 	// vertex shaderes
 	ComPtr<ID3D11VertexShader> m_rigidMeshVertexShader = nullptr;
@@ -217,6 +216,7 @@ public:
 	void ResetGBuffers();
 
 	// picking debug
+	void CreateStencilMaskState();
 	void CreatePickingStagingTex();
 	void CheckObjectPicking(); // 이거 업데이트 안함
 
@@ -225,7 +225,11 @@ public:
 	XMINT2 mouseXY{};
 	uint32_t currPickedID = -1;
 	ComPtr<ID3D11Buffer> m_pickingCB{};
+	ComPtr<ID3D11VertexShader> m_edgeVS{};
+	ComPtr<ID3D11PixelShader> m_solidPS{};
 
+	ComPtr<ID3D11DepthStencilState> m_pickMaskDSS{};
+	ComPtr<ID3D11RasterizerState> m_backCullingRS{};
 
 	// =============================================================
 	virtual bool OnInitialize();

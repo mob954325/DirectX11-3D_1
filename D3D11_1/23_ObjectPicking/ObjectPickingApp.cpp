@@ -561,6 +561,29 @@ void ObjectPickingApp::ResetGBuffers()
 	}
 }
 
+void ObjectPickingApp::CreateStencilMaskState()
+{
+	D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
+	depthStencilDesc.DepthEnable = TRUE;							
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	depthStencilDesc.StencilEnable = FALSE;
+
+	// Back-face는 Front-face와 동일
+	depthStencilDesc.BackFace = depthStencilDesc.FrontFace;
+
+	m_device->CreateDepthStencilState(&depthStencilDesc, m_pickMaskDSS.GetAddressOf());
+
+	D3D11_RASTERIZER_DESC rasterizerDesc{};
+	rasterizerDesc = {};
+	rasterizerDesc.CullMode = D3D11_CULL_BACK;
+	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	rasterizerDesc.DepthClipEnable = true;
+	rasterizerDesc.FrontCounterClockwise = true;
+
+	m_device->CreateRasterizerState(&rasterizerDesc, &m_backCullingRS);
+}
+
 void ObjectPickingApp::CreatePickingStagingTex()
 {
 	D3D11_TEXTURE2D_DESC desc = {};
@@ -744,7 +767,7 @@ void ObjectPickingApp::RenderPassGBuffer()
 
 			_picking.pickID = static_cast<UINT>(i + 1);
 
-			m_deviceContext->Map(
+			m_deviceContext->Map( // ??
 				m_pickingCB.Get(),
 				0,
 				D3D11_MAP_WRITE_DISCARD,
@@ -752,9 +775,8 @@ void ObjectPickingApp::RenderPassGBuffer()
 				&mapped
 			);
 			memcpy(mapped.pData, &_picking, sizeof(PickingCB));
-			m_deviceContext->Unmap(m_pickingCB.Get(), 0);
-
 			m_models[i]->Draw(m_deviceContext, m_materialBuffer);
+			m_deviceContext->Unmap(m_pickingCB.Get(), 0);
 		}
 	}
 
@@ -763,6 +785,17 @@ void ObjectPickingApp::RenderPassGBuffer()
 	for (auto& e : m_models)
 	{
 		e->Draw(m_deviceContext, m_materialBuffer);
+	}
+
+	// Draw edge
+	if (currPickedID != -1)
+	{
+		m_deviceContext->RSSetState(m_backCullingRS.Get());
+
+		m_deviceContext->VSSetShader(m_edgeVS.Get(), 0, 0);
+		m_deviceContext->PSSetShader(m_solidPS.Get(), 0, 0);
+
+		m_models[currPickedID]->Draw(m_deviceContext, m_materialBuffer);
 	}
 
 	// RTV Unbind 	
@@ -1323,14 +1356,6 @@ bool ObjectPickingApp::InitScene()
 
 	m_device->CreateRasterizerState(&rasterizerDesc, &m_rasterizerState);
 
-	rasterizerDesc = {};
-	rasterizerDesc.CullMode = D3D11_CULL_FRONT;
-	rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-	rasterizerDesc.DepthClipEnable = true;
-	rasterizerDesc.FrontCounterClockwise = true;
-
-	m_device->CreateRasterizerState(&rasterizerDesc, &m_transparentRasterizerState);
-
 	// 모델들이 사용할 버퍼 만들기
 	// 트랜스폼 상수 버퍼 만들기
 	bufferDesc = {};
@@ -1430,6 +1455,10 @@ bool ObjectPickingApp::InitEffect()
 	HR_T(CompileShaderFromFile(L"Shaders\\VS_DepthOnlyPass.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
 	HR_T(m_device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_shadowMapVS.GetAddressOf()));
 
+	vertexShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_Edge.hlsl", "main", "vs_5_0", vertexShaderBuffer.GetAddressOf()));
+	HR_T(m_device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, m_edgeVS.GetAddressOf()));
+
 	// Light Pass
 	// ....
 
@@ -1446,6 +1475,10 @@ bool ObjectPickingApp::InitEffect()
 	pixelShaderBuffer.Reset();
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_DirectionalLight.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
 	HR_T(m_device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_directionalLightPS.GetAddressOf()));
+
+	pixelShaderBuffer.Reset();
+	HR_T(CompileShaderFromFile(L"Shaders\\PS_Solid.hlsl", "main", "ps_5_0", pixelShaderBuffer.GetAddressOf()));
+	HR_T(m_device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, m_solidPS.GetAddressOf()));
 
 	return true;
 }

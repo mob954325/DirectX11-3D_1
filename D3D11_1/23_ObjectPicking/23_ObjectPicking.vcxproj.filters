@@ -24,6 +24,7 @@
     <FxCompile Include="Shaders\VS_DirectionalLight.hlsl" />
     <FxCompile Include="Shaders\VS_GBuffer.hlsl" />
     <FxCompile Include="Shaders\VS_Skybox.hlsl" />
+    <FxCompile Include="Shaders\VS_Edge.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Shared.hlsli" />
