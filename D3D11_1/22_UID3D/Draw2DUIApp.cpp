@@ -62,6 +62,7 @@ bool Draw2DUIApp::OnInitialize()
 		return false;
 
 	ResetValues();
+	CreateUIComps();
 
 	return true;
 }
@@ -155,6 +156,9 @@ void Draw2DUIApp::OnRender()
 	// Render ImGui
 	RenderImGUI();
 
+	// image 호출
+	canvas.Render(m_pDeviceContext);
+	 
 	// 스왑체인 교체
 	m_pSwapChain->Present(0, 0);
 }
@@ -228,15 +232,15 @@ void Draw2DUIApp::RenderImGUI()
 
 	ImGui::Begin("image");
 	{
-		//ImGui::DragFloat3("pos", &img.rect.pos.x);
-		//ImGui::DragFloat("width", &img.rect.width);
-		//ImGui::DragFloat("height", &img.rect.height);
-		//
-		//Vector3 rot = img.rect.GetEuler();
-		//ImGui::DragFloat3("rotate", &rot.x);
-		//img.rect.SetEuler(rot);
-		//
-		//ImGui::DragFloat2("pivot", &img.rect.pivot.x, 0.01f, 0.0f, 1.0f);
+		ImGui::DragFloat3("pos", &img1->rect.pos.x);
+		ImGui::DragFloat("width", &img1->rect.width);
+		ImGui::DragFloat("height", &img1->rect.height);
+		
+		Vector3 rot = img1->rect.GetEuler();
+		ImGui::DragFloat3("rotate", &rot.x);
+		img1->rect.SetEuler(rot);
+		
+		ImGui::DragFloat2("pivot", &img1->rect.pivot.x, 0.01f, 0.0f, 1.0f);
 	}
 	ImGui::End();
 
@@ -376,7 +380,6 @@ bool Draw2DUIApp::InitD3D()
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS; // 작은 Z 값이 앞에 배치되도록 설정
 	depthStencilDesc.StencilEnable = FALSE;            // 스텐실 테스트 비활성화
 
-	ComPtr<ID3D11DepthStencilState> depthStencilState;
 	m_pDevice->CreateDepthStencilState(&depthStencilDesc, depthStencilState.GetAddressOf());
 	m_pDeviceContext->OMSetDepthStencilState(depthStencilState.Get(), 1);
 
@@ -514,8 +517,23 @@ void Draw2DUIApp::ResetValues()
 	m_Projection = XMMatrixPerspectiveFovLH(m_PovAngle, m_ClientWidth / (FLOAT)m_ClientHeight, m_Near, m_Far);
 }
 
+void Draw2DUIApp::CreateUIComps()
+{
+	// img1 설정
+	img1 = std::make_shared<Image>();
+
+	canvas.GetSize(m_ClientWidth, m_ClientHeight);
+	canvas.CreateUIEffect(m_pDevice);
+	canvas.CreateStats(m_pDevice);
+	canvas.AddUIComp(img1.get());
+
+	img1->Init(m_pDevice);
+	img1->GetTexureByPath(m_pDevice, m_pDeviceContext, "..\\Resource\\neruThumpUp.png");
+}
+
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 
 LRESULT Draw2DUIApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {

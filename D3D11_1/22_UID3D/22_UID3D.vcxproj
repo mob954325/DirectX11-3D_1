@@ -164,6 +164,7 @@
     <ClInclude Include="UIComps\Image.h" />
     <ClInclude Include="UIComps\RectTransform.h" />
     <ClInclude Include="UIComps\Transform.h" />
+    <ClInclude Include="UIComps\UIBase.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">

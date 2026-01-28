@@ -1,25 +1,36 @@
 #pragma once
+#include "UIBase.h"
 #include "../../Common/pch.h"
 #include "RectTransform.h"
-#include "Canvas.h"
 
-// DirectX11 2D
-#include <d2d1_1.h>
-#pragma comment(lib, "d2d1.lib")
+struct ImageCB
+{
+	Matrix WVP; // View Projection
+};
 
-#include <dwrite.h>		// DirectWrite 사용 : 문자 관련 렌더링 및 설정
-#pragma comment(lib, "dwrite.lib")
-
-#include <wincodec.h>	// WIC 디코더 : 이미지 구성요소에 대한 설정 
-#pragma comment(lib, "windowscodecs.lib")
-
-class Image
+class Image : public UIBase
 {
 public:
-	Canvas* canvas;
+	/// <summary>
+	/// 텍스처를 path를 통해 설정하기
+	/// </summary>
+	/// 나중에 device 매개변수 받는거 정리하기
+	void GetTexureByPath(ComPtr<ID3D11Device>& device, ComPtr<ID3D11DeviceContext>& context, std::string path);
 
-	RectTransform rect;
+	void Init(ComPtr<ID3D11Device>& dev) override;
 
-	ComPtr<ID2D1Bitmap1> imageBitmap;
+	void Render(ComPtr<ID3D11DeviceContext>& context) override;
+
+	// void GetCB(ComPtr<ID3D11Buffer>& cb);
+	
+private:
+	ComPtr<ID3D11Texture2D>				imgTex{};			// 렌더링할 텍스처 데이터?
+	ComPtr<ID3D11ShaderResourceView>	imgSRV{};			// 출력할 텍스처 데이터
+	ComPtr<ID3D11Buffer>				imageCbBuffer{};	// image용 상수 버퍼->나중에 매니저로 모아두기
+	ComPtr<ID3D11PixelShader>			imagePS{};			// 이미지에 사용할 ps
+
+	ImageCB imageCBData{};	//	
+	Matrix mvp{};			// model view projection
+	std::string path{};
 };
 

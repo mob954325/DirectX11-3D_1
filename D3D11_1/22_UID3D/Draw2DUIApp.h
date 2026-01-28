@@ -108,8 +108,12 @@ public:
 	void ResetValues();
 
 	// === UI Resources ===
-	Canvas canvas;
-	std::vector<Image> imgs;
+	ComPtr<ID3D11DepthStencilState> depthStencilState; // 큐브용 dss
+
+	Canvas canvas{};
+	std::shared_ptr<Image> img1;
+
+	void CreateUIComps();
 
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
