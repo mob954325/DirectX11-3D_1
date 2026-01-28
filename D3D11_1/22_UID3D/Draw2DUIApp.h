@@ -40,11 +40,6 @@ struct CubeVertex
 	CubeVertex(Vector3 p, Vector2 t) : pos(p.x, p.y, p.z, 1.0f), tex(t) {}
 };
 
-struct PerObjectCB
-{
-	Matrix WVP; // ??View Projection
-};
-
 class Draw2DUIApp : public GameApp
 {
 public:
@@ -112,24 +107,7 @@ public:
 
 	void ResetValues();
 
-	ComPtr<ID3D11ShaderResourceView>	m_D2DTexture{};		// ??
-
-	ComPtr<ID3D11Buffer>				m_D2DVertBuffer{};
-	ComPtr<ID3D11Buffer>				m_D2DIndexBuffer{};
-
-	ComPtr<ID3D11Buffer>				m_perObjCB{};
-
-	ComPtr<ID3D11BlendState>			m_TransparencyBS{};
-	ComPtr<ID3D11RasterizerState>		m_CWcullModeRS{};
-	ComPtr<ID3D11SamplerState>			m_SamplerState{};
-
-	ComPtr<ID3D11VertexShader>			m_d2dVertexShader{};
-	ComPtr<ID3D11PixelShader>			m_d2dPixelShader{};
-
-	PerObjectCB m_perObjData{};
-	Matrix m_WVP{};
-
-	// UI 컴포넌트 모음
+	// === UI Resources ===
 	Canvas canvas;
 	std::vector<Image> imgs;
 
