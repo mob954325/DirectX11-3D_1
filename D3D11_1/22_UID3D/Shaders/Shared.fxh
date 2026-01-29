@@ -15,6 +15,7 @@ cbuffer ConstantBuffer : register(b0)
 cbuffer imageCB : register(b1)
 {
     matrix WVP;
+    float4 ImageBaseColor;
 }
 
 struct PS_INPUT

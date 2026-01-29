@@ -153,6 +153,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Draw2DUIApp.cpp" />
+    <ClCompile Include="UIComps\TextMesh.cpp" />
     <ClCompile Include="UIComps\Canvas.cpp" />
     <ClCompile Include="UIComps\Image.cpp" />
     <ClCompile Include="UIComps\Transform.cpp" />
@@ -160,6 +161,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Draw2DUIApp.h" />
+    <ClInclude Include="UIComps\Event\IMouseButtonClick.h" />
+    <ClInclude Include="UIComps\TextMesh.h" />
     <ClInclude Include="UIComps\Canvas.h" />
     <ClInclude Include="UIComps\Image.h" />
     <ClInclude Include="UIComps\RectTransform.h" />

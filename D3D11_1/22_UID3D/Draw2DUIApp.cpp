@@ -232,13 +232,23 @@ void Draw2DUIApp::RenderImGUI()
 
 	ImGui::Begin("image");
 	{
-		ImGui::DragFloat3("pos", &img1->rect.pos.x);
 		ImGui::DragFloat("width", &img1->rect.width);
 		ImGui::DragFloat("height", &img1->rect.height);
 		
+		ImGui::DragFloat3("pos", &img1->rect.pos.x);
+		Vector3 prevScale = img1->rect.GetScale();
+		ImGui::DragFloat3("scale", &prevScale.x);
+		img1->rect.SetScale(prevScale);
+
 		Vector3 rot = img1->rect.GetEuler();
-		ImGui::DragFloat3("rotate", &rot.x);
-		img1->rect.SetEuler(rot);
+		Vector3 rotDeg = { XMConvertToDegrees(rot.x), XMConvertToDegrees(rot.y), XMConvertToDegrees(rot.z) };
+		ImGui::DragFloat3("rotate", &rotDeg.x);
+		Vector3 rotRadAfter = { XMConvertToRadians(rotDeg.x), XMConvertToRadians(rotDeg.y), XMConvertToRadians(rotDeg.z) };
+		img1->rect.SetEuler(rotRadAfter);
+
+		Color color = img1->GetColor();
+		ImGui::ColorEdit3("Color", &color.x);
+		img1->SetColor(color);
 		
 		ImGui::DragFloat2("pivot", &img1->rect.pivot.x, 0.01f, 0.0f, 1.0f);
 	}

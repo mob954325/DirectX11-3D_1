@@ -15,6 +15,9 @@ struct QuadVertex // vs
 /// <summary>
 /// 모든 UI 컴포넌트가 참조 하고 있는 UI 패널 
 /// </summary>
+/// <remarks>
+/// UI는 유닛 쿼드 (0-1)를 사용합니다.
+/// </remarks>
 class Canvas
 {
 public:

@@ -8,5 +8,9 @@ struct VS_OUTPUT
 
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
-    return imageTex.Sample(ObjSamplerState, input.TexCoord);
+    float4 sampleTex = imageTex.Sample(ObjSamplerState, input.TexCoord);
+    
+    float4 final = sampleTex * ImageBaseColor;
+    
+    return final;
 }

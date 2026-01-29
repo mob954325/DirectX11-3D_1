@@ -3,13 +3,7 @@
 #include "../../Common/pch.h"
 #include "RectTransform.h"
 
-struct ImageCB
-{
-	Matrix WVP; // View Projection
-	Color color;
-};
-
-class Image : public UIBase
+class TextMesh : public UIBase
 {
 public:
 	/// <summary>
@@ -23,12 +17,6 @@ public:
 	void Render(ComPtr<ID3D11DeviceContext>& context) override;
 
 	// void GetCB(ComPtr<ID3D11Buffer>& cb);
-	
-	Color GetColor();
-	void SetColor(Color color);
-	
-	// === 테스트 변수 === ( 옮길 때 제거 )
-	Vector3 local{};
 
 private:
 	ComPtr<ID3D11Texture2D>				imgTex{};			// 렌더링할 텍스처 데이터?
@@ -36,9 +24,8 @@ private:
 	ComPtr<ID3D11Buffer>				imageCbBuffer{};	// image용 상수 버퍼->나중에 매니저로 모아두기
 	ComPtr<ID3D11PixelShader>			imagePS{};			// 이미지에 사용할 ps
 
-	ImageCB imageCBData{};	//	
+	//ImageCB imageCBData{};	//	
 	Matrix mvp{};			// model view projection
 	std::string path{};
-	Color color{};
 };
 
