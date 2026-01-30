@@ -541,7 +541,8 @@ void Draw2DUIApp::CreateUIComps()
 	img1->Init(m_pDevice);
 	//img1->GetTexureByPath(m_pDevice, m_pDeviceContext, "..\\Resource\\neruThumpUp.png");
 	img1->LoadFontAtlas(m_pDevice, L"..\\Resource\\ttf\\Dotum.ttf", 32, 2048, 2048, 1);
-	img1->SetText(L"Hello, world");
+	// img1->SetText(L"Hello, world");
+	img1->SetText(L"\u314E\u3147\u314E\u3147");
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp
