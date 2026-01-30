@@ -18,8 +18,20 @@ cbuffer imageCB : register(b1)
     float4 ImageBaseColor;
 }
 
+struct VS_INPUT
+{
+    float3 Pos : POSITION;
+    float2 TexCoord : TEXCOORD0;
+};
+
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
+    float2 TexCoord : TEXCOORD0;
+};
+
+struct PS_MESH_INPUT
+{
+    float4 Pos : SV_POSITION;
     float4 Color : COLOR0;
-}; 
+};

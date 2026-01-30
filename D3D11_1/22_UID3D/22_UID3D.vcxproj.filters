@@ -19,6 +19,7 @@
     <FxCompile Include="Shaders\BasicVertexShader.hlsl" />
     <FxCompile Include="Shaders\PS_QuadImage.hlsl" />
     <FxCompile Include="Shaders\VS_QuadImage.hlsl" />
+    <FxCompile Include="Shaders\PS_QuadText.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Shared.fxh" />

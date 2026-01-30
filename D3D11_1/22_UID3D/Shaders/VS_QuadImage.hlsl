@@ -1,20 +1,8 @@
 #include "Shared.fxh"
 
-struct VS_OUTPUT
+PS_INPUT main(VS_INPUT input)
 {
-    float4 Pos : SV_POSITION;
-    float2 TexCoord : TEXCOORD0;
-};
-
-struct VS_INPUT
-{
-    float3 Pos : POSITION;
-    float2 TexCoord : TEXCOORD0;
-};
-
-VS_OUTPUT main(VS_INPUT input)
-{
-    VS_OUTPUT output;
+    PS_INPUT output;
 
     output.Pos = mul(float4(input.Pos, 1.0f), imageWVP);
     output.TexCoord = input.TexCoord;
