@@ -43,6 +43,9 @@
     <ClCompile Include="UIComps\TextMesh.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="UIComps\Font\FontAtlasBuilder.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UIComps\Canvas.h">
@@ -70,6 +73,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="UIComps\UIData.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UIComps\Font\FontAtlasBuilder.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

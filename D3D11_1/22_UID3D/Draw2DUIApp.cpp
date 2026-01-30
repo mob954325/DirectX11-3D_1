@@ -530,7 +530,8 @@ void Draw2DUIApp::ResetValues()
 void Draw2DUIApp::CreateUIComps()
 {
 	// img1 설정
-	img1 = std::make_shared<Image>();
+	//img1 = std::make_shared<Image>();
+	img1 = std::make_shared<TextMesh>();
 
 	canvas.GetSize(m_ClientWidth, m_ClientHeight);
 	canvas.CreateUIEffect(m_pDevice);
@@ -538,7 +539,8 @@ void Draw2DUIApp::CreateUIComps()
 	canvas.AddUIComp(img1.get());
 
 	img1->Init(m_pDevice);
-	img1->GetTexureByPath(m_pDevice, m_pDeviceContext, "..\\Resource\\neruThumpUp.png");
+	//img1->GetTexureByPath(m_pDevice, m_pDeviceContext, "..\\Resource\\neruThumpUp.png");
+	img1->LoadFontAtlas(m_pDevice, L"..\\Resource\\ttf\\Dotum.ttf", 32, 2048, 2048, 1);
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp

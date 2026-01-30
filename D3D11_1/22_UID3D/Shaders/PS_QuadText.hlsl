@@ -2,9 +2,7 @@
 
 float4 main(PS_INPUT input) : SV_TARGET
 {
-    float4 sampleTex = imageTex.Sample(ObjSamplerState, input.TexCoord);
-    
-    float4 final = sampleTex * ImageBaseColor;
-    
-    return final;
+    float a = textAtlas.Sample(ObjSamplerState, input.TexCoord).r;
+    // return float4(ImageBaseColor.rgb, ImageBaseColor.a * a);
+    return float4(a, a, a, 1);
 }

@@ -3,6 +3,7 @@
 //--------------------------------------------------------------------------------------
 
 Texture2D imageTex : register(t0);
+Texture2D textAtlas : register(t1);
 SamplerState ObjSamplerState : register(s0);
 
 cbuffer ConstantBuffer : register(b0)

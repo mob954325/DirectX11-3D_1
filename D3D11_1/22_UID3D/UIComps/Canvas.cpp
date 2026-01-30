@@ -181,3 +181,11 @@ Matrix Canvas::GetProjection()
 {
 	return proj;
 }
+
+//ComPtr<IDWriteFactory> Canvas::CreateDWriteFactory()
+//{
+//	HR_T(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED,		// 팩토리 객체 공유 여부 ( 공유 )
+//		__uuidof(IDWriteFactory),								// GUID
+//		reinterpret_cast<IUnknown**>(factory.GetAddressOf()))); // 팩토리 객체 포인트 주소
+//	return factory;
+//}

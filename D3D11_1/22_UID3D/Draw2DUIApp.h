@@ -25,8 +25,9 @@
 #include <wincodec.h>	// WIC 디코더 : 이미지 구성요소에 대한 설정 
 #pragma comment(lib, "windowscodecs.lib")
 
-#include "UIComps/Image.h"
 #include "UIComps/Canvas.h"
+#include "UIComps/Image.h"
+#include "UIComps/TextMesh.h"
 
 using namespace DirectX::SimpleMath;
 using namespace Microsoft::WRL;
@@ -111,7 +112,8 @@ public:
 	ComPtr<ID3D11DepthStencilState> depthStencilState; // 큐브용 dss
 
 	Canvas canvas{};
-	std::shared_ptr<Image> img1;
+	//std::shared_ptr<Image> img1;
+	std::shared_ptr<TextMesh> img1;
 
 	void CreateUIComps();
 
