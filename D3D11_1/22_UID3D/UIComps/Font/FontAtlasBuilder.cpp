@@ -244,120 +244,94 @@ FontAtlas FontAtlasBuilder::BuildFromCodepoints(ID3D11Device* dev, const std::ws
     atlas.lineGapPx = toPx(fm.lineGap);
     atlas.lineHeightPx = atlas.ascentPx + atlas.descentPx + atlas.lineGapPx;
 
+    std::set<uint32_t> uniqueCPs(codepoints.begin(), codepoints.end());
+    if (includeASCII) 
+    {
+        for (uint32_t cp = 32; cp <= 126; ++cp) uniqueCPs.insert(cp);
+    }
+
     // 아틀라스 CPU 버퍼 (R8)
     std::vector<uint8_t> cpu(atlasW * atlasH, 0);
-
     ShelfPacker pack(atlasW, atlasH); // 아틀라스의 행과 열 개수 저장?
 
-    // TODO : 작동 성공하면 일반화 하기 두 함수가 같은 코드를 중복해서 작성함
-    for (uint32_t cp = 32; cp <= 126; ++cp)
-    {
+    // TODO 한글 인코딩 추가하기
+    for (uint32_t cp : uniqueCPs)
+    {  // ASCII(32-126) + 한글(U+AC00~)
         uint16_t glyphIndex = 0;
         UINT32 code = cp;
         HR_T(face->GetGlyphIndices(&code, 1, &glyphIndex));
         if (glyphIndex == 0) continue;
 
-        // glyph metrics (design units)
+        // glyph metrics
         DWRITE_GLYPH_METRICS gm{};
         HR_T(face->GetDesignGlyphMetrics(&glyphIndex, 1, &gm, FALSE));
+        int advancePx = toPx(gm.advanceWidth);
 
-        // advance(px)
-        int advancePx = (int)std::round(gm.advanceWidth * fontPx / fm.designUnitsPerEm);
-
-        // GlyphRun 준비
-        FLOAT advance = 0.0f; // DIP : 디바이스 독립적 픽셀
-        DWRITE_GLYPH_OFFSET offset{};
+        // GlyphRun
         DWRITE_GLYPH_RUN run{};
         run.fontFace = face.Get();
         run.fontEmSize = fontPx;
         run.glyphCount = 1;
         run.glyphIndices = &glyphIndex;
-        run.glyphAdvances = &advance; // advance?
+        FLOAT advance = 0.0f;
+        DWRITE_GLYPH_OFFSET offset{};
+        run.glyphAdvances = &advance;
         run.glyphOffsets = &offset;
 
-        // analysis
+        // Analysis
         ComPtr<IDWriteGlyphRunAnalysis> analysis;
-        HR_T(dwrite->CreateGlyphRunAnalysis(
-            &run,
-            1.0f, // pixelsPerDip
-            nullptr,
-            DWRITE_RENDERING_MODE_ALIASED,
-            DWRITE_MEASURING_MODE_GDI_CLASSIC,
-            0.0f, 0.0f,
-            &analysis));
+        HR_T(dwrite->CreateGlyphRunAnalysis(&run, 1.0f, nullptr,
+            DWRITE_RENDERING_MODE_ALIASED, DWRITE_MEASURING_MODE_GDI_CLASSIC, 0.0f, 0.0f, &analysis));
 
         RECT bounds{};
         HR_T(analysis->GetAlphaTextureBounds(DWRITE_TEXTURE_ALIASED_1x1, &bounds));
-
         int bw = bounds.right - bounds.left;
         int bh = bounds.bottom - bounds.top;
 
-        // 공백 같은 경우 bw/bh가 0일 수 있음
         if (bw <= 0 || bh <= 0)
         {
             GlyphInfo gi{};
             gi.codepoint = cp;
             gi.glyphIndex = glyphIndex;
-            gi.w = gi.h = 0;
-            gi.bearingX = 0;
-            gi.bearingY = 0;
             gi.advance = advancePx;
-            gi.u0 = gi.v0 = gi.u1 = gi.v1 = 0;
             atlas.glyphs[cp] = gi;
             continue;
         }
 
-        // 글리프 알파 뽑기
+        // Alpha texture
         std::vector<uint8_t> alpha(bw * bh);
-        HR_T(analysis->CreateAlphaTexture(
-            DWRITE_TEXTURE_ALIASED_1x1,
-            &bounds,
-            alpha.data(),
-            (UINT32)alpha.size()));
+        HR_T(analysis->CreateAlphaTexture(DWRITE_TEXTURE_ALIASED_1x1, &bounds, alpha.data(), (UINT32)alpha.size()));
 
-        // 패킹(패딩 포함)
+        // Pack
         int allocX, allocY;
         int pw = bw + paddingPx * 2;
         int ph = bh + paddingPx * 2;
-        if (!pack.TryAlloc(pw, ph, allocX, allocY))
-            throw std::runtime_error("atlas full");
+        if (!pack.TryAlloc(pw, ph, allocX, allocY)) throw std::runtime_error("atlas full");
 
         int dstX = allocX + paddingPx;
         int dstY = allocY + paddingPx;
 
-        // CPU 아틀라스에 복사
-        for (int y = 0; y < bh; ++y)
-        {
+        // Copy to atlas
+        for (int y = 0; y < bh; ++y) {
             uint8_t* dst = cpu.data() + (dstY + y) * atlasW + dstX;
             const uint8_t* src = alpha.data() + y * bw;
             memcpy(dst, src, bw);
         }
 
-        // bearing(px)
-        // bounds는 glyph origin(베이스라인 x=0,y=0) 기준의 bounding box.
-        // 좌상단 오프셋은 (bounds.left, bounds.top)인데,
-        // 일반적인 2D UI 좌표계(y down)에서 bearingY는 "baseline에서 위로 얼마나"가 필요.
-        // 여기서는 Text 쿼드 생성 때 y 축을 어떻게 쓰는지에 맞춰 일관되게 처리하면 됨.
-        int bearingX = bounds.left;
-        int bearingY = -bounds.top; // baseline 위(+) // NOTE : 베이스라인의 기준에 따라 설정하기, 현재 기준 dirctX 좌표계
-
+        // GlyphInfo
         GlyphInfo gi{};
         gi.codepoint = cp;
         gi.glyphIndex = glyphIndex;
         gi.w = bw; gi.h = bh;
-        gi.bearingX = bearingX;
-        gi.bearingY = bearingY;
+        gi.bearingX = bounds.left;
+        gi.bearingY = -bounds.top;
         gi.advance = advancePx;
-
-        gi.u0 = (float)dstX / (float)atlasW;
-        gi.v0 = (float)dstY / (float)atlasH;
-        gi.u1 = (float)(dstX + bw) / (float)atlasW;
-        gi.v1 = (float)(dstY + bh) / (float)atlasH;
-
+        gi.u0 = (float)dstX / atlasW;
+        gi.v0 = (float)dstY / atlasH;
+        gi.u1 = (float)(dstX + bw) / atlasW;
+        gi.v1 = (float)(dstY + bh) / atlasH;
         atlas.glyphs[cp] = gi;
     }
-
-    // TODO 한글 인코딩 추가하기
 
     // 5) D3D11 R8 텍스처 생성
     D3D11_TEXTURE2D_DESC td{};
