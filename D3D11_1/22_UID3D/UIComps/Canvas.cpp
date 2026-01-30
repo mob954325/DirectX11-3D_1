@@ -15,7 +15,7 @@ void Canvas::Render(ComPtr<ID3D11DeviceContext>& context)
 	context->IASetVertexBuffers(0, 1, uiVertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// vs rs
-	context->PSSetSamplers(0, 1, SamplerState.GetAddressOf());
+	context->PSSetSamplers(1, 1, SamplerState.GetAddressOf());
 	context->RSSetState(cwCullModeRS.Get());
 	context->VSSetShader(uiVertexShader.Get(), nullptr, 0);
 
@@ -151,7 +151,7 @@ void Canvas::CreateStats(ComPtr<ID3D11Device>& dev)
 	// Rasterizer
 	D3D11_RASTERIZER_DESC cmdesc = {};
 	cmdesc.FillMode = D3D11_FILL_SOLID;
-	cmdesc.CullMode = D3D11_CULL_BACK;
+	cmdesc.CullMode = D3D11_CULL_NONE;
 	cmdesc.FrontCounterClockwise = false;
 	HR_T(dev->CreateRasterizerState(&cmdesc, cwCullModeRS.GetAddressOf()));
 
