@@ -4,5 +4,6 @@
 struct ImageCBData
 {
 	Matrix WVP;		// view projection
-	Color color; 
+	Color color;
+	Vector4 uvRect;
 };

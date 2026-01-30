@@ -17,6 +17,7 @@ cbuffer imageCB : register(b1)
 {
     matrix imageWVP;
     float4 ImageBaseColor;
+    float4 UVRect; // u0, v0, u1, v1
 }
 
 struct VS_INPUT

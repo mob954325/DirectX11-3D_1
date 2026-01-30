@@ -82,6 +82,8 @@ void Image::Render(ComPtr<ID3D11DeviceContext>& context)
 	context->PSSetShader(imagePS.Get(), nullptr, 0);					// ps 바인딩
 
 	context->PSSetShaderResources(0, 1, imgSRV.GetAddressOf());			// 텍스처 리소스 바인딩
+
+	context->DrawIndexed(6, 0, 0);	// 쿼드 그리기
 }
 
 Color Image::GetColor()

@@ -34,7 +34,6 @@ void Canvas::Render(ComPtr<ID3D11DeviceContext>& context)
 	for (auto& e : uiComps)
 	{
 		e->Render(context);				// ps, 상수버퍼, 텍스처, 설정하기
-		context->DrawIndexed(6, 0, 0);	// 쿼드 그리기
 	}
 
 	context->OMSetBlendState(nullptr, nullptr, 0xffffffff);

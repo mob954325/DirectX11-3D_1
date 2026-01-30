@@ -65,6 +65,7 @@ struct ShelfPacker
     }
 };
 
+
 /// <summary>
 ///
 /// </summary>
