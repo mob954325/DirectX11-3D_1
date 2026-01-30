@@ -12,6 +12,7 @@
 #pragma comment(lib, "d3dcompiler.lib")
 
 #include <string>
+#include <algorithm>
 
 #undef min
 #undef max
@@ -376,7 +377,7 @@ bool Draw2DUIApp::InitD3D()
 	descDepth.Height = m_ClientHeight;
 	descDepth.MipLevels = 1;
 	descDepth.ArraySize = 1;
-	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // https://learn.microsoft.com/ko-kr/windows/win32/api/dxgiformat/ne-dxgiformat-dxgi_format
+	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	descDepth.SampleDesc.Count = 1;
 	descDepth.SampleDesc.Quality = 0;
 	descDepth.Usage = D3D11_USAGE_DEFAULT;
@@ -400,7 +401,7 @@ bool Draw2DUIApp::InitD3D()
 	// create the depth stencil view
 	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
 	descDSV.Format = descDepth.Format;
-	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D; // 사용되는 리소스 엑세스 방식 설정 : https://learn.microsoft.com/ko-kr/windows/win32/api/d3d11/ne-d3d11-d3d11_dsv_dimension 
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D; 
 	descDSV.Texture2D.MipSlice = 0;
 	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
 
@@ -549,10 +550,133 @@ void Draw2DUIApp::CreateUIComps()
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 
+void Draw2DUIApp::ResizeScreen(int width, int height)
+{
+	if (!m_hWnd) return;
+
+	m_ClientWidth = std::max(width, 1);
+	m_ClientHeight = std::max(height, 1);
+
+	ResizeResource();
+}
+
+void Draw2DUIApp::ResizeResource()
+{
+	m_pSwapChain.Reset();
+	m_pRenderTargetView.Reset();
+	m_pDepthStencilView.Reset();
+	m_pDeviceContext->Flush();
+
+	// 2. 스왑체인 생성을 위한 DXGI Factory 생성
+	UINT dxgiFactoryFlags = 0;
+
+#ifdef _DEBUG
+	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+#endif // _DEBUG
+
+	ComPtr<IDXGIFactory2> pFactory;
+	HR_T(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&pFactory)));
+
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+#if USE_FLIPMODE == 1
+	swapChainDesc.BufferCount = 2;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+#else
+	swapChainDesc.BufferCount = 1;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+#endif
+	swapChainDesc.Width = m_ClientWidth;
+	swapChainDesc.Height = m_ClientHeight;
+
+	// 하나의 픽셀이 채널 RGBA 각 8비트 형식으로 표현
+	// Unsigned Normalized Integer 8비트 정수(0~255)단계를 부동소수점으로 정규화한 0.0~1.0으로 매핑하여 표현한다.
+	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 스왑 체인의 백 버퍼가 렌더링 파이프라인의 최종 출력 대상으로 사용
+	swapChainDesc.SampleDesc.Count = 1;	// 멀티 샘플링 사용 안함
+	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // 투명도 조작 무시 | recommand for flip mode ?
+	swapChainDesc.Stereo = FALSE;
+	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // 전체 화면 전환을 허용
+	swapChainDesc.Scaling = DXGI_SCALING_NONE; // 창의 크기와 백 버퍼의 크기가 다를 때. 백버퍼 크기에 맞게 스케일링 하지 않는다.
+
+	HR_T(pFactory->CreateSwapChainForHwnd
+	(
+		m_pDevice.Get(),
+		m_hWnd,
+		&swapChainDesc,
+		nullptr,
+		nullptr,
+		&m_pSwapChain
+	));
+
+	// 3. 랜더타겟 뷰 생성. 랜더타겟 뷰는 "여기에 그림을 그려라"라고 GPU에게 알려주는 역할을 하는 객체
+	// 텍스쳐와 영구적으로 연결되는 객체
+	ComPtr<ID3D11Texture2D> pBackBufferTexture;
+	HR_T(m_pSwapChain->GetBuffer(
+		0, IID_PPV_ARGS(pBackBufferTexture.ReleaseAndGetAddressOf())));
+	HR_T(m_pDevice->CreateRenderTargetView(pBackBufferTexture.Get(), nullptr, m_pRenderTargetView.GetAddressOf()));
+
+#if !USE_FLIPMODE
+	m_pDeviceContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), nullptr);
+#endif
+
+	// 4. viewport 설정
+	D3D11_VIEWPORT viewport = {};
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = (float)m_ClientWidth;
+	viewport.Height = (float)m_ClientHeight;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	m_pDeviceContext->RSSetViewports(1, &viewport);
+
+	// 5. 뎊스 스텐실 뷰 설정
+	D3D11_TEXTURE2D_DESC descDepth = {};
+	descDepth.Width = m_ClientWidth;
+	descDepth.Height = m_ClientHeight;
+	descDepth.MipLevels = 1;
+	descDepth.ArraySize = 1;
+	descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	descDepth.SampleDesc.Count = 1;
+	descDepth.SampleDesc.Quality = 0;
+	descDepth.Usage = D3D11_USAGE_DEFAULT;
+	descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	descDepth.CPUAccessFlags = 0;
+	descDepth.MiscFlags = 0;
+
+	// create depthStencil texture
+	ComPtr<ID3D11Texture2D> pTextureDepthStencil;
+	HR_T(m_pDevice->CreateTexture2D(&descDepth, nullptr, pTextureDepthStencil.ReleaseAndGetAddressOf()));
+
+	// create the depth stencil view
+	D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+	descDSV.Format = descDepth.Format;
+	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	descDSV.Texture2D.MipSlice = 0;
+	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.ReleaseAndGetAddressOf()));
+}
+
 LRESULT Draw2DUIApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
+
+	switch (message)
+	{
+	case WM_ENTERSIZEMOVE:
+		screenIsSizeMove = true;
+		break;
+	case WM_EXITSIZEMOVE:
+		screenIsSizeMove = false;
+		if (m_pInstance)
+		{
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			ResizeScreen(rc.right - rc.left, rc.bottom - rc.top);
+		}
+		break;
+	default:
+		break;
+	}
 
 	return __super::WndProc(hWnd, message, wParam, lParam);
 }

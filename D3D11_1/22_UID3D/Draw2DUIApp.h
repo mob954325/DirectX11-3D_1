@@ -117,5 +117,10 @@ public:
 
 	void CreateUIComps();
 
+	// === resize ===
+	bool screenIsSizeMove = false;
+	void ResizeScreen(int width, int height);
+	void ResizeResource();
+
 	virtual LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 };
