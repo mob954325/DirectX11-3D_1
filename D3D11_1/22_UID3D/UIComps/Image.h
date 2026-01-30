@@ -2,12 +2,7 @@
 #include "UIBase.h"
 #include "../../Common/pch.h"
 #include "RectTransform.h"
-
-struct ImageCB
-{
-	Matrix WVP; // View Projection
-	Color color;
-};
+#include "UIData.h"
 
 class Image : public UIBase
 {
@@ -36,9 +31,8 @@ private:
 	ComPtr<ID3D11Buffer>				imageCbBuffer{};	// image용 상수 버퍼->나중에 매니저로 모아두기
 	ComPtr<ID3D11PixelShader>			imagePS{};			// 이미지에 사용할 ps
 
-	ImageCB imageCBData{};	//	
+	ImageCBData imageCBData{};	//	
 	Matrix mvp{};			// model view projection
 	std::string path{};
 	Color color{};
 };
-

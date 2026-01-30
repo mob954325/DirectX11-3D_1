@@ -2,6 +2,7 @@
 #include "UIBase.h"
 #include "../../Common/pch.h"
 #include "RectTransform.h"
+#include "UIData.h"
 
 class TextMesh : public UIBase
 {
@@ -24,8 +25,8 @@ private:
 	ComPtr<ID3D11Buffer>				imageCbBuffer{};	// image용 상수 버퍼->나중에 매니저로 모아두기
 	ComPtr<ID3D11PixelShader>			imagePS{};			// 이미지에 사용할 ps
 
-	//ImageCB imageCBData{};	//	
-	Matrix mvp{};			// model view projection
+	ImageCBData imageCBData{};	//	상수버퍼
+	Matrix mvp{};					// model view projection
 	std::string path{};
 };
 

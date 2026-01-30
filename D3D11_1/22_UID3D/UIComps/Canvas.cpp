@@ -103,7 +103,7 @@ void Canvas::CreateUIEffect(ComPtr<ID3D11Device>& dev)
 	};
 
 	ComPtr<ID3DBlob> vsBuffer{};
-	HR_T(CompileShaderFromFile(L"Shaders\\VS_2D.hlsl", "main", "vs_5_0", vsBuffer.GetAddressOf()));
+	HR_T(CompileShaderFromFile(L"Shaders\\VS_QuadImage.hlsl", "main", "vs_5_0", vsBuffer.GetAddressOf()));
 	HR_T(dev->CreateInputLayout(layout, ARRAYSIZE(layout), vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), uiInputLayout.GetAddressOf()));
 	HR_T(dev->CreateVertexShader(vsBuffer->GetBufferPointer(), vsBuffer->GetBufferSize(), NULL, uiVertexShader.GetAddressOf()));
 

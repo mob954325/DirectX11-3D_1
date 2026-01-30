@@ -16,7 +16,7 @@ VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
 
-    output.Pos = mul(float4(input.Pos, 1.0f), WVP);
+    output.Pos = mul(float4(input.Pos, 1.0f), imageWVP);
     output.TexCoord = input.TexCoord;
 
     return output;
