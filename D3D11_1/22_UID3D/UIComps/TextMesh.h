@@ -44,9 +44,10 @@ public:
 	void SetColor(Color color);
 
 private:
-	ComPtr<ID3D11Device>				device{}; // init할 때 참조한 device
-	ComPtr<ID3D11Buffer>				textCbBuffer{};	// image용 상수 버퍼->나중에 매니저로 모아두기
+	ComPtr<ID3D11Device>				device{};			// init할 때 참조한 device
+	ComPtr<ID3D11Buffer>				textCbBuffer{};		// image용 상수 버퍼->나중에 매니저로 모아두기
 	ComPtr<ID3D11PixelShader>			textPS{};			// 이미지에 사용할 ps
+	ComPtr<ID3D11SamplerState>			textSS{};		// 텍스트용 샘플러
 
 	ComPtr<ID3D11Buffer> textVB;
 	ComPtr<ID3D11Buffer> textIB;
