@@ -170,6 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Draw2DUIApp.h" />
+    <ClInclude Include="UIComps\EncodeConvert.h" />
     <ClInclude Include="UIComps\Font\FontAtlasBuilder.h" />
     <ClInclude Include="UIComps\Event\IMouseButtonClick.h" />
     <ClInclude Include="UIComps\TextMesh.h" />

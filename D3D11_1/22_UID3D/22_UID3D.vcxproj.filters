@@ -78,5 +78,8 @@
     <ClInclude Include="UIComps\Font\FontAtlasBuilder.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="UIComps\EncodeConvert.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
