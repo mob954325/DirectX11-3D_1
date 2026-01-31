@@ -35,4 +35,7 @@ private:
 	Matrix mvp{};			// model view projection
 	std::string path{};
 	Color color{};
+
+	void CheckMouseHover();
+	bool isMouseHover = false;
 };

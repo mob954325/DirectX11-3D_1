@@ -130,6 +130,7 @@ void Draw2DUIApp::OnRender()
 	m_pDeviceContext->VSSetShader(m_pVertexShader.Get(), nullptr, 0);
 	m_pDeviceContext->VSSetConstantBuffers(0, 1, m_pConstantBuffer.GetAddressOf());
 	m_pDeviceContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+	m_pDeviceContext->RSSetState(m_pRasterizerState.Get());
 
 	// Update variables for the first cube
 	ConstantBuffer cb1;
@@ -233,8 +234,10 @@ void Draw2DUIApp::RenderImGUI()
 
 	ImGui::Begin("image");
 	{
-		ImGui::DragFloat("width", &img1->rect.width);
-		ImGui::DragFloat("height", &img1->rect.height);
+		auto size = img1->rect.GetSize();
+		ImGui::DragFloat("width", &size.x);
+		ImGui::DragFloat("height", &size.y);
+		img1->rect.SetSize(size);
 		
 		ImGui::DragFloat3("pos", &img1->rect.pos.x);
 		Vector3 prevScale = img1->rect.GetScale();
@@ -252,6 +255,16 @@ void Draw2DUIApp::RenderImGUI()
 		img1->SetColor(color);
 		
 		ImGui::DragFloat2("pivot", &img1->rect.pivot.x, 0.01f, 0.0f, 1.0f);
+	}
+	ImGui::End();
+
+	ImGui::Begin("TextMesh");
+	{
+		auto ws = textMesh->GetText();
+		std::string str(ws.begin(), ws.end());
+		ImGui::InputText("meshText", &str);
+		std::wstring changed(str.begin(), str.end());
+		textMesh->SetText(changed);
 	}
 	ImGui::End();
 
@@ -278,7 +291,7 @@ void Draw2DUIApp::UninitImGUI()
 bool Draw2DUIApp::InitD3D()
 {
 	HRESULT hr = S_OK;
-
+	
 	// 1. D3D11 Device, DeviceContext 생성
 	UINT creationFlag = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
@@ -404,6 +417,12 @@ bool Draw2DUIApp::InitD3D()
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D; 
 	descDSV.Texture2D.MipSlice = 0;
 	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.GetAddressOf()));
+
+	D3D11_RASTERIZER_DESC descRS{};
+	descRS.CullMode = D3D11_CULL_FRONT;
+	descRS.FillMode = D3D11_FILL_SOLID;
+
+	HR_T(m_pDevice->CreateRasterizerState(&descRS, m_pRasterizerState.GetAddressOf()));
 
 	return true;
 }
@@ -531,21 +550,24 @@ void Draw2DUIApp::ResetValues()
 void Draw2DUIApp::CreateUIComps()
 {
 	// img1 설정
-	//img1 = std::make_shared<Image>();
-	img1 = std::make_shared<TextMesh>();
+	img1 = std::make_shared<Image>();
+	textMesh = std::make_shared<TextMesh>();
 
 	canvas.GetSize(m_ClientWidth, m_ClientHeight);
 	canvas.CreateUIEffect(m_pDevice);
 	canvas.CreateStats(m_pDevice);
+
 	canvas.AddUIComp(img1.get());
+	canvas.AddUIComp(textMesh.get());
 
 	img1->Init(m_pDevice);
-	//img1->GetTexureByPath(m_pDevice, m_pDeviceContext, "..\\Resource\\neruThumpUp.png");
-	img1->LoadFontAtlas(m_pDevice, L"..\\Resource\\ttf\\Dotum.ttf", 32, 2048, 2048, 1);
-	// img1->SetText(L"Hello, world");
-	img1->SetText(L"하씨",
-		HAlign::Left);
+	img1->GetTexureByPath(m_pDevice, m_pDeviceContext, "..\\Resource\\neruThumpUp.png");
 
+	textMesh->Init(m_pDevice);
+	textMesh->LoadFontAtlas(m_pDevice, L"..\\Resource\\ttf\\Dotum.ttf", 32, 2048, 2048, 1);
+	// img1->SetText(L"Hello, world");
+	textMesh->SetText(L"하씨", HAlign::Left);
+	textMesh->SetColor({ 1,0,0,1 });
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp

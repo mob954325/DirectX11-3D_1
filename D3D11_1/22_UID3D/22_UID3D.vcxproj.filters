@@ -46,6 +46,9 @@
     <ClCompile Include="UIComps\Font\FontAtlasBuilder.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="UIComps\RectTransform.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UIComps\Canvas.h">

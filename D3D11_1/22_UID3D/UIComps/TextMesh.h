@@ -38,6 +38,7 @@ public:
 
 	void EnsureAtlasForText(ComPtr<ID3D11Device>& dev, const std::vector<uint32_t>& cps);
 
+	std::wstring GetText() const;
 	void SetText(const std::wstring_view ws, HAlign align = HAlign::Left);
 
 	Color GetColor() const;

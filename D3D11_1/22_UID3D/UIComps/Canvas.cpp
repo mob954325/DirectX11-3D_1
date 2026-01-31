@@ -15,7 +15,7 @@ void Canvas::Render(ComPtr<ID3D11DeviceContext>& context)
 	context->IASetVertexBuffers(0, 1, uiVertexBuffer.GetAddressOf(), &stride, &offset);
 
 	// vs rs
-	context->PSSetSamplers(1, 1, SamplerState.GetAddressOf());
+	context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
 	context->RSSetState(cwCullModeRS.Get());
 	context->VSSetShader(uiVertexShader.Get(), nullptr, 0);
 
@@ -164,7 +164,7 @@ void Canvas::CreateStats(ComPtr<ID3D11Device>& dev)
 	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampDesc.MinLOD = 0;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	HR_T(dev->CreateSamplerState(&sampDesc, SamplerState.GetAddressOf()));
+	HR_T(dev->CreateSamplerState(&sampDesc, samplerState.GetAddressOf()));
 
 
 	// dss

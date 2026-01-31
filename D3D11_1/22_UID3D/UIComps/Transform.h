@@ -10,7 +10,7 @@ public:
     Transform() { }
     ~Transform() = default;
 
-    void OnUpdate(float delta);
+    virtual void OnUpdate(float delta);
 
     Matrix GetWorldTransform() const;
     void Translate(const Vector3& delta);

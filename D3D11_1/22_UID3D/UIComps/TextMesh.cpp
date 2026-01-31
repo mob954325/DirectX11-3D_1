@@ -144,8 +144,10 @@ void TextMesh::Render(ComPtr<ID3D11DeviceContext>& context)
 	// CB/PS/SRV 바인딩
 	context->VSSetConstantBuffers(1, 1, textCbBuffer.GetAddressOf());
 	context->PSSetConstantBuffers(1, 1, textCbBuffer.GetAddressOf());
+
 	context->PSSetShader(textPS.Get(), nullptr, 0);
 	context->PSSetShaderResources(1, 1, atlas.srv.GetAddressOf());
+	context->PSSetSamplers(1, 1, textSS.GetAddressOf());
 
 	context->DrawIndexed(indexCount, 0, 0);
 }
@@ -157,8 +159,8 @@ Matrix TextMesh::MakeWorldFromRect() const
 	Vector3 r = rect.GetEuler();
 	Vector3 p = rect.pos;
 
-	Matrix T0 = Matrix::CreateTranslation(-rect.pivot.x * rect.width,
-		-rect.pivot.y * rect.height, 0.0f);
+	Matrix T0 = Matrix::CreateTranslation(-rect.pivot.x * rect.GetSize().x,
+		-rect.pivot.y * rect.GetSize().y, 0.0f);
 	Matrix S = Matrix::CreateScale(s);
 	Matrix R = Matrix::CreateFromYawPitchRoll(r.y, r.x, r.z);
 	Matrix T1 = Matrix::CreateTranslation(p);
@@ -209,6 +211,11 @@ void TextMesh::EnsureAtlasForText(ComPtr<ID3D11Device>& dev, const std::vector<u
 		paddingPx,
 		true
 	);
+}
+
+std::wstring TextMesh::GetText() const
+{
+	return text;
 }
 
 void TextMesh::SetText(const std::wstring_view ws, HAlign align)
@@ -281,10 +288,11 @@ void TextMesh::RebuildGeometry(ComPtr<ID3D11Device>& dev)
 	for (auto [lb, le] : lines)
 	{
 		float lineW = MeasureWidthCP(cps, lb, le);
-
 		float offsetX = 0.0f;
-		if (alignType == HAlign::Center) offsetX = (rect.width - lineW) * 0.5f;
-		else if (alignType == HAlign::Right) offsetX = (rect.width - lineW);
+		auto size = rect.GetSize();
+
+		if (alignType == HAlign::Center) offsetX = (size.x - lineW) * 0.5f;
+		else if (alignType == HAlign::Right) offsetX = (size.y - lineW);
 
 		float penX = offsetX;
 		float baselineY = penY;

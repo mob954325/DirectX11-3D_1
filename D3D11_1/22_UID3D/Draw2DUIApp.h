@@ -53,6 +53,7 @@ public:
 	ComPtr<IDXGISwapChain1> m_pSwapChain = nullptr;					// 스왑체인 
 	ComPtr<ID3D11RenderTargetView> m_pRenderTargetView = nullptr;	// 랜더 타겟
 	ComPtr<ID3D11DepthStencilView> m_pDepthStencilView = nullptr;	// 깊이 값 처리를 위한 뎊스스텐실 뷰
+	ComPtr<ID3D11RasterizerState> m_pRasterizerState = nullptr;	// 
 
 	// 렌더링 파이프라인에 적용하는 객체와 정보
 	ComPtr<ID3D11VertexShader> m_pVertexShader = nullptr;		// 정점 쉐이더
@@ -113,7 +114,8 @@ public:
 
 	Canvas canvas{};
 	//std::shared_ptr<Image> img1;
-	std::shared_ptr<TextMesh> img1;
+	std::shared_ptr<Image> img1;
+	std::shared_ptr<TextMesh> textMesh;
 
 	void CreateUIComps();
 

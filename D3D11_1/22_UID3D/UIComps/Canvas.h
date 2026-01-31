@@ -45,7 +45,7 @@ public:
 
 	ComPtr<ID3D11BlendState>			uiOverlayBS{};			// 블랜드 상태 
 	ComPtr<ID3D11RasterizerState>		cwCullModeRS{};			// 컬링 모드
-	ComPtr<ID3D11SamplerState>			SamplerState{};			// 샘플 상태
+	ComPtr<ID3D11SamplerState>			samplerState{};			// 샘플 상태
 	ComPtr<ID3D11DepthStencilState>		uiDSS{};				// 뎊스 스탠실 상태
 
 private:

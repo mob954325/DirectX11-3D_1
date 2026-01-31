@@ -35,38 +35,11 @@ void Image::Render(ComPtr<ID3D11DeviceContext>& context)
 
 	if (canvas == nullptr) return;
 
-	// rect 계산
-	float rot = rect.GetEuler().z;
-
-	// pivot은 0~1 (예: (0.5,0.5) center)
-	float pivX = rect.pivot.x;
-	float pivY = rect.pivot.y;
-
-	Matrix world =
-		Matrix::CreateTranslation(-pivX, -pivY, 0.0f) *				// 피벗만큼 위치 옮기기 [0, 1]
-		Matrix::CreateScale(rect.width, rect.height, 1.0f) *		// 픽셀 스케일링
-		Matrix::CreateRotationZ(rot) *								// z회전
-		Matrix::CreateTranslation(rect.pos.x, rect.pos.y, 0.0f);	// rect position 계산
-
-	mvp = world * canvas->GetProjection();	// UI에서  view는 보통 identity
+	mvp = rect.GetWorld() * canvas->GetProjection();	// UI에서  view는 보통 identity
 	imageCBData.WVP = mvp.Transpose();
 	imageCBData.color = color;
 
-	// Note : Mouse 충돌 테스트
-	// 접근 : 마우스 위치를 로컬 쿼드 좌표로 옮겨서 내부 판정을 시작한다. ( world.invert )
-	//		쿼드가 유닛값이므로 (0-1)로 내부판정을 한다.
-	int mouseX = DirectX::Mouse::Get().GetState().x;
-	int mouseY = DirectX::Mouse::Get().GetState().y;
-
-	Matrix invWorld = world.Invert();
-	Vector3 mouseWorld(mouseX, mouseY, 0.0f);
-	Vector3 local = Vector3::Transform(mouseWorld, invWorld);
-
-	// 유닛 쿼드 내부 판정 (0-1)
-	bool isHover = (local.x >= 0.0f && local.x <= 1.0f) && 
-				(local.y >= 0.0f && local.y <= 1.0f);
-
-	if (isHover) // 마우스가 감지되면 빨강색
+	if (isMouseHover) // 마우스가 감지되면 빨강색
 	{
 		color = { 1,0,0,1 };
 	}
@@ -94,4 +67,21 @@ Color Image::GetColor()
 void Image::SetColor(Color color)
 {
 	this->color = color;
+}
+
+void Image::CheckMouseHover()
+{
+	// Note : Mouse 충돌 테스트
+	// 접근 : 마우스 위치를 로컬 쿼드 좌표로 옮겨서 내부 판정을 시작한다. ( world.invert )
+	//		쿼드가 유닛값이므로 (0-1)로 내부판정을 한다.
+	int mouseX = DirectX::Mouse::Get().GetState().x;
+	int mouseY = DirectX::Mouse::Get().GetState().y;
+
+	Matrix invWorld = rect.GetWorld().Invert();
+	Vector3 mouseWorld(mouseX, mouseY, 0.0f);
+	Vector3 local = Vector3::Transform(mouseWorld, invWorld);
+
+	// 유닛 쿼드 내부 판정 (0-1)
+	bool isHover = (local.x >= 0.0f && local.x <= 1.0f) &&
+		(local.y >= 0.0f && local.y <= 1.0f);
 }
