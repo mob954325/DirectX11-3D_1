@@ -154,11 +154,11 @@ void Draw2DUIApp::OnRender()
 	cb1.projection = XMMatrixTranspose(m_Projection);
 	m_pDeviceContext->UpdateSubresource(m_pConstantBuffer.Get(), 0, nullptr, &cb1, 0, 0);
 
-	// Render ImGui
-	RenderImGUI();
-
 	// image 호출
 	canvas.Render(m_pDeviceContext);
+
+	// Render ImGui
+	RenderImGUI();
 	 
 	// 스왑체인 교체
 	m_pSwapChain->Present(0, 0);
