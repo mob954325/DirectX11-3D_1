@@ -2,19 +2,19 @@
 #include "../../Common/Helper.h"
 
 // === Util ===
-// UTF16 CodePoint Ã£±â
+// UTF16 CodePoint ì°¾ê¸°
 static void DecodeUTF16ToCodepoints(const std::wstring& s, std::vector<uint32_t>& out)
 {
 	out.clear();
 	out.reserve(s.size());
 
-	// Windows wchar_t´Â UTF-16. ÇÑ±ÛÀº BMP¶ó ´ëºÎºĞ 1°³ wchar_tÁö¸¸
-	// ÀÌ¸ğÁö µî surrogate pairµµ ¾ÈÀüÇÏ°Ô Ã³¸®.
+	// Windows wchar_tëŠ” UTF-16. í•œê¸€ì€ BMPë¼ ëŒ€ë¶€ë¶„ 1ê°œ wchar_tì§€ë§Œ
+	// ì´ëª¨ì§€ ë“± surrogate pairë„ ì•ˆì „í•˜ê²Œ ì²˜ë¦¬.
 	for (size_t i = 0; i < s.size(); ++i)
 	{
-		uint32_t wc = (uint32_t)s[i]; // ÇÑ±ÛÀÚ °ª ÄÚµå
+		uint32_t wc = (uint32_t)s[i]; // í•œê¸€ì ê°’ ì½”ë“œ
 
-		if (wc >= 0xD800 && wc <= 0xDBFF && (i + 1) < s.size()) // ÇÑ±ÛÀÌ¸é ÁÂÇ¥ Ã£±â ( codePoint )
+		if (wc >= 0xD800 && wc <= 0xDBFF && (i + 1) < s.size()) // í•œê¸€ì´ë©´ ì¢Œí‘œ ì°¾ê¸° ( codePoint )
 		{
 			uint32_t wc2 = (uint32_t)s[i + 1];
 			if (wc2 >= 0xDC00 && wc2 <= 0xDFFF)
@@ -32,7 +32,7 @@ static void DecodeUTF16ToCodepoints(const std::wstring& s, std::vector<uint32_t>
 	}
 }
 
-// ¶óÀÎ Â¥¸£±â
+// ë¼ì¸ ì§œë¥´ê¸°
 static void SplitLines(const std::vector<uint32_t>& cps,
 	std::vector<std::pair<size_t, size_t>>& lines)
 {
@@ -40,7 +40,7 @@ static void SplitLines(const std::vector<uint32_t>& cps,
 	size_t start = 0;
 	for (size_t i = 0; i < cps.size(); ++i)
 	{
-		if (cps[i] == (uint32_t)L'\n') // ±ÛÀÚ¿¡ ÁÙ ¹Ù²Ş ¹®ÀÚ°¡ ÀÖÀ¸¸é ÂÉ°³±â ( lines ÄÁÅ×ÀÌ³Ê¿¡ push )
+		if (cps[i] == (uint32_t)L'\n') // ê¸€ìì— ì¤„ ë°”ê¿ˆ ë¬¸ìê°€ ìˆìœ¼ë©´ ìª¼ê°œê¸° ( lines ì»¨í…Œì´ë„ˆì— push )
 		{
 			lines.push_back({ start, i }); // [start, i)
 			start = i + 1;
@@ -52,7 +52,7 @@ static void SplitLines(const std::vector<uint32_t>& cps,
 // === TextMesh ===
 void TextMesh::Init(ComPtr<ID3D11Device>& dev)
 {
-	device = dev; // text rebuildÇÒ ¶§ »ç¿ë
+	device = dev; // text rebuildí•  ë•Œ ì‚¬ìš©
 
 	// vb ( dynamic )
 	D3D11_BUFFER_DESC vb{};
@@ -62,7 +62,7 @@ void TextMesh::Init(ComPtr<ID3D11Device>& dev)
 	vb.ByteWidth = sizeof(QuadVertex) * 4 * 256; // maxGlyphs;
 	HR_T(dev->CreateBuffer(&vb, nullptr, textVB.GetAddressOf()));
 
-	// IB (ÇÑ ¹ø ¸¸µé°í Àç»ç¿ë: maxGlyphs±îÁö) -> ÀÓ½Ã 256
+	// IB (í•œ ë²ˆ ë§Œë“¤ê³  ì¬ì‚¬ìš©: maxGlyphsê¹Œì§€) -> ì„ì‹œ 256
 	std::vector<uint16_t> inds;
 	inds.reserve(6 * 256);
 	for (int i = 0; i < 256; ++i)
@@ -84,7 +84,7 @@ void TextMesh::Init(ComPtr<ID3D11Device>& dev)
 	init.pSysMem = inds.data();
 	HR_T(dev->CreateBuffer(&ib, &init, textIB.GetAddressOf()));
 
-	// »ó¼ö ¹öÆÛ ¸¸µé±â
+	// ìƒìˆ˜ ë²„í¼ ë§Œë“¤ê¸°
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.ByteWidth = sizeof(ImageCBData);
@@ -92,7 +92,7 @@ void TextMesh::Init(ComPtr<ID3D11Device>& dev)
 	bufferDesc.CPUAccessFlags = 0;
 	HR_T(dev->CreateBuffer(&bufferDesc, nullptr, textCbBuffer.GetAddressOf()));
 
-	// ÇÈ¼¿ ¼ÎÀÌ´õ ¸¸µé±â
+	// í”½ì…€ ì…°ì´ë” ë§Œë“¤ê¸°
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_QuadText.hlsl", "main", "ps_5_0", &pixelShaderBuffer));
 	HR_T(dev->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, textPS.GetAddressOf()));
@@ -100,38 +100,38 @@ void TextMesh::Init(ComPtr<ID3D11Device>& dev)
 
 void TextMesh::Render(ComPtr<ID3D11DeviceContext>& context)
 {
-	// Dirty¸é Rebuild + Upload¸¸ÇÏ°í ±×¸°´Ù. 
+	// Dirtyë©´ Rebuild + Uploadë§Œí•˜ê³  ê·¸ë¦°ë‹¤. 
 
 	if (!canvas) return;
 	if (!atlas.srv) return;
 
-	// Áö¿À¸ŞÆ®¸® Àç»ı¼º(ÇÊ¿ä½Ã)
+	// ì§€ì˜¤ë©”íŠ¸ë¦¬ ì¬ìƒì„±(í•„ìš”ì‹œ)
 	if (geometryDirty)
 	{
-		// glyphCount´Â cpuVerts.size()/4·Î °è»ê °¡´É
+		// glyphCountëŠ” cpuVerts.size()/4ë¡œ ê³„ì‚° ê°€ëŠ¥
 		RebuildGeometry(device);
 		geometryDirty = false;
 	}
 
 	if (indexCount == 0) return;
 
-	// VB/IB ¹ÙÀÎµù
+	// VB/IB ë°”ì¸ë”©
 	UINT stride = sizeof(QuadVertex);
 	UINT offset = 0;
 	context->IASetVertexBuffers(0, 1, textVB.GetAddressOf(), &stride, &offset);
 	context->IASetIndexBuffer(textIB.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-	// VB ¾÷·Îµå
+	// VB ì—…ë¡œë“œ
 	UploadVB(context);
 
-	// »ó¼ö¹öÆÛ ¾÷µ¥ÀÌÆ®
+	// ìƒìˆ˜ë²„í¼ ì—…ë°ì´íŠ¸
 	Matrix world = MakeWorldFromRect();
 	Matrix mvp = world * canvas->GetProjection();
 	imageCBData.WVP = mvp.Transpose();
 	imageCBData.color = color;
 	context->UpdateSubresource(textCbBuffer.Get(), 0, nullptr, &imageCBData, 0, 0);
 
-	// CB/PS/SRV ¹ÙÀÎµù
+	// CB/PS/SRV ë°”ì¸ë”©
 	context->VSSetConstantBuffers(1, 1, textCbBuffer.GetAddressOf());
 	context->PSSetConstantBuffers(1, 1, textCbBuffer.GetAddressOf());
 	context->PSSetShader(textPS.Get(), nullptr, 0);
@@ -142,7 +142,7 @@ void TextMesh::Render(ComPtr<ID3D11DeviceContext>& context)
 
 Matrix TextMesh::MakeWorldFromRect() const
 {
-	// pivot ±âÁØ ÀÌµ¿ -> ½ºÄÉÀÏ/È¸Àü -> À§Ä¡
+	// pivot ê¸°ì¤€ ì´ë™ -> ìŠ¤ì¼€ì¼/íšŒì „ -> ìœ„ì¹˜
 	Vector3 s = rect.GetScale();
 	Vector3 r = rect.GetEuler();
 	Vector3 p = rect.pos;
@@ -158,7 +158,7 @@ Matrix TextMesh::MakeWorldFromRect() const
 
 void TextMesh::LoadFontAtlas(ComPtr<ID3D11Device>& dev, const std::wstring fontFilePath, float fontPx, int atlasW, int atlasH, int paddingPx)
 {
-	// ¸Ş¸ğ¸®¿¡ ¿Ã¶ó¿È 
+	// ë©”ëª¨ë¦¬ì— ì˜¬ë¼ì˜´ 
 	this->fontPath = fontFilePath;
 	this->fontPx = fontPx;
 	this->atlasW = atlasW;
@@ -171,8 +171,8 @@ void TextMesh::LoadFontAtlas(ComPtr<ID3D11Device>& dev, const std::wstring fontF
 
 void TextMesh::EnsureAtlasForText(ComPtr<ID3D11Device>& dev, const std::vector<uint32_t>& cps)
 {
-	// ±Û¸®ÇÁ º¸ÀåÇÔ¼ö
-	// builder¿¡ Àç ºôµå°¡ ÇÊ¿äÇÑÁö, Ãß°¡¸¦ ÇØ¾ßÇÏ´ÂÁö È®ÀÎÇÏ°í ¼³Á¤ÇØÁÖ´Â ÈÅ ÇÔ¼öÀÓ.
+	// ê¸€ë¦¬í”„ ë³´ì¥í•¨ìˆ˜
+	// builderì— ì¬ ë¹Œë“œê°€ í•„ìš”í•œì§€, ì¶”ê°€ë¥¼ í•´ì•¼í•˜ëŠ”ì§€ í™•ì¸í•˜ê³  ì„¤ì •í•´ì£¼ëŠ” í›… í•¨ìˆ˜ì„.
 	// if (builder.NeedsRebuild(atlas, cps)) {
 	//     atlas = builder.BuildFromCodepoints(dev, fontFilePath, fontPx, atlasW, atlasH, padding, cps);
 	// }
@@ -188,8 +188,8 @@ void TextMesh::EnsureAtlasForText(ComPtr<ID3D11Device>& dev, const std::vector<u
 
 	if (need.empty()) return;
 
-	// ÇöÀç ÅØ½ºÆ®¿¡ ÇÊ¿äÇÑ cp ÀüÃ¼¸¦ ±Á´Â ¹æ½Ä(°£´Ü/¾ÈÀü)
-	// + ÇÊ¿äÇÏ¸é ASCIIµµ °°ÀÌ
+	// í˜„ì¬ í…ìŠ¤íŠ¸ì— í•„ìš”í•œ cp ì „ì²´ë¥¼ êµ½ëŠ” ë°©ì‹(ê°„ë‹¨/ì•ˆì „)
+	// + í•„ìš”í•˜ë©´ ASCIIë„ ê°™ì´
 	atlas = builder.BuildFromCodepoints(
 		dev.Get(),
 		fontPath,
@@ -201,56 +201,14 @@ void TextMesh::EnsureAtlasForText(ComPtr<ID3D11Device>& dev, const std::vector<u
 	);
 }
 
-// utf-16 -> utf-8
-static std::string WStringToUtf8(const std::wstring& w)
+void TextMesh::SetText(const std::wstring_view ws, HAlign align)
 {
-	if (w.empty()) return "";
-
-	int len = WideCharToMultiByte(
-		CP_UTF8,
-		WC_ERR_INVALID_CHARS,
-		w.data(),
-		(int)w.size(),
-		nullptr,
-		0,
-		nullptr,
-		nullptr
-	);
-	if (len <= 0) return "";
-
-	std::string s;
-	s.resize(len);
-
-	WideCharToMultiByte(
-		CP_UTF8,
-		WC_ERR_INVALID_CHARS,
-		w.data(),
-		(int)w.size(),
-		s.data(),
-		len,
-		nullptr,
-		nullptr
-	);
-
-	return s;
-}
-
-void TextMesh::SetText(const std::wstring& s, HAlign align)
-{
-	text = s;
+	text = ws;
 	alignType = align;
 	geometryDirty = true;
 }
 
-void TextMesh::SetText(const std::string& s, HAlign align)
-{
-	auto wstr = Utf8ToWString(s);
-	text = wstr;
-	alignType = align;
-	geometryDirty = true;
-}
-
-Color TextMesh::GetColor()
+Color TextMesh::GetColor() const
 {
 	return color;
 }
@@ -275,8 +233,8 @@ float TextMesh::MeasureWidthCP(const std::vector<uint32_t>& cps, size_t b, size_
 
 void TextMesh::AppendGlyphQuad(float penX, float baselineY, const decltype(atlas.glyphs.begin()-> second)& g)
 {
-	// y-down ÁÂÇ¥°è ±âÁØ:
-	// top = baseline - bearingY (bearingY°¡ baseline->topÀ¸·Î +ÀÎ ¸ŞÆ®¸¯ÀÏ ¶§)
+	// y-down ì¢Œí‘œê³„ ê¸°ì¤€:
+	// top = baseline - bearingY (bearingYê°€ baseline->topìœ¼ë¡œ +ì¸ ë©”íŠ¸ë¦­ì¼ ë•Œ)
 	float x0 = penX + (float)g.bearingX;
 	float y0 = baselineY - (float)g.bearingY;
 	float x1 = x0 + (float)g.w;
@@ -296,20 +254,20 @@ void TextMesh::RebuildGeometry(ComPtr<ID3D11Device>& dev)
 	std::vector<uint32_t> cps;
 	DecodeUTF16ToCodepoints(text, cps);
 
-	// (ÇÑ±Û Áö¿ø) ¾ÆÆ²¶ó½º¿¡ ÇÊ¿äÇÑ ±Û¸®ÇÁ È®º¸
+	// (í•œê¸€ ì§€ì›) ì•„í‹€ë¼ìŠ¤ì— í•„ìš”í•œ ê¸€ë¦¬í”„ í™•ë³´
 	EnsureAtlasForText(dev, cps);
 	if (!atlas.srv) return;
 
 	std::vector<std::pair<size_t, size_t>> lines;
 	SplitLines(cps, lines);
 
-	// ÆùÆ® ¸ŞÆ®¸¯: ascent/lineHeight´Â atlas¿¡ ÀÖ¾î¾ß ÇÔ
+	// í°íŠ¸ ë©”íŠ¸ë¦­: ascent/lineHeightëŠ” atlasì— ìˆì–´ì•¼ í•¨
 	const float ascent = (float)atlas.ascentPx;
 	const float lineH = (float)atlas.lineHeightPx;
 
 	int glyphCount = 0;
 
-	float penY = ascent; // "·ÎÄÃ top=0" ±âÁØ baseline
+	float penY = ascent; // "ë¡œì»¬ top=0" ê¸°ì¤€ baseline
 	for (auto [lb, le] : lines)
 	{
 		float lineW = MeasureWidthCP(cps, lb, le);
@@ -351,10 +309,10 @@ void TextMesh::EnsureBufferCapacity(ComPtr<ID3D11Device>& dev, uint32_t glyphCou
 {
 	if (glyphCount <= maxGlyphs) return;
 
-	// 2¹è¾¿ Áõ°¡
+	// 2ë°°ì”© ì¦ê°€
 	while (glyphCount > maxGlyphs) maxGlyphs *= 2;
 
-	// VB Àç»ı¼º
+	// VB ì¬ìƒì„±
 	D3D11_BUFFER_DESC vb{};
 	vb.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vb.Usage = D3D11_USAGE_DYNAMIC;
@@ -362,7 +320,7 @@ void TextMesh::EnsureBufferCapacity(ComPtr<ID3D11Device>& dev, uint32_t glyphCou
 	vb.ByteWidth = sizeof(QuadVertex) * 4 * maxGlyphs;
 	HR_T(dev->CreateBuffer(&vb, nullptr, textVB.ReleaseAndGetAddressOf()));
 
-	// IB Àç»ı¼º(immutable)
+	// IB ì¬ìƒì„±(immutable)
 	std::vector<uint16_t> inds;
 	inds.reserve(6 * maxGlyphs);
 	for (uint32_t i = 0; i < maxGlyphs; ++i)
