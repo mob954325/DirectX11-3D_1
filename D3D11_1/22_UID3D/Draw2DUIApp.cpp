@@ -255,6 +255,34 @@ void Draw2DUIApp::RenderImGUI()
 		img1->SetColor(color);
 		
 		ImGui::DragFloat2("pivot", &img1->rect.pivot.x, 0.01f, 0.0f, 1.0f);
+
+		ImageType type = img1->GetImageType();
+
+		ImGui::Text("img1 type: %d", ( int ) type);
+
+		if (ImGui::BeginPopupContextItem("img1_ctx"))
+		{
+			// 타입 선택(변경)
+			if (ImGui::MenuItem("Simple")) img1->SetImageType(ImageType::Simple);
+			if (ImGui::MenuItem("Sliced")) img1->SetImageType(ImageType::Sliced);
+			if (ImGui::MenuItem("Fill"))   img1->SetImageType(ImageType::Fill);
+			ImGui::EndPopup();
+		}
+
+		// 타입별 옵션
+		type = img1->GetImageType();
+		if (type == ImageType::Fill)
+		{
+			float a = img1->GetFillAmount();
+			if (ImGui::SliderFloat("Fill", &a, 0.f, 1.f))
+				img1->SetFillAmount(a);
+		}
+		else if (type == ImageType::Sliced)
+		{
+			Vector4 b = img1->GetSliceBorderPx();
+			if (ImGui::DragFloat4("Slice Border (L,R,T,B)", &b.x, 1.0f, 0.0f, 4096.0f, "%.0f"))
+				img1->SetSliceBorderPx(b.x, b.y, b.z, b.w);
+		}
 	}
 	ImGui::End();
 

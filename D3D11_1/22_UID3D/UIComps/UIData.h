@@ -1,9 +1,11 @@
 #pragma once
 
-// »ó¼ö¹öÆÛ
+// ìƒìˆ˜ë²„í¼
 struct ImageCBData
 {
-	Matrix WVP;		// view projection
-	Color color;
-	Vector4 uvRect;
+	Matrix  WVP;        // imageWVP
+	Color   color;      // ImageBaseColor
+	Vector4 uvRect;     // L,R,T,B (px)
+	Vector4 params;     // imageParams (x=type, y=fillAmount)
+	Vector4 imageSize;  // (rectW, rectH, texW, texH)
 };

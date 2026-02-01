@@ -18,7 +18,9 @@ cbuffer imageCB : register(b1)
 {
     matrix imageWVP;
     float4 ImageBaseColor;
-    float4 UVRect; // u0, v0, u1, v1
+    float4 UVRect;          // x=leftPx, y=rightPx, z=topPx, w=bottomPx -> slice border(px)
+    float4 imageParams;     // x=type, y=fillAmount
+    float4 imageSize;       // x=rectW, y=rectH, z=texW,  w=texH
 }
 
 struct VS_INPUT

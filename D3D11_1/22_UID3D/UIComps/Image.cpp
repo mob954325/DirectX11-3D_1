@@ -10,6 +10,17 @@ void Image::GetTexureByPath(ComPtr<ID3D11Device>& device, ComPtr<ID3D11DeviceCon
 {
 	std::wstring wpath = std::wstring(path.begin(), path.end());
 	HR_T(CreateWICTextureFromFile(device.Get(), context.Get(), wpath.c_str(), nullptr, imgSRV.GetAddressOf()));
+
+	ComPtr<ID3D11Resource> res;
+	imgSRV->GetResource(res.GetAddressOf());
+
+	ComPtr<ID3D11Texture2D> tex2D;
+	HR_T(res.As(&tex2D));
+
+	D3D11_TEXTURE2D_DESC desc{};
+	tex2D->GetDesc(&desc);
+
+	texSizePx = Vector2(( float ) desc.Width, ( float ) desc.Height); // border(px)
 }
 
 void Image::Init(ComPtr<ID3D11Device>& dev)
@@ -37,17 +48,28 @@ void Image::Render(ComPtr<ID3D11DeviceContext>& context)
 
 	mvp = rect.GetWorld() * canvas->GetProjection();	// UI에서  view는 보통 identity
 	imageCBData.WVP = mvp.Transpose();
-	imageCBData.color = color;
 
+	// mouse hover test
 	CheckMouseHover();
 	if (isMouseHover) // 마우스가 감지되면 빨강색
 	{
 		color = { 1,0,0,1 };
 	}
-	else // 그렇지 않으면 하양색
+	else
 	{
 		color = { 1,1,1,1 };
 	}
+	imageCBData.color = color;
+
+	// type / fillAmount 전달하기
+	imageCBData.params = Vector4(( float ) type, fillAmount, 0.0f, 0.0f);
+
+	// uvRect : 9-sliced 보더(px)
+	imageCBData.uvRect = sliceBorderPx;
+
+	// imageSize : rectW/ rectH/ texW/ texH
+	Vector2 rectSize = rect.GetSize();
+	imageCBData.imageSize = Vector4(rectSize.x, rectSize.y, texSizePx.x, texSizePx.y);
 
 	context->UpdateSubresource(imageCbBuffer.Get(), 0, nullptr, &imageCBData, 0, 0); // 상수 버퍼 업데이트
 
@@ -68,6 +90,36 @@ Color Image::GetColor()
 void Image::SetColor(Color color)
 {
 	this->color = color;
+}
+
+ImageType Image::GetImageType()
+{
+	return type;
+}
+
+void Image::SetImageType(ImageType t)
+{
+	type = t;
+}
+
+float Image::GetFillAmount()
+{
+	return fillAmount;
+}
+
+void Image::SetFillAmount(float v)
+{
+	fillAmount = std::clamp(v, 0.0f, 1.0f);
+}
+
+Vector4 Image::GetSliceBorderPx()
+{
+	return sliceBorderPx;
+}
+
+void Image::SetSliceBorderPx(float l, float r, float t, float b)
+{
+	sliceBorderPx = Vector4(l, r, t, b);
 }
 
 void Image::CheckMouseHover()
