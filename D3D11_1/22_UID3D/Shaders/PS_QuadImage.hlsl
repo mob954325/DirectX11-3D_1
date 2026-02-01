@@ -28,19 +28,19 @@ float Remap9_1D(float t, float outL, float outR, float srcL, float srcR)
         }
     }
 
-    if (t < outL)
+    if (t < outL) // 현재 텍셀이 왼쪽 보더 안에 있으면
     {
-        float tt = t / max(outL, EPS);
+        float tt = t / max(outL, EPS); // 왼쪽 보더를 최대값으로 매핑할 위치 찾기
         return lerp(0.0f, srcL, tt);
     }
-    else if (t > 1.0f - outR)
+    else if (t > 1.0f - outR) // 오른쪽 보더 안에 있으면
     {
-        float tt = (t - (1.0f - outR)) / max(outR, EPS);
+        float tt = (t - (1.0f - outR)) / max(outR, EPS); // 오른쪽 보더 기준으로 위치 찾기
         return lerp(1.0f - srcR, 1.0f, tt);
     }
-    else
+    else // 센터에 있으면
     {
-        float tt = (t - outL) / max(outC, EPS);
+        float tt = (t - outL) / max(outC, EPS); // 중앙값을 기준으로 위치 찾기
         return srcL + tt * srcC;
     }
 }
@@ -61,24 +61,24 @@ float4 main(PS_INPUT input) : SV_TARGET
         float bottomPx = UVRect.w;
 
         // sizes
-        float rectW = max(imageSize.x, 1.0f);
-        float rectH = max(imageSize.y, 1.0f);
-        float texW = max(imageSize.z, 1.0f);
-        float texH = max(imageSize.w, 1.0f);
+        float rectW = max(imageSize.x, 1.0f);   // 이미지 rect width 값
+        float rectH = max(imageSize.y, 1.0f);   // 이미지 rect height 값
+        float texW = max(imageSize.z, 1.0f);    // 이미지 width 픽셀 값
+        float texH = max(imageSize.w, 1.0f);    // 이미지 height 픽셀 값
 
-        // output border (0..1) : borderPx / rectSize
+        // borderPx값을 0 ~ 1 사이 값으로 변환 -> 각 보더가 전체 폭의 %인가? ( 스크린에 그려질 분할선 위치 )
         float outL = saturate(leftPx / rectW);
         float outR = saturate(rightPx / rectW);
         float outT = saturate(topPx / rectH);
         float outB = saturate(bottomPx / rectH);
 
-        // source border (0..1) : borderPx / texSize
+        // 이미지 픽셀 기준 값 변환
         float srcL = saturate(leftPx / texW);
         float srcR = saturate(rightPx / texW);
         float srcT = saturate(topPx / texH);
         float srcB = saturate(bottomPx / texH);
 
-        // 주의: 너 UV는 v=0이 "상단"(LT uv(0,0))이고 v가 아래로 증가
+        // 좌상단이 0,0일 때 처리
         float u2 = Remap9_1D(uv.x, outL, outR, srcL, srcR);
         float v2 = Remap9_1D(uv.y, outT, outB, srcT, srcB);
 
@@ -88,7 +88,7 @@ float4 main(PS_INPUT input) : SV_TARGET
     // --- FILL (Radial CW) ---
     if (type == 2)
     {
-        float fillAmount = saturate(imageParams.y);
+        float fillAmount = saturate(imageParams.y); // 0 - 1 범위 강제
 
         // uv 기준 중심
         float2 uv = input.TexCoord;
