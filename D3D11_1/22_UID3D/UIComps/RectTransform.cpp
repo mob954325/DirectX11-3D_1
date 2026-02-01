@@ -5,9 +5,8 @@ void RectTransform::OnUpdate(float delta)
     if (isDirty)
     {
         auto& r = GetEuler();
-        Matrix T0 = Matrix::CreateTranslation(-pivot.x * size.x,
-            -pivot.y * size.y, 0.0f);
-        Matrix S = Matrix::CreateScale({size.x, size.y, 0});
+        Matrix T0 = Matrix::CreateTranslation(-pivot.x, -pivot.y, 0.0f);
+        Matrix S = Matrix::CreateScale({size.x, size.y, 1.0f});
         Matrix R = Matrix::CreateFromYawPitchRoll(r.y, r.x, r.z);
         Matrix T1 = Matrix::CreateTranslation({pos.x, pos.y, 0});
 
@@ -53,15 +52,14 @@ Matrix RectTransform::GetWorld()
 {
     if (isDirty)
     {
-        auto& r = GetEuler();
-        Matrix T0 = Matrix::CreateTranslation(-pivot.x * size.x,
-            -pivot.y * size.y, 0.0f);
-        Matrix S = Matrix::CreateScale({ size.x, size.y, 0 });
-        Matrix R = Matrix::CreateFromYawPitchRoll(r.y, r.x, r.z);
-        Matrix T1 = Matrix::CreateTranslation({ pos.x, pos.y, 0 });
+		auto& r = GetEuler();
+		Matrix T0 = Matrix::CreateTranslation(-pivot.x, -pivot.y, 0.0f);
+		Matrix S = Matrix::CreateScale({ size.x, size.y, 1.0f });
+		Matrix R = Matrix::CreateFromYawPitchRoll(r.y, r.x, r.z);
+		Matrix T1 = Matrix::CreateTranslation({ pos.x, pos.y, 0 });
 
-        world = T0 * S * R * T1;
-        isDirty = false;
+		world = T0 * S * R * T1;
+		isDirty = false;
     }
 
     return world;

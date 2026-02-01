@@ -4,13 +4,20 @@
 #include "RectTransform.h"
 #include "UIData.h"
 
+enum class ImageFillType
+{
+	Simple,		// ê¸°ë³¸ ì´ë¯¸ì§€ ì¶œë ¥
+	Sliced,		// ì´ë¯¸ì§€ ì¤‘ê°„ ë¶€ë¶„ë§Œ ëŠ˜ë ¤ì§€ëŠ”ê±° ( 9-SlicedëŠ” ì•„ë‹˜ )
+	Fill		// ì´ë¯¸ì§€ ì±„ìš°ê¸°
+};
+
 class Image : public UIBase
 {
 public:
 	/// <summary>
-	/// ÅØ½ºÃ³¸¦ path¸¦ ÅëÇØ ¼³Á¤ÇÏ±â
+	/// í…ìŠ¤ì²˜ë¥¼ pathë¥¼ í†µí•´ ì„¤ì •í•˜ê¸°
 	/// </summary>
-	/// ³ªÁß¿¡ device ¸Å°³º¯¼ö ¹Ş´Â°Å Á¤¸®ÇÏ±â
+	/// ë‚˜ì¤‘ì— device ë§¤ê°œë³€ìˆ˜ ë°›ëŠ”ê±° ì •ë¦¬í•˜ê¸°
 	void GetTexureByPath(ComPtr<ID3D11Device>& device, ComPtr<ID3D11DeviceContext>& context, std::string path);
 
 	void Init(ComPtr<ID3D11Device>& dev) override;
@@ -22,14 +29,14 @@ public:
 	Color GetColor();
 	void SetColor(Color color);
 	
-	// === Å×½ºÆ® º¯¼ö === ( ¿Å±æ ¶§ Á¦°Å )
+	// === í…ŒìŠ¤íŠ¸ ë³€ìˆ˜ === ( ì˜®ê¸¸ ë•Œ ì œê±° )
 	Vector3 local{};
 
 private:
-	ComPtr<ID3D11Texture2D>				imgTex{};			// ·»´õ¸µÇÒ ÅØ½ºÃ³ µ¥ÀÌÅÍ?
-	ComPtr<ID3D11ShaderResourceView>	imgSRV{};			// Ãâ·ÂÇÒ ÅØ½ºÃ³ µ¥ÀÌÅÍ
-	ComPtr<ID3D11Buffer>				imageCbBuffer{};	// image¿ë »ó¼ö ¹öÆÛ->³ªÁß¿¡ ¸Å´ÏÀú·Î ¸ğ¾ÆµÎ±â
-	ComPtr<ID3D11PixelShader>			imagePS{};			// ÀÌ¹ÌÁö¿¡ »ç¿ëÇÒ ps
+	ComPtr<ID3D11Texture2D>				imgTex{};			// ë Œë”ë§í•  í…ìŠ¤ì²˜ ë°ì´í„°?
+	ComPtr<ID3D11ShaderResourceView>	imgSRV{};			// ì¶œë ¥í•  í…ìŠ¤ì²˜ ë°ì´í„°
+	ComPtr<ID3D11Buffer>				imageCbBuffer{};	// imageìš© ìƒìˆ˜ ë²„í¼->ë‚˜ì¤‘ì— ë§¤ë‹ˆì €ë¡œ ëª¨ì•„ë‘ê¸°
+	ComPtr<ID3D11PixelShader>			imagePS{};			// ì´ë¯¸ì§€ì— ì‚¬ìš©í•  ps
 
 	ImageCBData imageCBData{};	//	
 	Matrix mvp{};			// model view projection

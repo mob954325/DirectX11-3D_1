@@ -14,7 +14,7 @@ void Image::GetTexureByPath(ComPtr<ID3D11Device>& device, ComPtr<ID3D11DeviceCon
 
 void Image::Init(ComPtr<ID3D11Device>& dev)
 {
-	// »ó¼ö ¹öÆÛ ¸¸µé±â
+	// ìƒìˆ˜ ë²„í¼ ë§Œë“¤ê¸°
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.ByteWidth = sizeof(ImageCBData);
@@ -22,7 +22,7 @@ void Image::Init(ComPtr<ID3D11Device>& dev)
 	bufferDesc.CPUAccessFlags = 0;
 	HR_T(dev->CreateBuffer(&bufferDesc, nullptr, imageCbBuffer.GetAddressOf()));
 
-	// ÇÈ¼¿ ¼ÎÀÌ´õ ¸¸µé±â
+	// í”½ì…€ ì…°ì´ë” ë§Œë“¤ê¸°
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_QuadImage.hlsl", "main", "ps_5_0", &pixelShaderBuffer));
 	HR_T(dev->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, imagePS.GetAddressOf()));
@@ -30,33 +30,34 @@ void Image::Init(ComPtr<ID3D11Device>& dev)
 
 void Image::Render(ComPtr<ID3D11DeviceContext>& context)
 {
-	// TODO : ZÃà Á¤·Ä
-	//			¸¶¿ì½º ÀÌº¥Æ® Å¬¸¯, ¸¶¿ì½º Å¬¸¯Àº ÃÖ»ó´Ü UI 1°³¸¸ °¨ÁöÇÑ´Ù.
+	// TODO : Zì¶• ì •ë ¬
+	//			ë§ˆìš°ìŠ¤ ì´ë²¤íŠ¸ í´ë¦­, ë§ˆìš°ìŠ¤ í´ë¦­ì€ ìµœìƒë‹¨ UI 1ê°œë§Œ ê°ì§€í•œë‹¤.
 
 	if (canvas == nullptr) return;
 
-	mvp = rect.GetWorld() * canvas->GetProjection();	// UI¿¡¼­  view´Â º¸Åë identity
+	mvp = rect.GetWorld() * canvas->GetProjection();	// UIì—ì„œ  viewëŠ” ë³´í†µ identity
 	imageCBData.WVP = mvp.Transpose();
 	imageCBData.color = color;
 
-	if (isMouseHover) // ¸¶¿ì½º°¡ °¨ÁöµÇ¸é »¡°­»ö
+	CheckMouseHover();
+	if (isMouseHover) // ë§ˆìš°ìŠ¤ê°€ ê°ì§€ë˜ë©´ ë¹¨ê°•ìƒ‰
 	{
 		color = { 1,0,0,1 };
 	}
-	else // ±×·¸Áö ¾ÊÀ¸¸é ÇÏ¾ç»ö
+	else // ê·¸ë ‡ì§€ ì•Šìœ¼ë©´ í•˜ì–‘ìƒ‰
 	{
 		color = { 1,1,1,1 };
 	}
 
-	context->UpdateSubresource(imageCbBuffer.Get(), 0, nullptr, &imageCBData, 0, 0); // »ó¼ö ¹öÆÛ ¾÷µ¥ÀÌÆ®
+	context->UpdateSubresource(imageCbBuffer.Get(), 0, nullptr, &imageCBData, 0, 0); // ìƒìˆ˜ ë²„í¼ ì—…ë°ì´íŠ¸
 
-	context->VSSetConstantBuffers(1, 1, imageCbBuffer.GetAddressOf());	// vs »ó¼ö ¹öÆÛ ¼³Á¤
-	context->PSSetConstantBuffers(1, 1, imageCbBuffer.GetAddressOf());	// ps »ó¼ö ¹öÆÛ ¼³Á¤
-	context->PSSetShader(imagePS.Get(), nullptr, 0);					// ps ¹ÙÀÎµù
+	context->VSSetConstantBuffers(1, 1, imageCbBuffer.GetAddressOf());	// vs ìƒìˆ˜ ë²„í¼ ì„¤ì •
+	context->PSSetConstantBuffers(1, 1, imageCbBuffer.GetAddressOf());	// ps ìƒìˆ˜ ë²„í¼ ì„¤ì •
+	context->PSSetShader(imagePS.Get(), nullptr, 0);					// ps ë°”ì¸ë”©
 
-	context->PSSetShaderResources(0, 1, imgSRV.GetAddressOf());			// ÅØ½ºÃ³ ¸®¼Ò½º ¹ÙÀÎµù
+	context->PSSetShaderResources(0, 1, imgSRV.GetAddressOf());			// í…ìŠ¤ì²˜ ë¦¬ì†ŒìŠ¤ ë°”ì¸ë”©
 
-	context->DrawIndexed(6, 0, 0);	// Äõµå ±×¸®±â
+	context->DrawIndexed(6, 0, 0);	// ì¿¼ë“œ ê·¸ë¦¬ê¸°
 }
 
 Color Image::GetColor()
@@ -71,9 +72,9 @@ void Image::SetColor(Color color)
 
 void Image::CheckMouseHover()
 {
-	// Note : Mouse Ãæµ¹ Å×½ºÆ®
-	// Á¢±Ù : ¸¶¿ì½º À§Ä¡¸¦ ·ÎÄÃ Äõµå ÁÂÇ¥·Î ¿Å°Ü¼­ ³»ºÎ ÆÇÁ¤À» ½ÃÀÛÇÑ´Ù. ( world.invert )
-	//		Äõµå°¡ À¯´Ö°ªÀÌ¹Ç·Î (0-1)·Î ³»ºÎÆÇÁ¤À» ÇÑ´Ù.
+	// Note : Mouse ì¶©ëŒ í…ŒìŠ¤íŠ¸
+	// ì ‘ê·¼ : ë§ˆìš°ìŠ¤ ìœ„ì¹˜ë¥¼ ë¡œì»¬ ì¿¼ë“œ ì¢Œí‘œë¡œ ì˜®ê²¨ì„œ ë‚´ë¶€ íŒì •ì„ ì‹œì‘í•œë‹¤. ( world.invert )
+	//		ì¿¼ë“œê°€ ìœ ë‹›ê°’ì´ë¯€ë¡œ (0-1)ë¡œ ë‚´ë¶€íŒì •ì„ í•œë‹¤.
 	int mouseX = DirectX::Mouse::Get().GetState().x;
 	int mouseY = DirectX::Mouse::Get().GetState().y;
 
@@ -81,7 +82,7 @@ void Image::CheckMouseHover()
 	Vector3 mouseWorld(mouseX, mouseY, 0.0f);
 	Vector3 local = Vector3::Transform(mouseWorld, invWorld);
 
-	// À¯´Ö Äõµå ³»ºÎ ÆÇÁ¤ (0-1)
-	bool isHover = (local.x >= 0.0f && local.x <= 1.0f) &&
+	// ìœ ë‹› ì¿¼ë“œ ë‚´ë¶€ íŒì • (0-1)
+	isMouseHover = (local.x >= 0.0f && local.x <= 1.0f) &&
 		(local.y >= 0.0f && local.y <= 1.0f);
 }

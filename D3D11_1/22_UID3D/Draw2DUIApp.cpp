@@ -1,4 +1,4 @@
-﻿#include "Draw2DUIApp.h"
+#include "Draw2DUIApp.h"
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
@@ -677,6 +677,8 @@ void Draw2DUIApp::ResizeResource()
 	descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	descDSV.Texture2D.MipSlice = 0;
 	HR_T(m_pDevice->CreateDepthStencilView(pTextureDepthStencil.Get(), &descDSV, m_pDepthStencilView.ReleaseAndGetAddressOf()));
+
+	canvas.GetSize(m_ClientWidth, m_ClientHeight);
 }
 
 LRESULT Draw2DUIApp::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
