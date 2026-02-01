@@ -2,26 +2,26 @@
 #include "../../../Common/pch.h"
 #include "../../../Common/Helper.h"
 #include <unordered_map>
-#include "dwrite.h" // glyph ½ÇÇàÇì ÇÊ¿äÇÑ low-level Á¤º¸ 
+#include "dwrite.h" // glyph ì‹¤í–‰í—¤ í•„ìš”í•œ low-level ì •ë³´ 
 
 #undef max
 #undef min
 
 /// <summary>
-/// glyph À§Ä¡Á¤º¸
+/// glyph ìœ„ì¹˜ì •ë³´
 /// </summary>
 struct GlyphInfo
 {
-    uint32_t codepoint;		// ASCII¸é char·Î ´ëÃ¼ °¡´É
+    uint32_t codepoint;		// ASCIIë©´ charë¡œ ëŒ€ì²´ ê°€ëŠ¥
     uint16_t glyphIndex;	// DWrite glyph index
 
-    // ¾ÆÆ²¶ó½º ÁÂÇ¥ ( Á¤±ÔÈ­ UV )
+    // ì•„í‹€ë¼ìŠ¤ ì¢Œí‘œ ( ì •ê·œí™” UV )
     float u0, v0, u1, v1;
 
-    // ºñÆ®¸Ê Å©±â ( px )
+    // ë¹„íŠ¸ë§µ í¬ê¸° ( px )
     int w, h;
 
-    // º£¾î¸µ ( px ) : pen(º£ÀÌ½º¶óÀÎ ±âÁØ)¿¡¼­ glyph bitmap ÁÂ»ó´Ü±îÁö -> ???
+    // ë² ì–´ë§ ( px ) : pen(ë² ì´ìŠ¤ë¼ì¸ ê¸°ì¤€)ì—ì„œ glyph bitmap ì¢Œìƒë‹¨ê¹Œì§€ -> ???
     int bearingX;
     int bearingY;
 
@@ -30,25 +30,25 @@ struct GlyphInfo
 };
 
 /// <summary>
-/// ÆùÆ® ÅØ½ºÃ³ ¾ÆÆ²¶ó½º
+/// í°íŠ¸ í…ìŠ¤ì²˜ ì•„í‹€ë¼ìŠ¤
 /// </summary>
 struct FontAtlas
 {
     int atlasW = 0, atlasH = 0;
 
-    ComPtr<ID3D11Texture2D> texture;        // ¾ÆÆ²¶ó½º ÅØ½ºÃ³
-    ComPtr<ID3D11ShaderResourceView> srv;   // ¹ÙÀÎµùÇÒ srv
+    ComPtr<ID3D11Texture2D> texture;        // ì•„í‹€ë¼ìŠ¤ í…ìŠ¤ì²˜
+    ComPtr<ID3D11ShaderResourceView> srv;   // ë°”ì¸ë”©í•  srv
 
     std::unordered_map<uint32_t, GlyphInfo> glyphs;
 
-    int ascentPx = 0; // baseline °è»ê¿¡ ÇÊ¿äÇÏ¸é º¸°£
+    int ascentPx = 0; // baseline ê³„ì‚°ì— í•„ìš”í•˜ë©´ ë³´ê°„
     int descentPx = 0;
     int lineGapPx = 0;
     int lineHeightPx = 0;
 };
 
 /// <summary>
-/// ¾ÆÆ²¶ó½º ÆĞÅ· : Çà Ã¤¿ì±â 
+/// ì•„í‹€ë¼ìŠ¤ íŒ¨í‚¹ : í–‰ ì±„ìš°ê¸° 
 /// </summary>
 struct ShelfPacker
 {
@@ -61,7 +61,7 @@ struct ShelfPacker
     bool TryAlloc(int w, int h, int& outX, int& outY)
     {
         if (x + w > W) { x = 0; y += rowH; rowH = 0; }
-        if (y + h > H) return false; // ³ôÀÌ ÃÊ°ú
+        if (y + h > H) return false; // ë†’ì´ ì´ˆê³¼
         outX = x; outY = y;
         x += w;
         rowH = std::max(rowH, h);
@@ -69,27 +69,23 @@ struct ShelfPacker
     }
 };
 
-
-/// <summary>
-///
-/// </summary>
 class FontAtlasBuilder
 {
 public:
-    // ASCII ÅØ½ºÃ³ ±Á´Â ÇÔ¼ö
+    // ASCII í…ìŠ¤ì²˜ êµ½ëŠ” í•¨ìˆ˜
     static FontAtlas BuildASCII(ID3D11Device* dev, const std::wstring fontFilePath, 
-                            float fontPx, // ¿¹: 32.0f
+                            float fontPx, // ì˜ˆ: 32.0f
                             int atlasW, int atlasH, // 1024x1024, 2048x2048
                             int paddingPx = 1);
 
-    // ÅØ½ºÆ®¿¡ ÇÊ¿äÇÑ codepoint¸¸ ±Á´Â build ÇÔ¼ö
+    // í…ìŠ¤íŠ¸ì— í•„ìš”í•œ codepointë§Œ êµ½ëŠ” build í•¨ìˆ˜
     static FontAtlas BuildFromCodepoints(
         ID3D11Device* dev,
-        const std::wstring& fontFilePath,           // ÆùÆ® °æ·Î
-        float fontPx,                               // ÆùÆ® Å©±â
-        int atlasW, int atlasH,                     // ¾ÆÆ²¶ó½º Å©±â (1024 ¶Ç´Â 2048 ÃßÃµ)
-        const std::vector<uint32_t>& codepoints,    // ±ÛÀÚ codepoint µé
-        int paddingPx = 1,                          // ÆĞµù Å©±â
-        bool includeASCII = true                    // ascii Æ÷ÇÔ ¿©ºÎ
+        const std::wstring& fontFilePath,           // í°íŠ¸ ê²½ë¡œ
+        float fontPx,                               // í°íŠ¸ í¬ê¸°
+        int atlasW, int atlasH,                     // ì•„í‹€ë¼ìŠ¤ í¬ê¸° (1024 ë˜ëŠ” 2048 ì¶”ì²œ)
+        const std::vector<uint32_t>& codepoints,    // ê¸€ì codepoint ë“¤
+        int paddingPx = 1,                          // íŒ¨ë”© í¬ê¸°
+        bool includeASCII = true                    // ascii í¬í•¨ ì—¬ë¶€
     );
 };
