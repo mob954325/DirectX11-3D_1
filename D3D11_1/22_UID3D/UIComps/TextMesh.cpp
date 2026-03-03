@@ -78,13 +78,13 @@ void TextMesh::Init(ComPtr<ID3D11Device>& dev)
 
 	D3D11_BUFFER_DESC ib{};
 	ib.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	ib.Usage = D3D11_USAGE_IMMUTABLE;
+	ib.Usage = D3D11_USAGE_IMMUTABLE;		// gpu에서만 값을 읽는다.
 	ib.ByteWidth = (UINT)(inds.size() * sizeof(uint16_t));
 	D3D11_SUBRESOURCE_DATA init{};
 	init.pSysMem = inds.data();
 	HR_T(dev->CreateBuffer(&ib, &init, textIB.GetAddressOf()));
 
-	// 상수 버퍼 만들기
+	// 상수 버퍼 만들기 -> 기존에 있음
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.ByteWidth = sizeof(ImageCBData);
@@ -92,12 +92,12 @@ void TextMesh::Init(ComPtr<ID3D11Device>& dev)
 	bufferDesc.CPUAccessFlags = 0;
 	HR_T(dev->CreateBuffer(&bufferDesc, nullptr, textCbBuffer.GetAddressOf()));
 
-	// 픽셀 셰이더 만들기
+	// 픽셀 셰이더 만들기 -> 추가해야함
 	ComPtr<ID3DBlob> pixelShaderBuffer = nullptr;
 	HR_T(CompileShaderFromFile(L"Shaders\\PS_QuadText.hlsl", "main", "ps_5_0", &pixelShaderBuffer));
 	HR_T(dev->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, textPS.GetAddressOf()));
 
-	D3D11_SAMPLER_DESC sampDesc = {};
+	D3D11_SAMPLER_DESC sampDesc = {}; // -> 추가해야함
 	sampDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;

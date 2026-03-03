@@ -1,4 +1,4 @@
-#include "Draw2DUIApp.h"
+﻿#include "Draw2DUIApp.h"
 #include "../Common/Helper.h"
 
 #include <directxtk/SimpleMath.h>
@@ -286,15 +286,15 @@ void Draw2DUIApp::RenderImGUI()
 	}
 	ImGui::End();
 
-	ImGui::Begin("TextMesh");
-	{
-		auto ws = textMesh->GetText();
-		std::string str(ws.begin(), ws.end());
-		ImGui::InputText("meshText", &str);
-		std::wstring changed(str.begin(), str.end());
-		textMesh->SetText(changed);
-	}
-	ImGui::End();
+	//ImGui::Begin("TextMesh");
+	//{
+	//	auto ws = textMesh->GetText();
+	//	std::string str(ws.begin(), ws.end());
+	//	ImGui::InputText("meshText", &str);
+	//	std::wstring changed(str.begin(), str.end());
+	//	textMesh->SetText(changed);
+	//}
+	//ImGui::End();
 
 	// 리셋 버튼
 	if (ImGui::Button("Reset", { 50, 20 }))
@@ -590,11 +590,11 @@ void Draw2DUIApp::CreateUIComps()
 
 	img1->Init(m_pDevice);
 	img1->GetTexureByPath(m_pDevice, m_pDeviceContext, "..\\Resource\\neruThumpUp.png");
-
+	 
 	textMesh->Init(m_pDevice);
-	textMesh->LoadFontAtlas(m_pDevice, L"..\\Resource\\ttf\\Dotum.ttf", 32, 2048, 2048, 1);
+	textMesh->LoadFontAtlas(m_pDevice, L"..\\Resource\\ttf\\Shilla_Culture(M).ttf", 32, 2048, 2048, 1);
 	// img1->SetText(L"Hello, world");
-	textMesh->SetText(L"하씨", HAlign::Left);
+	textMesh->SetText(L"다람쥐 어쩌구 저쩌구", HAlign::Left);
 	textMesh->SetColor({ 1,0,0,1 });
 }
 

@@ -13,13 +13,13 @@
 
 struct GlyphDraw
 {
-	float x, y;   // ±Û¸®ÇÁ top-left (Äµ¹ö½º ÁÂÇ¥, y-down)
-	float w, h;   // ±Û¸®ÇÁ bitmap size
+	float x, y;   // ê¸€ë¦¬í”„ top-left (ìº”ë²„ìŠ¤ ì¢Œí‘œ, y-down)
+	float w, h;   // ê¸€ë¦¬í”„ bitmap size
 	float u0, v0, u1, v1;
 	int advance;
 };
 
-// Á¤·Ä Å¸ÀÔ
+// ì •ë ¬ íƒ€ì…
 enum class HAlign
 {
 	Left, Center, Right
@@ -33,7 +33,7 @@ public:
 
 	Matrix MakeWorldFromRect() const;
 
-	// ÀÓ½Ã ·ÎÄÃ ·Îµå ÇÔ¼ö
+	// ì„ì‹œ ë¡œì»¬ ë¡œë“œ í•¨ìˆ˜
 	void LoadFontAtlas(ComPtr<ID3D11Device>& dev, const std::wstring fontFilePath, float fontPx, int atlasW, int atlasH, int paddingPx);
 
 	void EnsureAtlasForText(ComPtr<ID3D11Device>& dev, const std::vector<uint32_t>& cps);
@@ -45,58 +45,58 @@ public:
 	void SetColor(Color color);
 
 private:
-	ComPtr<ID3D11Device>				device{};			// initÇÒ ¶§ ÂüÁ¶ÇÑ device
-	ComPtr<ID3D11Buffer>				textCbBuffer{};		// image¿ë »ó¼ö ¹öÆÛ->³ªÁß¿¡ ¸Å´ÏÀú·Î ¸ğ¾ÆµÎ±â
-	ComPtr<ID3D11PixelShader>			textPS{};			// ÀÌ¹ÌÁö¿¡ »ç¿ëÇÒ ps
-	ComPtr<ID3D11SamplerState>			textSS{};		// ÅØ½ºÆ®¿ë »ùÇÃ·¯
+	ComPtr<ID3D11Device>				device{};			// inití•  ë•Œ ì°¸ì¡°í•œ device
+	ComPtr<ID3D11Buffer>				textCbBuffer{};		// imageìš© ìƒìˆ˜ ë²„í¼->ë‚˜ì¤‘ì— ë§¤ë‹ˆì €ë¡œ ëª¨ì•„ë‘ê¸°
+	ComPtr<ID3D11PixelShader>			textPS{};			// ì´ë¯¸ì§€ì— ì‚¬ìš©í•  ps
+	ComPtr<ID3D11SamplerState>			textSS{};			// í…ìŠ¤íŠ¸ìš© ìƒ˜í”ŒëŸ¬
 
 	ComPtr<ID3D11Buffer> textVB;
 	ComPtr<ID3D11Buffer> textIB;
 	uint32_t indexCount = 0;
 
-	std::vector<QuadVertex> cpuVerts;	// º¹»çÇÒ Á¤Á¡ µ¥ÀÌÅÍ
-	std::vector<uint16_t>	cpuInds;	// ÀÎµ¦½º µ¥ÀÌÅÍ ?
+	std::vector<QuadVertex> cpuVerts;	// ë³µì‚¬í•  ì •ì  ë°ì´í„°
+	std::vector<uint16_t>	cpuInds;	// ì¸ë±ìŠ¤ ë°ì´í„° ?
 
-	ImageCBData imageCBData{};	//	»ó¼ö¹öÆÛ
-	Matrix mvp{};				// model view projection ( »ó¼ö ¹öÆÛ¿¡ ³Ñ±æ À§Ä¡ ¸ÅÆ®¸¯½º )
+	ImageCBData imageCBData{};	//	ìƒìˆ˜ë²„í¼
+	Matrix mvp{};				// model view projection ( ìƒìˆ˜ ë²„í¼ì— ë„˜ê¸¸ ìœ„ì¹˜ ë§¤íŠ¸ë¦­ìŠ¤ )
 	
-	FontAtlasBuilder builder{}; // TODO ¸Å´ÏÂ¡ ÇÏ´Â Å¬·¡½º¿¡¼­ »Ñ¸®°Ô º¯°æÇØ¾ßÇÔ
-	FontAtlas atlas{};			// ÆùÆ® ¾ÆÆ²¶ó½º
+	FontAtlasBuilder builder{}; // TODO ë§¤ë‹ˆì§• í•˜ëŠ” í´ë˜ìŠ¤ì—ì„œ ë¿Œë¦¬ê²Œ ë³€ê²½í•´ì•¼í•¨
+	FontAtlas atlas{};			// í°íŠ¸ ì•„í‹€ë¼ìŠ¤
 
-	Color color{};					// ±ÛÀÚ ÀüÃ¼ »ı±ò
-	std::wstring text{};			// Ãâ·ÂÇÒ ÅØ½ºÆ® 
+	Color color{};					// ê¸€ì ì „ì²´ ìƒê¹”
+	std::wstring text{};			// ì¶œë ¥í•  í…ìŠ¤íŠ¸ 
 
-	HAlign alignType = HAlign::Left; // ÆùÆ® Á¤·Ä Å¸ÀÔ
+	HAlign alignType = HAlign::Left; // í°íŠ¸ ì •ë ¬ íƒ€ì…
 
-	std::wstring fontPath;			// ÆùÆ® À§Ä¡
-	float fontPx = 0;				// ÆùÆ® Å©±â
-	int atlasW = 0, atlasH = 0, paddingPx = 1; // ¾ÆÆ²¶ó½º Å©±â, ÆĞµù Å©±â
+	std::wstring fontPath;			// í°íŠ¸ ìœ„ì¹˜
+	float fontPx = 0;				// í°íŠ¸ í¬ê¸°
+	int atlasW = 0, atlasH = 0, paddingPx = 1; // ì•„í‹€ë¼ìŠ¤ í¬ê¸°, íŒ¨ë”© í¬ê¸°
 
 	bool geometryDirty = true;
-	uint32_t maxGlyphs = 256; // ÃÊ±â°ª ( ¾Æ¸¶ ±ÛÀÚ ¼ö )
+	uint32_t maxGlyphs = 256; // ì´ˆê¸°ê°’ ( ì•„ë§ˆ ê¸€ì ìˆ˜ )
 
 	/// <summary>
-	/// Ãâ·ÂÇÒ width °è»ê ÇÔ¼ö
+	/// ì¶œë ¥í•  width ê³„ì‚° í•¨ìˆ˜ ( RebuildGeometry ê¸°ëŠ¥ ë¶„ë¦¬ í•¨ìˆ˜ )
 	/// </summary>
 	float MeasureWidthCP(const std::vector<uint32_t>& cps, size_t b, size_t e);
 
 	/// <summary>
-	/// ±ÛÀÚ Äõµå °»½Å
+	/// ê¸€ì ì¿¼ë“œ ê°±ì‹  ( RebuildGeometry ê¸°ëŠ¥ ë¶„ë¦¬ í•¨ìˆ˜ )
 	/// </summary>
 	void AppendGlyphQuad(float penX, float baselineY, const decltype(atlas.glyphs.begin()->second)& g); // third : glyphInfo
 
 	/// <summary>
-	/// ±ÛÀÚ Å©±â È®º¸
+	/// ê¸€ì í¬ê¸° í™•ë³´
 	/// </summary>
 	void RebuildGeometry(ComPtr<ID3D11Device>& dev);
 
 	/// <summary>
-	/// Glyph ¹üÀ§ ÃÊ°úÇÏ´Â Áö È®ÀÎÇÏ°í ³ÑÀ¸¸é 2¹è·Î Áõ°¡ ½ÃÅ´
+	/// Glyph ë²”ìœ„ ì´ˆê³¼í•˜ëŠ” ì§€ í™•ì¸í•˜ê³  ë„˜ìœ¼ë©´ 2ë°°ë¡œ ì¦ê°€ ì‹œí‚´
 	/// </summary>
-	void EnsureBufferCapacity(ComPtr<ID3D11Device>& dev, uint32_t glyphCount); // NOTE : ÀÌ°Å Glyph°³¼ö °íÁ¤ÀÌ¿©¼­ Ãß°¡ÇÑ°Çµ¥, °íÁ¤µµ ºñÈ¿À²ÀûÀÌ¶ó Ã³À½ ¼³Á¤ÇÒ ¶§ glyphCount ¼³Á¤ÇÒ ¼ö ÀÖ°Ô ¼öÁ¤ÇÏ¸é ÀÌ°Å Á¦°Å 
+	void EnsureBufferCapacity(ComPtr<ID3D11Device>& dev, uint32_t glyphCount); // NOTE : ì´ê±° Glyphê°œìˆ˜ ê³ ì •ì´ì—¬ì„œ ì¶”ê°€í•œê±´ë°, ê³ ì •ë„ ë¹„íš¨ìœ¨ì ì´ë¼ ì²˜ìŒ ì„¤ì •í•  ë•Œ glyphCount ì„¤ì •í•  ìˆ˜ ìˆê²Œ ìˆ˜ì •í•˜ë©´ ì´ê±° ì œê±° 
 
 	/// <summary>
-	/// ¹öÅØ½º ¹öÆÛ °»½Å ÇÔ¼ö 
+	/// ë²„í…ìŠ¤ ë²„í¼ ê°±ì‹  í•¨ìˆ˜ 
 	/// </summary>
 	void UploadVB(ComPtr<ID3D11DeviceContext>& context);
 };
