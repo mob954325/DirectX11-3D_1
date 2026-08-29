@@ -1,3 +1,6 @@
+
+
+
 ## 1. 프로젝트 개요
 
 모델의 머티리얼과 기하 정보를 여러 개의 G-Buffer에 먼저 저장하고, 이후 전체 화면 Quad에서 조명을 계산하는 Deferred Rendering 프로젝트입니다.
@@ -120,6 +123,8 @@ Lighting Pass는 Additive Blend State를 사용합니다. 현재 구현된 조�
     - 전체 화면 Quad가 기존 Geometry Pass의 깊이 값을 변경하지 않도록 `m_depthStencilStateWriteOff`를 사용합니다.
 
 ## 6. 실행 결과
+
+https://github.com/user-attachments/assets/399883c0-08de-4099-a1dd-36a385d9f4ea
 
 
 ## 7. 배운 점
