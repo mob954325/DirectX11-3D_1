@@ -120,6 +120,10 @@ swapChain3->SetColorSpace1(
 ## 6. 실행 결과
 
 
+https://github.com/user-attachments/assets/5447621e-9536-4932-8b2b-5dfd0d5cca34
+
+
+
 ## 7. 배운 점
 
 - HDR 렌더링은 높은 범위의 색을 계산하는 단계와 디스플레이에 맞게 출력하는 단계를 분리해야 합니다.
