@@ -107,7 +107,17 @@ Roughness가 높을수록 Prefiltered Specular Map의 높은 Mip Level을 읽어
     - 필요하면 `clamp`를 사용해 `0 ~ mipLevels - 1` 범위로 제한할 수 있습니다.
 
 ## 6. 실행 결과
+Roughness  
 
+https://github.com/user-attachments/assets/14992a8b-d412-48c4-92ed-b88e0403856a  
+
+Metalness  
+
+https://github.com/user-attachments/assets/2eaad5c3-47ff-4409-b27f-73fff827f6db  
+
+AmbientOcclusion  
+
+https://github.com/user-attachments/assets/a50ff433-db9c-4c57-a0c6-d66b0873750b  
 
 ## 7. 배운 점
 
