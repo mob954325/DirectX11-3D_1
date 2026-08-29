@@ -2,7 +2,7 @@
 	<!-- ==== 경로/트리플릿 공통 설정 ==== -->
   <PropertyGroup>
     <!-- vcpkg 루트 경로: 필요시 본인 경로로 수정 -->
-    <VcpkgRoot>D:\vcpkg</VcpkgRoot>
+    <VcpkgRoot>G:\GameDev\Github\vcpkg</VcpkgRoot>
 	  <TripletStatic>x64-windows-static-md</TripletStatic>
     <TripletDynamic>x64-windows</TripletDynamic>
   </PropertyGroup>
@@ -31,7 +31,7 @@
         directxtk.lib;
         directxtex.lib;
         imguid.lib;
-        assimp-vc143-mtd.lib;
+        assimp-vc145-mtd.lib;
         %(AdditionalDependencies)
       </AdditionalDependencies>
     </Link>
@@ -57,7 +57,7 @@
         directxtk.lib;
         directxtex.lib;
         imgui.lib;
-        assimp-vc143-mt.lib;
+        assimp-vc145-mt.lib;
         %(AdditionalDependencies)
       </AdditionalDependencies>
     </Link>
